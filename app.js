@@ -19,11 +19,123 @@ function showMessage(text, type) {
   msg.className = 'status-message ' + type;  // type is "info", "success", or "error"
 }
 
+// ---- Map state ----
+// These persist across searches so we can reuse the map and clear old markers.
+var map = null;
+var markerGroup = L.layerGroup();
+
+// ---- Helper: show the map and place markers ----
+function showMap(lat, lng, results) {
+  // Unhide the map section
+  document.getElementById('map-section').classList.remove('hidden');
+
+  // Create the map on first use, or re-center on subsequent searches
+  if (!map) {
+    map = L.map('map').setView([lat, lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    markerGroup.addTo(map);
+  } else {
+    map.flyTo([lat, lng], 13);
+  }
+
+  // Clear markers from any previous search
+  markerGroup.clearLayers();
+
+  // Visitor marker: a bright pulsing dot, forced on top of other markers
+  var visitorIcon = L.divIcon({
+    className: 'visitor-marker',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -18]
+  });
+  L.marker([lat, lng], { icon: visitorIcon, zIndexOffset: 1000 })
+    .bindPopup('You are here')
+    .addTo(markerGroup);
+
+  // Park/playground markers
+  var bounds = L.latLngBounds([[lat, lng]]);
+  results.forEach(function (r) {
+    var ratingText = r.rating ? r.rating + ' stars (' + r.reviewCount + ' reviews)' : '0 ratings';
+    var popupContent = '<strong>' + r.name + '</strong><br>'
+      + r.type + ' — ' + ratingText;
+    L.marker([r.lat, r.lng])
+      .bindPopup(popupContent)
+      .addTo(markerGroup);
+    bounds.extend([r.lat, r.lng]);
+  });
+
+  // Zoom to fit all markers if there are results
+  if (results.length > 0) {
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }
+
+  // Leaflet needs a nudge to render correctly after the container becomes visible
+  setTimeout(function () { map.invalidateSize(); }, 200);
+}
+
+// ---- Helper: render a raw list of results on the page (temporary) ----
+// This is a plain unordered list for verifying data flow.
+// Steps 6 and 7 will replace this with the styled map + list.
+function renderRawResults(results) {
+  var container = document.getElementById('raw-results');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'raw-results';
+    document.querySelector('main').appendChild(container);
+  }
+  if (results.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  var html = '<ul>';
+  results.forEach(function (r) {
+    var rating = r.rating ? r.rating + ' stars' : 'no rating';
+    html += '<li><strong>' + r.name + '</strong> — '
+      + r.type + ', ' + r.distance + ' mi, '
+      + rating + ', ' + r.reviewCount + ' reviews</li>';
+  });
+  html += '</ul>';
+  container.innerHTML = html;
+}
+
 // ---- Helper: called once we have coordinates from either source ----
-// For now this just displays a confirmation. Step 5 will replace
-// this with the actual API call.
+// Calls the serverless function and displays results.
 function handleCoordinates(lat, lng) {
-  showMessage('Got your location: ' + lat.toFixed(5) + ', ' + lng.toFixed(5), 'success');
+  showMessage('Searching for playgrounds and parks…', 'info');
+
+  fetch('/api/places?lat=' + lat + '&lng=' + lng)
+    .then(function (response) {
+      if (response.ok) {
+        return response.json().then(function (data) {
+          if (data.results.length === 0) {
+            showMessage('No playgrounds or parks found within 5 miles of this location.', 'info');
+            showMap(lat, lng, []);
+            renderRawResults([]);
+            return;
+          }
+          showMessage('Found ' + data.results.length + ' playgrounds and parks nearby.', 'success');
+          console.log('Results:', data.results);
+          showMap(lat, lng, data.results);
+          renderRawResults(data.results);
+        });
+      }
+      if (response.status === 400) {
+        showMessage('Something is wrong with the request. Please try again.', 'info');
+      } else if (response.status === 500) {
+        showMessage('The server is not set up correctly. Please try again later.', 'info');
+      } else if (response.status === 502) {
+        showMessage('We couldn\u2019t get results right now. Please try again in a moment.', 'info');
+      } else {
+        showMessage('Something went wrong. Please try again.', 'info');
+      }
+      renderRawResults([]);
+    })
+    .catch(function () {
+      showMessage('Could not reach the server. Please check your connection and try again.', 'info');
+      renderRawResults([]);
+    });
 }
 
 // ---- "Use My Location" button ----
@@ -75,6 +187,7 @@ addressForm.addEventListener('submit', function (e) {
   var url = 'https://nominatim.openstreetmap.org/search'
     + '?q=' + encodeURIComponent(address)
     + '&format=json'
+    + '&countrycodes=us,ca'
     + '&limit=1';
 
   fetch(url, {
