@@ -125,6 +125,26 @@ body {
   transform: translateY(0);
 }
 
+/* ===== Status message ===== */
+.status-message {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 1.5rem;
+  max-width: 28rem;
+  text-align: center;
+}
+
+.status-message.info {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.status-message.success {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.3);
+}
+
 /* ===== Map ===== */
 .map-section {
   padding: 0 1rem;
