@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playground Finder</title>
+
+  <!-- Google Fonts: Fredoka for the title, Nunito for body text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS (for the map, used later) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Our stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <h1 class="title">Playground Finder</h1>
+    <p class="tagline">Find playgrounds and parks near you — perfect for little explorers.</p>
+  </header>
+
+  <main>
+    <section class="search-section">
+      <button id="geolocate-btn" class="btn-locate">Use My Location</button>
+      <div class="divider-text">or</div>
+      <form id="address-form" class="address-form">
+        <input
+          type="text"
+          id="address-input"
+          class="address-input"
+          placeholder="Type an address or city…"
+          autocomplete="off"
+        />
+        <button type="submit" class="btn-search">Search</button>
+      </form>
+    </section>
+
+    <!-- Map container: hidden until we have a location -->
+    <section id="map-section" class="map-section hidden">
+      <div id="map"></div>
+    </section>
+
+    <!-- Results list: hidden until we have results -->
+    <section id="results-section" class="results-section hidden">
+      <h2 class="results-heading">Nearby Playgrounds &amp; Parks</h2>
+      <ul id="results-list" class="results-list"></ul>
+    </section>
+  </main>
+
+  <!-- Leaflet JS (for the map, used later) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Our JavaScript (will be built in Step 3) -->
+  <script src="app.js"></script>
+</body>
+</html>
