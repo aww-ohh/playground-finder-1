@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Playground Finder</title>
+  <title>Playground &amp; Park Finder</title>
 
   <!-- Google Fonts: Fredoka for the title, Nunito for body text -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,7 @@
 </head>
 <body>
   <header class="hero">
-    <h1 class="title">Playground Finder</h1>
+    <h1 class="title">Playground &amp; Park Finder</h1>
     <p class="byline">by AWW</p>
     <p class="tagline">Find playgrounds and parks near you — perfect for little explorers.</p>
   </header>
@@ -39,16 +39,47 @@
       </form>
     </section>
 
-    <!-- Map container: hidden until we have a location -->
-    <section id="map-section" class="map-section hidden">
-      <div id="map"></div>
-    </section>
+    <!-- Wrapper for side-by-side layout on desktop -->
+    <div class="map-results-wrapper">
+      <!-- Map container: hidden until we have a location -->
+      <section id="map-section" class="map-section hidden">
+        <div id="map"></div>
+      </section>
 
-    <!-- Results list: hidden until we have results -->
-    <section id="results-section" class="results-section hidden">
-      <h2 class="results-heading">Nearby Playgrounds &amp; Parks</h2>
-      <ul id="results-list" class="results-list"></ul>
-    </section>
+      <!-- Results list: hidden until we have results -->
+      <section id="results-section" class="results-section hidden">
+        <div class="results-toolbar">
+          <h2 class="results-heading">Nearby Playgrounds &amp; Parks</h2>
+          <div class="filter-row">
+            <div class="type-filter" id="type-filter">
+              <button class="type-btn active" data-type="all">All</button>
+              <button class="type-btn" data-type="playground">Playgrounds</button>
+              <button class="type-btn" data-type="park">Parks</button>
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="sort-control">
+              <label for="radius-select" class="sort-label">Radius</label>
+              <select id="radius-select" class="sort-select">
+                <option value="0.5">&frac12; mile</option>
+                <option value="1">1 mile</option>
+                <option value="2" selected>2 miles</option>
+                <option value="5">5 miles</option>
+              </select>
+            </div>
+            <div class="sort-control">
+              <label for="sort-select" class="sort-label">Sort by</label>
+              <select id="sort-select" class="sort-select">
+                <option value="distance">Closest first</option>
+                <option value="rating">Highest rated</option>
+                <option value="reviews">Most reviewed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <ul id="results-list" class="results-list"></ul>
+      </section>
+    </div>
   </main>
 
   <!-- Leaflet JS (for the map, used later) -->

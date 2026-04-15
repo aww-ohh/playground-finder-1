@@ -11,6 +11,17 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Missing or invalid lat/lng parameters' });
   }
 
+  // ---- 1b. Validate radius parameter ----
+  var allowedRadii = [0.5, 1, 2, 5];
+  var radiusMiles = parseFloat(req.query.radius);
+  if (req.query.radius !== undefined && allowedRadii.indexOf(radiusMiles) === -1) {
+    return res.status(400).json({ error: 'Invalid radius parameter' });
+  }
+  if (isNaN(radiusMiles) || allowedRadii.indexOf(radiusMiles) === -1) {
+    radiusMiles = 2; // default
+  }
+  var radiusMeters = radiusMiles * 1609.344;
+
   // ---- 2. Check for the API key ----
   var apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -26,7 +37,7 @@ module.exports = async function handler(req, res) {
     locationRestriction: {
       circle: {
         center: { latitude: lat, longitude: lng },
-        radius: 8046.72  // 5 miles in meters
+        radius: radiusMeters
       }
     },
     maxResultCount: 20

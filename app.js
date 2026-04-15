@@ -1,35 +1,142 @@
 // app.js — Front-end logic for Playground Finder
 
 // ---- Grab references to HTML elements ----
-const geolocateBtn = document.getElementById('geolocate-btn');
-const addressForm = document.getElementById('address-form');
-const addressInput = document.getElementById('address-input');
-const searchSection = document.querySelector('.search-section');
+var geolocateBtn = document.getElementById('geolocate-btn');
+var addressForm = document.getElementById('address-form');
+var addressInput = document.getElementById('address-input');
+var searchSection = document.querySelector('.search-section');
+var sortSelect = document.getElementById('sort-select');
+var radiusSelect = document.getElementById('radius-select');
+var typeFilterDiv = document.getElementById('type-filter');
 
-// ---- Helper: show a status message on the page ----
-// Creates (or reuses) a small message area below the search controls.
+// ---- localStorage helpers ----
+function loadPref(key, allowed, fallback) {
+  try {
+    var val = localStorage.getItem(key);
+    if (val !== null && allowed.indexOf(val) !== -1) return val;
+  } catch (e) { /* private browsing or disabled — ignore */ }
+  savePref(key, fallback);
+  return fallback;
+}
+
+function savePref(key, value) {
+  try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
+}
+
+// ---- Restore saved preferences ----
+var savedSort = loadPref('playgroundFinder.sort', ['distance', 'rating', 'reviews'], 'distance');
+var savedType = loadPref('playgroundFinder.typeFilter', ['all', 'playground', 'park'], 'all');
+var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '2');
+
+sortSelect.value = savedSort;
+radiusSelect.value = savedRadius;
+// Set active type button
+typeFilterDiv.querySelectorAll('.type-btn').forEach(function (btn) {
+  btn.classList.toggle('active', btn.getAttribute('data-type') === savedType);
+});
+
+// ---- State ----
+var map = null;
+var markerGroup = L.layerGroup();
+var markersByPlaceId = {};
+var currentResults = [];
+var lastLat = null;
+var lastLng = null;
+var requestId = 0; // for ignoring stale responses
+
+// ---- Helper: show a status message ----
 function showMessage(text, type) {
-  let msg = document.getElementById('status-message');
+  var msg = document.getElementById('status-message');
   if (!msg) {
     msg = document.createElement('p');
     msg.id = 'status-message';
     searchSection.appendChild(msg);
   }
   msg.textContent = text;
-  msg.className = 'status-message ' + type;  // type is "info", "success", or "error"
+  msg.className = 'status-message ' + type;
 }
 
-// ---- Map state ----
-// These persist across searches so we can reuse the map and clear old markers.
-var map = null;
-var markerGroup = L.layerGroup();
+// ---- Helper: get current UI state ----
+function getTypeFilter() {
+  var active = typeFilterDiv.querySelector('.type-btn.active');
+  return active ? active.getAttribute('data-type') : 'all';
+}
+
+function getRadius() {
+  return radiusSelect.value;
+}
+
+function getSortOrder() {
+  return sortSelect.value;
+}
+
+// ---- Helper: filter results by type ----
+function filterByType(results, typeFilter) {
+  if (typeFilter === 'all') return results;
+  return results.filter(function (r) { return r.type === typeFilter; });
+}
+
+// ---- Sort helpers ----
+function sortResults(results, sortBy) {
+  var sorted = results.slice();
+  if (sortBy === 'distance') {
+    sorted.sort(function (a, b) { return a.distance - b.distance; });
+  } else if (sortBy === 'rating') {
+    sorted.sort(function (a, b) { return (b.rating || 0) - (a.rating || 0); });
+  } else if (sortBy === 'reviews') {
+    sorted.sort(function (a, b) { return b.reviewCount - a.reviewCount; });
+  }
+  return sorted;
+}
+
+// ---- Helper: type badge label with emoji ----
+function typeBadgeLabel(type) {
+  return type === 'playground' ? '\uD83D\uDEDD playground' : '\uD83C\uDF33 park';
+}
+
+// ---- Google Maps URL ----
+function googleMapsUrl(placeId) {
+  return 'https://www.google.com/maps/place/?q=place_id:' + placeId;
+}
+
+// ---- Yelp search URL ----
+function yelpSearchUrl(name, lat, lng) {
+  return 'https://www.yelp.com/search?find_desc=' + encodeURIComponent(name)
+    + '&find_loc=' + lat + '%2C' + lng;
+}
+
+// ---- Helper: build star icons HTML for a rating ----
+function renderStars(rating) {
+  var rounded = Math.round(rating * 2) / 2; // round to nearest 0.5
+  var full = Math.floor(rounded);
+  var half = rounded % 1 !== 0 ? 1 : 0;
+  var empty = 5 - full - half;
+  var html = '<span class="stars" aria-label="' + rating + ' out of 5 stars">';
+  for (var i = 0; i < full; i++) html += '<span class="star full">\u2605</span>';
+  if (half) html += '<span class="star half">\u2605</span>';
+  for (var j = 0; j < empty; j++) html += '<span class="star empty">\u2605</span>';
+  html += '</span>';
+  return html;
+}
+
+// ---- Helper: compact star icons for popups ----
+function renderStarsCompact(rating) {
+  var rounded = Math.round(rating * 2) / 2;
+  var full = Math.floor(rounded);
+  var half = rounded % 1 !== 0 ? 1 : 0;
+  var empty = 5 - full - half;
+  var html = '<span class="stars stars-compact" aria-label="' + rating + ' out of 5 stars">';
+  for (var i = 0; i < full; i++) html += '<span class="star full">\u2605</span>';
+  if (half) html += '<span class="star half">\u2605</span>';
+  for (var j = 0; j < empty; j++) html += '<span class="star empty">\u2605</span>';
+  html += '</span>';
+  return html;
+}
 
 // ---- Helper: show the map and place markers ----
 function showMap(lat, lng, results) {
-  // Unhide the map section
   document.getElementById('map-section').classList.remove('hidden');
 
-  // Create the map on first use, or re-center on subsequent searches
   if (!map) {
     map = L.map('map').setView([lat, lng], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -40,10 +147,10 @@ function showMap(lat, lng, results) {
     map.flyTo([lat, lng], 13);
   }
 
-  // Clear markers from any previous search
   markerGroup.clearLayers();
+  markersByPlaceId = {};
 
-  // Visitor marker: a bright pulsing dot, forced on top of other markers
+  // Visitor marker
   var visitorIcon = L.divIcon({
     className: 'visitor-marker',
     iconSize: [28, 28],
@@ -57,68 +164,148 @@ function showMap(lat, lng, results) {
   // Park/playground markers
   var bounds = L.latLngBounds([[lat, lng]]);
   results.forEach(function (r) {
-    var ratingText = r.rating ? r.rating + ' stars (' + r.reviewCount + ' reviews)' : '0 ratings';
-    var popupContent = '<strong>' + r.name + '</strong><br>'
-      + r.type + ' — ' + ratingText;
-    L.marker([r.lat, r.lng])
+    var popupRating;
+    if (r.rating) {
+      popupRating = renderStarsCompact(r.rating)
+        + ' <span style="font-weight:700;font-size:0.8rem;">' + r.rating + '</span>'
+        + ' <span style="font-size:0.75rem;color:#666;">(' + r.reviewCount.toLocaleString() + ' reviews)</span>';
+    } else {
+      popupRating = '<span style="font-size:0.75rem;color:#666;">No ratings yet</span>';
+    }
+    var popupTypeClass = r.type === 'playground' ? 'playground' : 'park';
+    var popupContent = '<div class="popup-content">'
+      + '<strong>' + r.name + '</strong><br>'
+      + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
+      + '<a class="popup-link-google" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a><br>'
+      + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
+      + '</div>';
+    var marker = L.marker([r.lat, r.lng])
       .bindPopup(popupContent)
       .addTo(markerGroup);
+    markersByPlaceId[r.placeId] = marker;
     bounds.extend([r.lat, r.lng]);
   });
 
-  // Zoom to fit all markers if there are results
   if (results.length > 0) {
     map.fitBounds(bounds, { padding: [40, 40] });
   }
 
-  // Leaflet needs a nudge to render correctly after the container becomes visible
   setTimeout(function () { map.invalidateSize(); }, 200);
 }
 
-// ---- Helper: render a raw list of results on the page (temporary) ----
-// This is a plain unordered list for verifying data flow.
-// Steps 6 and 7 will replace this with the styled map + list.
-function renderRawResults(results) {
-  var container = document.getElementById('raw-results');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'raw-results';
-    document.querySelector('main').appendChild(container);
-  }
-  if (results.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-  var html = '<ul>';
-  results.forEach(function (r) {
-    var rating = r.rating ? r.rating + ' stars' : 'no rating';
-    html += '<li><strong>' + r.name + '</strong> — '
-      + r.type + ', ' + r.distance + ' mi, '
-      + rating + ', ' + r.reviewCount + ' reviews</li>';
+// ---- Helper: update marker visibility based on type filter ----
+function updateMarkerVisibility(typeFilter) {
+  Object.keys(markersByPlaceId).forEach(function (placeId) {
+    var marker = markersByPlaceId[placeId];
+    // Find the result to check its type
+    var result = currentResults.find(function (r) { return r.placeId === placeId; });
+    if (!result) return;
+
+    if (typeFilter === 'all' || result.type === typeFilter) {
+      if (!markerGroup.hasLayer(marker)) markerGroup.addLayer(marker);
+    } else {
+      if (markerGroup.hasLayer(marker)) markerGroup.removeLayer(marker);
+    }
   });
-  html += '</ul>';
-  container.innerHTML = html;
 }
 
-// ---- Helper: called once we have coordinates from either source ----
-// Calls the serverless function and displays results.
-function handleCoordinates(lat, lng) {
-  showMessage('Searching for playgrounds and parks…', 'info');
+// ---- Helper: render the styled results list ----
+function renderResults(results) {
+  var resultsSection = document.getElementById('results-section');
+  var resultsList = document.getElementById('results-list');
 
-  fetch('/api/places?lat=' + lat + '&lng=' + lng)
+  // Remove any existing filter message
+  var existingMsg = resultsSection.querySelector('.filter-message');
+  if (existingMsg) existingMsg.remove();
+
+  if (currentResults.length === 0) {
+    resultsSection.classList.add('hidden');
+    resultsList.innerHTML = '';
+    return;
+  }
+
+  resultsSection.classList.remove('hidden');
+
+  if (results.length === 0) {
+    // We have results but the filter hid them all
+    var typeFilter = getTypeFilter();
+    var msgText = typeFilter === 'playground'
+      ? 'No playgrounds in your current results.'
+      : 'No parks in your current results.';
+    var filterMsg = document.createElement('p');
+    filterMsg.className = 'filter-message';
+    filterMsg.textContent = msgText;
+    resultsSection.querySelector('.results-toolbar').after(filterMsg);
+    resultsList.innerHTML = '';
+    return;
+  }
+
+  var html = '';
+  results.forEach(function (r) {
+    var typeClass = r.type === 'playground' ? 'playground' : 'park';
+    var ratingHtml;
+    if (r.rating) {
+      ratingHtml = renderStars(r.rating) + ' <span class="rating-number">' + r.rating + '</span> (' + r.reviewCount.toLocaleString() + ' reviews)';
+    } else {
+      ratingHtml = 'No ratings yet';
+    }
+
+    html += '<li class="result-card" data-place-id="' + r.placeId + '">'
+      + '<div class="result-card-header">'
+      + '<span class="result-name">' + r.name + '</span>'
+      + '<span class="result-type ' + typeClass + '">' + typeBadgeLabel(r.type) + '</span>'
+      + '</div>'
+      + '<span class="result-meta">' + r.distance + ' mi away</span>'
+      + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
+      + '<div class="result-links">'
+      + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
+      + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
+      + '</div>'
+      + '</li>';
+  });
+
+  resultsList.innerHTML = html;
+}
+
+// ---- Master render: filter → sort → render list + update markers ----
+function applyFilterAndSort() {
+  var typeFilter = getTypeFilter();
+  var sortBy = getSortOrder();
+  var filtered = filterByType(currentResults, typeFilter);
+  var sorted = sortResults(filtered, sortBy);
+  renderResults(sorted);
+  updateMarkerVisibility(typeFilter);
+}
+
+// ---- Helper: called once we have coordinates ----
+function handleCoordinates(lat, lng) {
+  lastLat = lat;
+  lastLng = lng;
+
+  showMessage('Searching for playgrounds and parks\u2026', 'info');
+
+  var radius = getRadius();
+  var thisRequest = ++requestId;
+
+  fetch('/api/places?lat=' + lat + '&lng=' + lng + '&radius=' + radius)
     .then(function (response) {
+      // Ignore stale responses
+      if (thisRequest !== requestId) return;
+
       if (response.ok) {
         return response.json().then(function (data) {
+          if (thisRequest !== requestId) return;
           if (data.results.length === 0) {
-            showMessage('No playgrounds or parks found within 5 miles of this location.', 'info');
+            showMessage('No playgrounds or parks found within ' + formatRadius(radius) + ' of this location.', 'info');
             showMap(lat, lng, []);
-            renderRawResults([]);
+            currentResults = [];
+            renderResults([]);
             return;
           }
           showMessage('Found ' + data.results.length + ' playgrounds and parks nearby.', 'success');
-          console.log('Results:', data.results);
+          currentResults = data.results;
           showMap(lat, lng, data.results);
-          renderRawResults(data.results);
+          applyFilterAndSort();
         });
       }
       if (response.status === 400) {
@@ -130,17 +317,67 @@ function handleCoordinates(lat, lng) {
       } else {
         showMessage('Something went wrong. Please try again.', 'info');
       }
-      renderRawResults([]);
+      currentResults = [];
+      renderResults([]);
     })
     .catch(function () {
+      if (thisRequest !== requestId) return;
       showMessage('Could not reach the server. Please check your connection and try again.', 'info');
-      renderRawResults([]);
+      currentResults = [];
+      renderResults([]);
     });
 }
 
+// ---- Format radius for display ----
+function formatRadius(val) {
+  if (val === '0.5') return '\u00bd mile';
+  if (val === '1') return '1 mile';
+  return val + ' miles';
+}
+
+// ---- Event: sort change ----
+sortSelect.addEventListener('change', function () {
+  savePref('playgroundFinder.sort', sortSelect.value);
+  if (currentResults.length === 0) return;
+  applyFilterAndSort();
+});
+
+// ---- Event: type filter change ----
+typeFilterDiv.addEventListener('click', function (e) {
+  var btn = e.target.closest('.type-btn');
+  if (!btn) return;
+  typeFilterDiv.querySelectorAll('.type-btn').forEach(function (b) {
+    b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  savePref('playgroundFinder.typeFilter', btn.getAttribute('data-type'));
+  if (currentResults.length === 0) return;
+  applyFilterAndSort();
+});
+
+// ---- Event: radius change → new API call ----
+radiusSelect.addEventListener('change', function () {
+  savePref('playgroundFinder.radius', radiusSelect.value);
+  if (lastLat !== null && lastLng !== null) {
+    handleCoordinates(lastLat, lastLng);
+  }
+});
+
+// ---- Event: card click → pan map to marker ----
+document.getElementById('results-list').addEventListener('click', function (e) {
+  var card = e.target.closest('.result-card');
+  if (!card) return;
+  if (e.target.closest('.result-link')) return;
+  var placeId = card.getAttribute('data-place-id');
+  var marker = markersByPlaceId[placeId];
+  if (marker && map) {
+    map.panTo(marker.getLatLng());
+    marker.openPopup();
+  }
+});
+
 // ---- "Use My Location" button ----
 geolocateBtn.addEventListener('click', function () {
-  // Check if the browser supports geolocation at all
   if (!navigator.geolocation) {
     showMessage(
       'Your browser does not support location services. Please enter an address instead.',
@@ -149,17 +386,12 @@ geolocateBtn.addEventListener('click', function () {
     return;
   }
 
-  // Show a loading message while we wait for the browser prompt
-  showMessage('Checking your location…', 'info');
+  showMessage('Checking your location\u2026', 'info');
 
   navigator.geolocation.getCurrentPosition(
-    // Success: the user allowed location access
     function (position) {
-      var lat = position.coords.latitude;
-      var lng = position.coords.longitude;
-      handleCoordinates(lat, lng);
+      handleCoordinates(position.coords.latitude, position.coords.longitude);
     },
-    // Failure: the user denied permission, or something else went wrong
     function () {
       showMessage(
         'We couldn\u2019t get your location. Please enter an address below instead.',
@@ -171,7 +403,6 @@ geolocateBtn.addEventListener('click', function () {
 
 // ---- Address form submission ----
 addressForm.addEventListener('submit', function (e) {
-  // Prevent the form from reloading the page (default browser behavior)
   e.preventDefault();
 
   var address = addressInput.value.trim();
@@ -180,10 +411,8 @@ addressForm.addEventListener('submit', function (e) {
     return;
   }
 
-  showMessage('Looking up "' + address + '"…', 'info');
+  showMessage('Looking up \u201c' + address + '\u201d\u2026', 'info');
 
-  // Call Nominatim (OpenStreetMap's free geocoding service) to convert
-  // the typed address into latitude/longitude coordinates.
   var url = 'https://nominatim.openstreetmap.org/search'
     + '?q=' + encodeURIComponent(address)
     + '&format=json'
@@ -202,9 +431,7 @@ addressForm.addEventListener('submit', function (e) {
         );
         return;
       }
-      var lat = parseFloat(data[0].lat);
-      var lng = parseFloat(data[0].lon);
-      handleCoordinates(lat, lng);
+      handleCoordinates(parseFloat(data[0].lat), parseFloat(data[0].lon));
     })
     .catch(function () {
       showMessage(
