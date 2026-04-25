@@ -293,14 +293,14 @@ body {
   gap: 0.75rem;
 }
 
+/* ===== Result card ===== */
 .result-card {
   background: #fff;
   border-radius: 1rem;
-  padding: 1rem 1.25rem;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  overflow: hidden;
   cursor: pointer;
   transition: box-shadow 0.15s, transform 0.15s;
 }
@@ -310,6 +310,38 @@ body {
   transform: translateY(-1px);
 }
 
+/* Card body holds text content with padding (photo sits outside this) */
+.result-card-body {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+/* ===== Hero photo on result cards ===== */
+.card-hero-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.card-hero-attribution {
+  font-size: 0.685rem;
+  color: #999;
+  padding: 0.25rem 1.25rem 0;
+}
+
+.card-hero-attribution a {
+  color: #999;
+  text-decoration: underline;
+}
+
+.card-hero-attribution a:hover {
+  color: #666;
+}
+
+/* ===== Card content (unchanged from V1) ===== */
 .result-card-header {
   display: flex;
   align-items: center;
@@ -423,6 +455,23 @@ body {
 .popup-content {
   line-height: 1.5;
   min-width: 160px;
+}
+
+/* Photo inside map popups */
+.popup-hero {
+  margin: -13px -20px 8px -20px;
+}
+
+.popup-hero-image {
+  width: calc(100% + 0px);
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px 12px 0 0;
+}
+
+.popup-body {
+  padding: 0;
 }
 
 .result-type-compact {

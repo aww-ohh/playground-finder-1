@@ -133,6 +133,47 @@ function renderStarsCompact(rating) {
   return html;
 }
 
+// ---- Helper: build hero photo HTML for a result card ----
+// Returns the photo and attribution wrapped in a container div,
+// or an empty string if the result has no photo.
+function renderHeroPhoto(result) {
+  if (!result.photoUrl) return '';
+
+  var attributionHtml = '';
+  if (result.photoAttribution && result.photoAttribution.name) {
+    if (result.photoAttribution.url) {
+      attributionHtml = '<div class="card-hero-attribution">'
+        + 'Photo by <a href="' + result.photoAttribution.url
+        + '" target="_blank" rel="noopener noreferrer">'
+        + result.photoAttribution.name + '</a>'
+        + '</div>';
+    } else {
+      attributionHtml = '<div class="card-hero-attribution">'
+        + 'Photo by ' + result.photoAttribution.name
+        + '</div>';
+    }
+  }
+
+  return '<div class="card-hero">'
+    + '<img class="card-hero-image" src="' + result.photoUrl
+    + '" alt="Photo of ' + result.name
+    + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'">'
+    + attributionHtml
+    + '</div>';
+}
+
+// ---- Helper: build hero photo HTML for a popup ----
+// Smaller version of the card hero, or empty string if no photo.
+function renderPopupPhoto(result) {
+  if (!result.photoUrl) return '';
+
+  return '<div class="popup-hero">'
+    + '<img class="popup-hero-image" src="' + result.photoUrl
+    + '" alt="Photo of ' + result.name
+    + '" onerror="this.parentElement.style.display=\'none\'">'
+    + '</div>';
+}
+
 // ---- Helper: show the map and place markers ----
 function showMap(lat, lng, results) {
   document.getElementById('map-section').classList.remove('hidden');
@@ -174,10 +215,13 @@ function showMap(lat, lng, results) {
     }
     var popupTypeClass = r.type === 'playground' ? 'playground' : 'park';
     var popupContent = '<div class="popup-content">'
+      + renderPopupPhoto(r)
+      + '<div class="popup-body">'
       + '<strong>' + r.name + '</strong><br>'
       + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
       + '<a class="popup-link-google" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a><br>'
       + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
+      + '</div>'
       + '</div>';
     var marker = L.marker([r.lat, r.lng])
       .bindPopup(popupContent)
@@ -251,6 +295,8 @@ function renderResults(results) {
     }
 
     html += '<li class="result-card" data-place-id="' + r.placeId + '">'
+      + renderHeroPhoto(r)
+      + '<div class="result-card-body">'
       + '<div class="result-card-header">'
       + '<span class="result-name">' + r.name + '</span>'
       + '<span class="result-type ' + typeClass + '">' + typeBadgeLabel(r.type) + '</span>'
@@ -260,6 +306,7 @@ function renderResults(results) {
       + '<div class="result-links">'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
+      + '</div>'
       + '</div>'
       + '</li>';
   });
