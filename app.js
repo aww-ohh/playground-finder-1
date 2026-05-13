@@ -25,7 +25,7 @@ function savePref(key, value) {
 
 // ---- Restore saved preferences ----
 var savedSort = loadPref('playgroundFinder.sort', ['distance', 'rating', 'reviews'], 'distance');
-var savedType = loadPref('playgroundFinder.typeFilter', ['all', 'playground', 'park'], 'playground');
+var savedType = loadPref('playgroundFinder.typeFilter', ['all', 'playground', 'park', 'favorites'], 'playground');
 var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '0.5');
 
 sortSelect.value = savedSort;
@@ -73,9 +73,42 @@ function getSortOrder() {
   return sortSelect.value;
 }
 
-// ---- Helper: filter results by type ----
+// ---- Favorites (persisted in localStorage as an array of placeIds) ----
+var FAVORITES_KEY = 'playgroundFinder.favorites';
+
+function getFavorites() {
+  try {
+    var raw = localStorage.getItem(FAVORITES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function setFavorites(arr) {
+  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(arr)); }
+  catch (e) { /* storage full or disabled — ignore */ }
+}
+
+function isFavorite(placeId) {
+  return getFavorites().indexOf(placeId) !== -1;
+}
+
+// Returns true if it's now favorited, false if it was unfavorited
+function toggleFavorite(placeId) {
+  var favs = getFavorites();
+  var idx = favs.indexOf(placeId);
+  if (idx === -1) favs.push(placeId);
+  else favs.splice(idx, 1);
+  setFavorites(favs);
+  return idx === -1;
+}
+
+// ---- Helper: filter results by type (or by favorited state) ----
 function filterByType(results, typeFilter) {
   if (typeFilter === 'all') return results;
+  if (typeFilter === 'favorites') {
+    var favs = getFavorites();
+    return results.filter(function (r) { return favs.indexOf(r.placeId) !== -1; });
+  }
   return results.filter(function (r) { return r.type === typeFilter; });
 }
 
@@ -470,7 +503,9 @@ function renderResults(results) {
       ratingHtml = 'No ratings yet';
     }
 
+    var favClass = isFavorite(r.placeId) ? ' is-favorite' : '';
     html += '<li class="result-card" data-place-id="' + r.placeId + '">'
+      + '<button class="favorite-btn' + favClass + '" data-place-id="' + r.placeId + '" aria-label="Save to favorites" title="Save to favorites">★</button>'
       + renderHeroPhoto(r)
       + '<div class="result-card-body">'
       + '<div class="result-card-header">'
@@ -666,6 +701,20 @@ radiusSelect.addEventListener('change', function () {
 
 // ---- Event: card click → pan map to marker ----
 document.getElementById('results-list').addEventListener('click', function (e) {
+  // Favorite button toggle
+  var favBtn = e.target.closest('.favorite-btn');
+  if (favBtn) {
+    e.stopPropagation();
+    var pid = favBtn.getAttribute('data-place-id');
+    var nowFav = toggleFavorite(pid);
+    favBtn.classList.toggle('is-favorite', nowFav);
+    // If we're currently viewing the favorites filter, the unfavorited card should disappear
+    if (getTypeFilter() === 'favorites' && !nowFav) {
+      applyFilterAndSort();
+    }
+    return;
+  }
+
   // Handle signal row expand/collapse
   var signalRow = e.target.closest('.signal-tappable');
   if (signalRow) {
