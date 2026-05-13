@@ -514,6 +514,16 @@ main {
 .result-card:nth-child(3n+3) { box-shadow: 6px 6px 0 #e07a2a; }
 .result-card:nth-child(3n+3):hover { box-shadow: 8px 8px 0 #e07a2a; }
 
+/* Brief gold-flash highlight when a marker click scrolls a card into view */
+.result-card.card-flash {
+  animation: cardFlash 1.4s ease;
+}
+@keyframes cardFlash {
+  0%   { background: #fff; }
+  20%  { background: #fff3cf; }
+  100% { background: #fff; }
+}
+
 .result-card-body {
   padding: 1rem 1.25rem 1.1rem;
   display: flex;

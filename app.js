@@ -261,6 +261,17 @@ function renderPopupSignals(signals) {
   return html;
 }
 
+// ---- Helper: scroll the results list to a card and flash it ----
+function scrollToCard(placeId) {
+  var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  card.classList.remove('card-flash'); // restart animation if already running
+  // Force a reflow so the class re-add triggers a fresh animation
+  void card.offsetWidth;
+  card.classList.add('card-flash');
+}
+
 // ---- Helper: show the map and place markers ----
 function showMap(lat, lng, results) {
   document.getElementById('map-section').classList.remove('hidden');
@@ -322,6 +333,10 @@ function showMap(lat, lng, results) {
       .bindPopup(popupContent)
       .addTo(markerGroup);
     markersByPlaceId[r.placeId] = marker;
+    // Clicking the marker scrolls the matching card into view and briefly highlights it
+    marker.on('click', (function (placeId) {
+      return function () { scrollToCard(placeId); };
+    })(r.placeId));
     bounds.extend([r.lat, r.lng]);
   });
 
