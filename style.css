@@ -728,6 +728,39 @@ main {
   color: #1a1410;
 }
 
+/* Source label after each rating ("Google" / "Yelp") */
+.rating-source {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #888;
+  margin-left: 0.25rem;
+  letter-spacing: 0.02em;
+}
+.rating-source-link {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #c0202c;
+  text-decoration: none;
+  margin-left: 0.25rem;
+}
+.rating-source-link:hover { text-decoration: underline; }
+.rating-meta {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+}
+
+/* Yelp row (sits below the Google rating row) */
+.yelp-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+}
+
 /* ===== Signals list ===== */
 .signals-list {
   display: flex;

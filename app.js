@@ -244,6 +244,89 @@ function renderReviews(result) {
     + '</div>';
 }
 
+// ---- Yelp ratings (cached in localStorage per placeId) ----
+var YELP_CACHE_PREFIX = 'playgroundFinder.yelp.';
+
+function loadCachedYelp(placeId) {
+  try {
+    var raw = localStorage.getItem(YELP_CACHE_PREFIX + placeId);
+    if (raw === null) return undefined; // never looked up
+    var parsed = JSON.parse(raw);
+    if (parsed && parsed.noMatch === true) return null; // looked up, no match
+    return parsed;
+  } catch (e) { return undefined; }
+}
+
+function saveCachedYelp(placeId, dataOrNull) {
+  try {
+    var toStore = dataOrNull || { noMatch: true };
+    localStorage.setItem(YELP_CACHE_PREFIX + placeId, JSON.stringify(toStore));
+  } catch (e) { /* ignore */ }
+}
+
+function renderYelpRatingHtml(yelpData) {
+  if (!yelpData) return '';
+  var stars = renderStars(yelpData.rating || 0);
+  var url = yelpData.yelpUrl
+    ? '<a href="' + yelpData.yelpUrl + '" target="_blank" rel="noopener noreferrer" class="rating-source-link">Yelp →</a>'
+    : '<span class="rating-source">Yelp</span>';
+  return stars
+    + ' <span class="rating-number">' + (yelpData.rating || '?') + '</span>'
+    + ' <span class="rating-meta">(' + (yelpData.reviewCount || 0).toLocaleString() + ')</span> '
+    + url;
+}
+
+function renderYelpRow(r) {
+  if (!r.yelp) return '<span class="result-meta yelp-rating hidden"></span>';
+  return '<span class="result-meta yelp-rating">' + renderYelpRatingHtml(r.yelp) + '</span>';
+}
+
+function updateAndCacheYelp(placeId, yelpData) {
+  for (var i = 0; i < currentResults.length; i++) {
+    if (currentResults[i].placeId === placeId) {
+      currentResults[i].yelp = yelpData;
+      break;
+    }
+  }
+  saveCachedYelp(placeId, yelpData);
+  var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
+  if (!card) return;
+  var existing = card.querySelector('.yelp-rating');
+  if (!existing) return;
+  if (yelpData) {
+    existing.innerHTML = renderYelpRatingHtml(yelpData);
+    existing.classList.remove('hidden');
+  } else {
+    existing.classList.add('hidden');
+  }
+}
+
+function fetchYelp(parks, thisRequest) {
+  fetch('/api/yelp', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parks: parks })
+  })
+    .then(function (response) {
+      if (thisRequest !== requestId) return;
+      if (!response.ok) return null;
+      return response.json();
+    })
+    .then(function (data) {
+      if (thisRequest !== requestId) return;
+      if (!data || !data.yelp) {
+        // Cache "no match" so we don't retry next session
+        parks.forEach(function (p) { updateAndCacheYelp(p.placeId, null); });
+        return;
+      }
+      parks.forEach(function (p) {
+        var match = data.yelp[p.placeId] || null;
+        updateAndCacheYelp(p.placeId, match);
+      });
+    })
+    .catch(function () { /* silent — Yelp is supplementary */ });
+}
+
 // ---- Weather (Open-Meteo, no API key) ----
 function weatherCodeToEmoji(code) {
   if (code === 0) return ['☀️', 'Clear'];
@@ -607,7 +690,8 @@ function renderResults(results) {
       + '<span class="result-type ' + typeClass + '">' + typeBadgeLabel(r.type) + '</span>'
       + '</div>'
       + '<span class="result-meta">' + r.distance + ' mi away</span>'
-      + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
+      + '<span class="result-meta result-rating">' + ratingHtml + ' <span class="rating-source">Google</span></span>'
+      + renderYelpRow(r)
       + renderHours(r)
       + renderSignals(r.signals)
       + renderReviews(r)
@@ -660,6 +744,7 @@ function handleCoordinates(lat, lng) {
 
           // Decide initial signals state per park: cached \u2192 use it; no reviews \u2192 defaults; else loading
           var needsSignals = []; // parks that will be sent to /api/signals
+          var needsYelp = [];    // parks that will be sent to /api/yelp
           data.results.forEach(function (r) {
             var cached = loadCachedSignals(r.placeId);
             if (cached) {
@@ -669,6 +754,14 @@ function handleCoordinates(lat, lng) {
             } else {
               r.signals = loadingSignals();
               needsSignals.push({ placeId: r.placeId, name: r.name, reviews: r.reviews });
+            }
+            // Yelp: undefined = never looked up; null = looked up, no match; object = match
+            var yelpCached = loadCachedYelp(r.placeId);
+            if (yelpCached === undefined) {
+              r.yelp = null; // start hidden, may fill in
+              needsYelp.push({ placeId: r.placeId, name: r.name, lat: r.lat, lng: r.lng });
+            } else {
+              r.yelp = yelpCached; // null (no match) or the cached match object
             }
           });
 
@@ -680,6 +773,11 @@ function handleCoordinates(lat, lng) {
           // Phase 2: fetch signals for parks not in cache (in the background)
           if (needsSignals.length > 0) {
             fetchSignals(needsSignals, thisRequest);
+          }
+
+          // Phase 2b: fetch Yelp ratings for parks not in cache (in parallel)
+          if (needsYelp.length > 0) {
+            fetchYelp(needsYelp, thisRequest);
           }
 
           // Also fetch current weather at the search location (in parallel)
@@ -835,7 +933,7 @@ document.getElementById('results-list').addEventListener('click', function (e) {
 
   var card = e.target.closest('.result-card');
   if (!card) return;
-  if (e.target.closest('.result-link')) return;
+  if (e.target.closest('a')) return; // any link inside a card opens in a new tab
   var placeId = card.getAttribute('data-place-id');
   var marker = markersByPlaceId[placeId];
   if (marker && map) {
