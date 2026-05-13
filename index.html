@@ -3,89 +3,178 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Playground &amp; Park Finder</title>
+  <title>Playground Finder — by AWW</title>
 
-  <!-- Google Fonts: Fredoka for the title, Nunito for body text -->
+  <!-- Google Fonts: Bungee (block title), Modak (signature), Permanent Marker (handwritten), Nunito (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Fredoka:wght@600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Modak&family=Permanent+Marker&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Leaflet CSS (for the map, used later) -->
+  <!-- Leaflet CSS (for the map) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <!-- Our stylesheet -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hero">
-    <h1 class="title">Playground &amp; Park Finder</h1>
-    <p class="byline">by AWW</p>
-    <p class="tagline">Find playgrounds and parks near you — perfect for little explorers.</p>
-  </header>
 
   <main>
-    <section class="search-section">
-      <button id="geolocate-btn" class="btn-locate">Use My Location</button>
-      <div class="divider-text">or</div>
-      <form id="address-form" class="address-form">
-        <input
-          type="text"
-          id="address-input"
-          class="address-input"
-          placeholder="Enter an address, city, or zip code"
-          autocomplete="street-address"
-        />
-        <button type="submit" class="btn-search">Search</button>
-      </form>
+
+    <!-- ===== Hero: graffiti title + tagline + search bar ===== -->
+    <section class="hero">
+
+      <!-- Paint splatters scattered around the hero -->
+      <svg class="splatter splatter-1" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M55 28 C75 28 88 42 84 60 C90 78 70 92 50 86 C30 92 16 72 22 54 C18 36 36 22 50 26 C52 27 53 27 55 28 Z" fill="#e07a2a"/>
+        <circle cx="14" cy="22" r="5" fill="#e07a2a"/>
+        <ellipse cx="100" cy="34" rx="6" ry="4" fill="#e07a2a" transform="rotate(-20 100 34)"/>
+        <circle cx="105" cy="78" r="6" fill="#e07a2a"/>
+        <circle cx="10" cy="74" r="3" fill="#e07a2a"/>
+        <circle cx="60" cy="108" r="4" fill="#e07a2a"/>
+        <circle cx="95" cy="108" r="2" fill="#e07a2a"/>
+        <circle cx="6" cy="50" r="2" fill="#e07a2a"/>
+      </svg>
+
+      <svg class="splatter splatter-2" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M48 24 C66 24 78 40 72 58 C76 76 54 84 38 74 C22 68 24 46 32 36 C38 28 42 24 48 24 Z" fill="#0d9b62"/>
+        <circle cx="14" cy="32" r="5" fill="#0d9b62"/>
+        <circle cx="88" cy="22" r="3" fill="#0d9b62"/>
+        <ellipse cx="92" cy="78" rx="6" ry="4" fill="#0d9b62" transform="rotate(25 92 78)"/>
+        <circle cx="10" cy="86" r="2" fill="#0d9b62"/>
+        <circle cx="50" cy="98" r="3" fill="#0d9b62"/>
+      </svg>
+
+      <svg class="splatter splatter-3" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 28 C68 28 78 44 72 62 C76 80 50 86 38 74 C24 66 26 44 36 34 C40 30 46 28 50 28 Z" fill="#3aa9e8"/>
+        <circle cx="12" cy="20" r="4" fill="#3aa9e8"/>
+        <circle cx="90" cy="40" r="3" fill="#3aa9e8"/>
+        <circle cx="86" cy="86" r="5" fill="#3aa9e8"/>
+        <circle cx="12" cy="80" r="2" fill="#3aa9e8"/>
+      </svg>
+
+      <svg class="splatter splatter-4" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 30 C66 30 74 46 68 62 C66 78 46 80 36 70 C24 60 28 42 38 34 C42 30 46 30 50 30 Z" fill="#c0202c"/>
+        <circle cx="16" cy="28" r="3" fill="#c0202c"/>
+        <circle cx="86" cy="36" r="3" fill="#c0202c"/>
+        <circle cx="78" cy="86" r="4" fill="#c0202c"/>
+      </svg>
+
+      <svg class="splatter splatter-5" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M50 32 C64 32 72 46 68 58 C66 72 48 76 38 68 C28 60 30 42 40 36 C44 33 47 32 50 32 Z" fill="#ffb800"/>
+        <circle cx="20" cy="22" r="3" fill="#ffb800"/>
+        <circle cx="84" cy="78" r="3" fill="#ffb800"/>
+      </svg>
+
+      <!-- Big graffiti piece title with "by AWW" tag inline -->
+      <div class="tag-title-wrap">
+        <h1 class="tag-title">PLAYGROUND<br>FINDER<span class="signature-inline">by&nbsp;AWW</span></h1>
+        <div class="drips">
+          <span class="drip d1"></span>
+          <span class="drip d2"></span>
+          <span class="drip d3"></span>
+          <span class="drip d4"></span>
+        </div>
+      </div>
+
+      <!-- Tagline -->
+      <div class="pov">
+        Find playgrounds and parks with features that you want. <span class="arrow">↗</span>
+      </div>
+
+      <!-- Real search bar -->
+      <div class="search-section">
+        <form id="address-form" class="search-bar">
+          <button
+            type="button"
+            id="geolocate-btn"
+            class="search-icon-btn"
+            aria-label="Use my current location"
+            title="Use my current location"
+          >📍</button>
+          <input
+            type="text"
+            id="address-input"
+            class="search-input"
+            placeholder="Enter an address, city, or zip — or tap the pin"
+            autocomplete="off"
+          />
+          <button type="submit" class="search-submit-btn">SEARCH</button>
+        </form>
+      </div>
+
     </section>
 
-    <!-- Wrapper for side-by-side layout on desktop -->
+    <!-- ===== "Five things that matter" educational strip (shown until first search) ===== -->
+    <section id="five-things-strip" class="strip">
+      <div class="strip-inner">
+        <h2>FIVE THINGS<br>THAT MATTER</h2>
+        <p class="strip-sub">we pull these from real reviews — no guessing.</p>
+        <div class="stickers">
+          <div class="sticker">🔒 FENCED?</div>
+          <div class="sticker">🌳 SHADE?</div>
+          <div class="sticker">🚻 BATHROOM?</div>
+          <div class="sticker">👶 TODDLER OK?</div>
+          <div class="sticker">🅿️ PARKING?</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Filter/sort toolbar (shown after a search) ===== -->
+    <section id="results-toolbar" class="results-toolbar hidden">
+      <h2 class="results-heading">Nearby Playgrounds &amp; Parks</h2>
+      <div class="filter-row">
+        <div class="type-filter" id="type-filter">
+          <button class="type-btn active" data-type="all">All</button>
+          <button class="type-btn" data-type="playground">Playgrounds</button>
+          <button class="type-btn" data-type="park">Parks</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="sort-control">
+          <label for="radius-select" class="sort-label">Radius</label>
+          <select id="radius-select" class="sort-select">
+            <option value="0.5">&frac12; mile</option>
+            <option value="1">1 mile</option>
+            <option value="2" selected>2 miles</option>
+            <option value="5">5 miles</option>
+          </select>
+        </div>
+        <div class="sort-control">
+          <label for="sort-select" class="sort-label">Sort by</label>
+          <select id="sort-select" class="sort-select">
+            <option value="distance">Closest first</option>
+            <option value="rating">Highest rated</option>
+            <option value="reviews">Most reviewed</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Map + results ===== -->
     <div class="map-results-wrapper">
-      <!-- Map container: hidden until we have a location -->
       <section id="map-section" class="map-section hidden">
         <div id="map"></div>
+        <button type="button" id="search-here-btn" class="search-here-btn hidden">
+          🔄 Search this area
+        </button>
       </section>
 
-      <!-- Results list: hidden until we have results -->
       <section id="results-section" class="results-section hidden">
-        <div class="results-toolbar">
-          <h2 class="results-heading">Nearby Playgrounds &amp; Parks</h2>
-          <div class="filter-row">
-            <div class="type-filter" id="type-filter">
-              <button class="type-btn active" data-type="all">All</button>
-              <button class="type-btn" data-type="playground">Playgrounds</button>
-              <button class="type-btn" data-type="park">Parks</button>
-            </div>
-          </div>
-          <div class="filter-row">
-            <div class="sort-control">
-              <label for="radius-select" class="sort-label">Radius</label>
-              <select id="radius-select" class="sort-select">
-                <option value="0.5">&frac12; mile</option>
-                <option value="1">1 mile</option>
-                <option value="2" selected>2 miles</option>
-                <option value="5">5 miles</option>
-              </select>
-            </div>
-            <div class="sort-control">
-              <label for="sort-select" class="sort-label">Sort by</label>
-              <select id="sort-select" class="sort-select">
-                <option value="distance">Closest first</option>
-                <option value="rating">Highest rated</option>
-                <option value="reviews">Most reviewed</option>
-              </select>
-            </div>
-          </div>
-        </div>
         <ul id="results-list" class="results-list"></ul>
       </section>
     </div>
+
+    <!-- ===== Footer tag ===== -->
+    <div class="footer-tag">
+      built with love for tiny humans · AWW
+    </div>
+
   </main>
 
-  <!-- Leaflet JS (for the map, used later) -->
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Our JavaScript (will be built in Step 3) -->
+  <!-- Our JavaScript -->
   <script src="app.js"></script>
 </body>
 </html>

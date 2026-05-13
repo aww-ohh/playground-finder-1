@@ -43,6 +43,9 @@ var currentResults = [];
 var lastLat = null;
 var lastLng = null;
 var requestId = 0; // for ignoring stale responses
+var CURRENT_LOCATION_LABEL = 'Current location';
+var MAP_AREA_LABEL = 'Map area';
+var searchHereBtn = document.getElementById('search-here-btn');
 
 // ---- Helper: show a status message ----
 function showMessage(text, type) {
@@ -174,6 +177,90 @@ function renderPopupPhoto(result) {
     + '</div>';
 }
 
+// ---- Signal rendering helpers ----
+
+// Maps dimension values to display labels for category dimensions
+function ageSuitabilityLabel(value) {
+  if (value === 'toddler') return 'Toddler-friendly';
+  if (value === 'older') return 'Older kids';
+  if (value === 'both') return 'All ages';
+  return 'N/A';
+}
+
+function parkingLabel(value) {
+  if (value === 'lot') return 'Parking lot';
+  if (value === 'street') return 'Street parking';
+  if (value === 'both') return 'Lot & street';
+  return 'N/A';
+}
+
+// Builds the value indicator HTML for a boolean dimension (fenced, shade, bathrooms)
+function booleanValueHtml(value) {
+  if (value === 'yes') return '<span class="signal-yes">\u2705 Yes</span>';
+  if (value === 'no') return '<span class="signal-no">\u274C No</span>';
+  return '<span class="signal-na">\u2796 N/A</span>';
+}
+
+// Builds the value indicator HTML for a category dimension (age, parking)
+function categoryValueHtml(label) {
+  if (label === 'N/A') return '<span class="signal-na">\u2796 N/A</span>';
+  return '<span class="signal-category">' + label + '</span>';
+}
+
+// Builds one signal row for a card (with expandable summary)
+function renderSignalRow(icon, label, valueHtml, summary) {
+  var tappable = summary ? ' signal-tappable' : '';
+  var arrow = summary ? '<span class="signal-arrow">\u25B6</span>' : '';
+  var summaryHtml = summary
+    ? '<div class="signal-summary">' + summary + '</div>'
+    : '';
+  return '<div class="signal-row' + tappable + '">'
+    + '<div class="signal-row-header">'
+    + '<span class="signal-icon">' + icon + '</span>'
+    + '<span class="signal-label">' + label + '</span>'
+    + valueHtml
+    + arrow
+    + '</div>'
+    + summaryHtml
+    + '</div>';
+}
+
+// Builds the full signals list for a card
+function renderSignals(signals) {
+  if (!signals) return '';
+
+  var html = '<div class="signals-list">';
+  html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(signals.fenced.value), signals.fenced.summary);
+  html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(signals.shade.value), signals.shade.summary);
+  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(signals.bathrooms.value), signals.bathrooms.summary);
+  html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value)), signals.ageSuitability.summary);
+  html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(signals.parking.value)), signals.parking.summary);
+  html += '</div>';
+  return html;
+}
+
+// Builds one signal row for a popup (compact, no expand)
+function renderPopupSignalRow(icon, valueHtml) {
+  return '<span class="popup-signal">'
+    + '<span class="popup-signal-icon">' + icon + '</span>'
+    + valueHtml
+    + '</span>';
+}
+
+// Builds the compact signals strip for a popup
+function renderPopupSignals(signals) {
+  if (!signals) return '';
+
+  var html = '<div class="popup-signals">';
+  html += renderPopupSignalRow('\uD83D\uDD12', booleanValueHtml(signals.fenced.value));
+  html += renderPopupSignalRow('\uD83C\uDF33', booleanValueHtml(signals.shade.value));
+  html += renderPopupSignalRow('\uD83D\uDEBB', booleanValueHtml(signals.bathrooms.value));
+  html += renderPopupSignalRow('\uD83D\uDC76', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value)));
+  html += renderPopupSignalRow('\uD83C\uDD7F\uFE0F', categoryValueHtml(parkingLabel(signals.parking.value)));
+  html += '</div>';
+  return html;
+}
+
 // ---- Helper: show the map and place markers ----
 function showMap(lat, lng, results) {
   document.getElementById('map-section').classList.remove('hidden');
@@ -184,9 +271,16 @@ function showMap(lat, lng, results) {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     markerGroup.addTo(map);
+    // Show the "Search this area" button whenever the user pans the map
+    map.on('dragend', function () {
+      searchHereBtn.classList.remove('hidden');
+    });
   } else {
     map.flyTo([lat, lng], 13);
   }
+
+  // Hide the "Search this area" button now that we have fresh results centered here
+  searchHereBtn.classList.add('hidden');
 
   markerGroup.clearLayers();
   markersByPlaceId = {};
@@ -219,6 +313,7 @@ function showMap(lat, lng, results) {
       + '<div class="popup-body">'
       + '<strong>' + r.name + '</strong><br>'
       + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
+      + renderPopupSignals(r.signals)
       + '<a class="popup-link-google" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a><br>'
       + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
       + '</div>'
@@ -257,6 +352,8 @@ function updateMarkerVisibility(typeFilter) {
 function renderResults(results) {
   var resultsSection = document.getElementById('results-section');
   var resultsList = document.getElementById('results-list');
+  var resultsToolbar = document.getElementById('results-toolbar');
+  var fiveThingsStrip = document.getElementById('five-things-strip');
 
   // Remove any existing filter message
   var existingMsg = resultsSection.querySelector('.filter-message');
@@ -264,11 +361,15 @@ function renderResults(results) {
 
   if (currentResults.length === 0) {
     resultsSection.classList.add('hidden');
+    resultsToolbar.classList.add('hidden');
+    if (fiveThingsStrip) fiveThingsStrip.classList.remove('hidden');
     resultsList.innerHTML = '';
     return;
   }
 
   resultsSection.classList.remove('hidden');
+  resultsToolbar.classList.remove('hidden');
+  if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
 
   if (results.length === 0) {
     // We have results but the filter hid them all
@@ -279,7 +380,7 @@ function renderResults(results) {
     var filterMsg = document.createElement('p');
     filterMsg.className = 'filter-message';
     filterMsg.textContent = msgText;
-    resultsSection.querySelector('.results-toolbar').after(filterMsg);
+    resultsSection.insertBefore(filterMsg, resultsList);
     resultsList.innerHTML = '';
     return;
   }
@@ -303,6 +404,7 @@ function renderResults(results) {
       + '</div>'
       + '<span class="result-meta">' + r.distance + ' mi away</span>'
       + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
+      + renderSignals(r.signals)
       + '<div class="result-links">'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
@@ -412,6 +514,13 @@ radiusSelect.addEventListener('change', function () {
 
 // ---- Event: card click → pan map to marker ----
 document.getElementById('results-list').addEventListener('click', function (e) {
+  // Handle signal row expand/collapse
+  var signalRow = e.target.closest('.signal-tappable');
+  if (signalRow) {
+    signalRow.classList.toggle('signal-expanded');
+    return; // Don't also pan the map
+  }
+
   var card = e.target.closest('.result-card');
   if (!card) return;
   if (e.target.closest('.result-link')) return;
@@ -437,6 +546,7 @@ geolocateBtn.addEventListener('click', function () {
 
   navigator.geolocation.getCurrentPosition(
     function (position) {
+      addressInput.value = CURRENT_LOCATION_LABEL;
       handleCoordinates(position.coords.latitude, position.coords.longitude);
     },
     function () {
@@ -448,13 +558,40 @@ geolocateBtn.addEventListener('click', function () {
   );
 });
 
+// ---- Focus the input \u2192 select all so typing replaces the current label ----
+addressInput.addEventListener('focus', function () {
+  addressInput.select();
+});
+
+// ---- "Search this area" \u2192 re-run search at the current map center ----
+searchHereBtn.addEventListener('click', function () {
+  if (!map) return;
+  var center = map.getCenter();
+  addressInput.value = MAP_AREA_LABEL;
+  handleCoordinates(center.lat, center.lng);
+});
+
 // ---- Address form submission ----
 addressForm.addEventListener('submit', function (e) {
   e.preventDefault();
 
   var address = addressInput.value.trim();
   if (!address) {
-    showMessage('Please type an address or city name.', 'info');
+    showMessage('Please type an address, or tap the pin to use your current location.', 'info');
+    return;
+  }
+
+  // If the input still contains the literal "Current location" label,
+  // re-trigger geolocation instead of geocoding the text.
+  if (address === CURRENT_LOCATION_LABEL) {
+    geolocateBtn.click();
+    return;
+  }
+
+  // If the input still contains the literal "Map area" label,
+  // re-run the search at the current map center.
+  if (address === MAP_AREA_LABEL && map) {
+    searchHereBtn.click();
     return;
   }
 
