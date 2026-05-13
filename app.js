@@ -181,6 +181,7 @@ function renderPopupPhoto(result) {
 
 // Maps dimension values to display labels for category dimensions
 function ageSuitabilityLabel(value) {
+  if (value === 'loading') return '...';
   if (value === 'toddler') return 'Toddler-friendly';
   if (value === 'older') return 'Older kids';
   if (value === 'both') return 'All ages';
@@ -188,6 +189,7 @@ function ageSuitabilityLabel(value) {
 }
 
 function parkingLabel(value) {
+  if (value === 'loading') return '...';
   if (value === 'lot') return 'Parking lot';
   if (value === 'street') return 'Street parking';
   if (value === 'both') return 'Lot & street';
@@ -198,13 +200,67 @@ function parkingLabel(value) {
 function booleanValueHtml(value) {
   if (value === 'yes') return '<span class="signal-yes">\u2705 Yes</span>';
   if (value === 'no') return '<span class="signal-no">\u274C No</span>';
+  if (value === 'loading') return '<span class="signal-loading">\u23F3 \u2026</span>';
   return '<span class="signal-na">\u2796 N/A</span>';
 }
 
 // Builds the value indicator HTML for a category dimension (age, parking)
 function categoryValueHtml(label) {
+  if (label === '...') return '<span class="signal-loading">\u23F3 \u2026</span>';
   if (label === 'N/A') return '<span class="signal-na">\u2796 N/A</span>';
   return '<span class="signal-category">' + label + '</span>';
+}
+
+// Stand-in signals while we wait for /api/signals to return
+function loadingSignals() {
+  return {
+    fenced: { value: 'loading', summary: null },
+    shade: { value: 'loading', summary: null },
+    bathrooms: { value: 'loading', summary: null },
+    ageSuitability: { value: 'loading', summary: null },
+    parking: { value: 'loading', summary: null }
+  };
+}
+
+// Default (all N/A) signals \u2014 used for parks with no reviews
+function defaultSignalsClient() {
+  return {
+    fenced: { value: 'not_mentioned', summary: null },
+    shade: { value: 'not_mentioned', summary: null },
+    bathrooms: { value: 'not_mentioned', summary: null },
+    ageSuitability: { value: 'not_mentioned', summary: null },
+    parking: { value: 'not_mentioned', summary: null }
+  };
+}
+
+// ---- localStorage cache for Gemini-extracted signals ----
+// Keyed by Google placeId. Signals don't change often, so we cache indefinitely.
+var SIGNAL_CACHE_PREFIX = 'playgroundFinder.signals.';
+
+function loadCachedSignals(placeId) {
+  try {
+    var raw = localStorage.getItem(SIGNAL_CACHE_PREFIX + placeId);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+function saveCachedSignals(placeId, signals) {
+  try {
+    localStorage.setItem(SIGNAL_CACHE_PREFIX + placeId, JSON.stringify(signals));
+  } catch (e) { /* storage full or disabled \u2014 ignore */ }
+}
+
+// Replace the signals area of a single card without re-rendering the whole list
+function updateCardSignals(placeId, signals) {
+  var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
+  if (!card) return;
+  var oldList = card.querySelector('.signals-list');
+  if (!oldList) return;
+  var temp = document.createElement('div');
+  temp.innerHTML = renderSignals(signals);
+  var newList = temp.firstChild;
+  if (newList) oldList.replaceWith(newList);
 }
 
 // Builds one signal row for a card (with expandable summary)
@@ -261,6 +317,29 @@ function renderPopupSignals(signals) {
   return html;
 }
 
+// ---- Helper: build the HTML content for a map popup ----
+function buildPopupContent(r) {
+  var popupRating;
+  if (r.rating) {
+    popupRating = renderStarsCompact(r.rating)
+      + ' <span style="font-weight:700;font-size:0.8rem;">' + r.rating + '</span>'
+      + ' <span style="font-size:0.75rem;color:#666;">(' + r.reviewCount.toLocaleString() + ' reviews)</span>';
+  } else {
+    popupRating = '<span style="font-size:0.75rem;color:#666;">No ratings yet</span>';
+  }
+  var popupTypeClass = r.type === 'playground' ? 'playground' : 'park';
+  return '<div class="popup-content">'
+    + renderPopupPhoto(r)
+    + '<div class="popup-body">'
+    + '<strong>' + r.name + '</strong><br>'
+    + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
+    + renderPopupSignals(r.signals)
+    + '<a class="popup-link-google" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps →</a><br>'
+    + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
+    + '</div>'
+    + '</div>';
+}
+
 // ---- Helper: scroll the results list to a card and flash it ----
 function scrollToCard(placeId) {
   var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
@@ -310,27 +389,8 @@ function showMap(lat, lng, results) {
   // Park/playground markers
   var bounds = L.latLngBounds([[lat, lng]]);
   results.forEach(function (r) {
-    var popupRating;
-    if (r.rating) {
-      popupRating = renderStarsCompact(r.rating)
-        + ' <span style="font-weight:700;font-size:0.8rem;">' + r.rating + '</span>'
-        + ' <span style="font-size:0.75rem;color:#666;">(' + r.reviewCount.toLocaleString() + ' reviews)</span>';
-    } else {
-      popupRating = '<span style="font-size:0.75rem;color:#666;">No ratings yet</span>';
-    }
-    var popupTypeClass = r.type === 'playground' ? 'playground' : 'park';
-    var popupContent = '<div class="popup-content">'
-      + renderPopupPhoto(r)
-      + '<div class="popup-body">'
-      + '<strong>' + r.name + '</strong><br>'
-      + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
-      + renderPopupSignals(r.signals)
-      + '<a class="popup-link-google" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a><br>'
-      + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
-      + '</div>'
-      + '</div>';
     var marker = L.marker([r.lat, r.lng])
-      .bindPopup(popupContent)
+      .bindPopup(buildPopupContent(r))
       .addTo(markerGroup);
     markersByPlaceId[r.placeId] = marker;
     // Clicking the marker scrolls the matching card into view and briefly highlights it
@@ -466,10 +526,30 @@ function handleCoordinates(lat, lng) {
             renderResults([]);
             return;
           }
+
+          // Decide initial signals state per park: cached \u2192 use it; no reviews \u2192 defaults; else loading
+          var needsSignals = []; // parks that will be sent to /api/signals
+          data.results.forEach(function (r) {
+            var cached = loadCachedSignals(r.placeId);
+            if (cached) {
+              r.signals = cached;
+            } else if (!r.reviews || r.reviews.length === 0) {
+              r.signals = defaultSignalsClient();
+            } else {
+              r.signals = loadingSignals();
+              needsSignals.push({ placeId: r.placeId, name: r.name, reviews: r.reviews });
+            }
+          });
+
           showMessage('Found ' + data.results.length + ' playgrounds and parks nearby.', 'success');
           currentResults = data.results;
           showMap(lat, lng, data.results);
           applyFilterAndSort();
+
+          // Phase 2: fetch signals for parks not in cache (in the background)
+          if (needsSignals.length > 0) {
+            fetchSignals(needsSignals, thisRequest);
+          }
         });
       }
       if (response.status === 400) {
@@ -490,6 +570,63 @@ function handleCoordinates(lat, lng) {
       currentResults = [];
       renderResults([]);
     });
+}
+
+// ---- Fetch signals from /api/signals and merge into current results ----
+function fetchSignals(parks, thisRequest) {
+  fetch('/api/signals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ parks: parks })
+  })
+    .then(function (response) {
+      if (thisRequest !== requestId) return; // stale, ignore
+      if (!response.ok) return null;
+      return response.json();
+    })
+    .then(function (data) {
+      if (thisRequest !== requestId) return;
+      if (!data || !data.signals) {
+        // Fall back to defaults for all parks that were loading
+        parks.forEach(function (p) {
+          updateAndCacheSignals(p.placeId, defaultSignalsClient(), false);
+        });
+        return;
+      }
+      // For each park we requested, use the returned signals if present, else default
+      parks.forEach(function (p) {
+        var sig = data.signals[p.placeId] || defaultSignalsClient();
+        // Only cache when we got real signals (don't poison the cache with defaults from Gemini errors)
+        var cacheIt = !!data.signals[p.placeId];
+        updateAndCacheSignals(p.placeId, sig, cacheIt);
+      });
+    })
+    .catch(function () {
+      if (thisRequest !== requestId) return;
+      // Network error \u2014 show defaults so loading state doesn't get stuck
+      parks.forEach(function (p) {
+        updateAndCacheSignals(p.placeId, defaultSignalsClient(), false);
+      });
+    });
+}
+
+// Helper: update currentResults + cache + DOM (card + map popup) for one park's signals
+function updateAndCacheSignals(placeId, signals, shouldCache) {
+  var record = null;
+  for (var i = 0; i < currentResults.length; i++) {
+    if (currentResults[i].placeId === placeId) {
+      currentResults[i].signals = signals;
+      record = currentResults[i];
+      break;
+    }
+  }
+  if (shouldCache) saveCachedSignals(placeId, signals);
+  updateCardSignals(placeId, signals);
+  // Refresh the map popup so loading "…" gets replaced with real values
+  if (record) {
+    var marker = markersByPlaceId[placeId];
+    if (marker) marker.setPopupContent(buildPopupContent(record));
+  }
 }
 
 // ---- Format radius for display ----

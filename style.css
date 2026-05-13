@@ -666,6 +666,7 @@ main {
 .signal-no       { color: #c0202c; font-weight: 700; font-size: 0.88rem; }
 .signal-na       { color: #888;    font-weight: 700; font-size: 0.88rem; }
 .signal-category { color: #3aa9e8; font-weight: 700; font-size: 0.88rem; }
+.signal-loading  { color: #aaa;    font-weight: 700; font-size: 0.88rem; font-style: italic; }
 
 .signal-arrow {
   margin-left: auto;
@@ -759,7 +760,8 @@ main {
 .popup-signal .signal-yes,
 .popup-signal .signal-no,
 .popup-signal .signal-na,
-.popup-signal .signal-category {
+.popup-signal .signal-category,
+.popup-signal .signal-loading {
   font-size: 0.7rem;
 }
 .result-type-compact {
