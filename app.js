@@ -244,6 +244,47 @@ function renderReviews(result) {
     + '</div>';
 }
 
+// ---- Weather (Open-Meteo, no API key) ----
+function weatherCodeToEmoji(code) {
+  if (code === 0) return ['☀️', 'Clear'];
+  if (code === 1 || code === 2) return ['🌤️', 'Mostly clear'];
+  if (code === 3) return ['☁️', 'Cloudy'];
+  if (code === 45 || code === 48) return ['🌫️', 'Foggy'];
+  if (code >= 51 && code <= 57) return ['🌦️', 'Drizzle'];
+  if (code >= 61 && code <= 67) return ['🌧️', 'Rain'];
+  if (code >= 71 && code <= 77) return ['🌨️', 'Snow'];
+  if (code >= 80 && code <= 82) return ['🌧️', 'Showers'];
+  if (code >= 85 && code <= 86) return ['🌨️', 'Snow showers'];
+  if (code >= 95) return ['⛈️', 'Thunderstorm'];
+  return ['🌡️', ''];
+}
+
+function fetchWeather(lat, lng, thisRequest) {
+  var url = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude=' + lat
+    + '&longitude=' + lng
+    + '&current=temperature_2m,weather_code'
+    + '&temperature_unit=fahrenheit';
+  fetch(url)
+    .then(function (response) { return response.ok ? response.json() : null; })
+    .then(function (data) {
+      if (thisRequest !== requestId) return; // stale
+      var banner = document.getElementById('weather-banner');
+      if (!banner) return;
+      if (!data || !data.current) {
+        banner.classList.add('hidden');
+        return;
+      }
+      var temp = Math.round(data.current.temperature_2m);
+      var ec = weatherCodeToEmoji(data.current.weather_code);
+      banner.innerHTML = '<span class="weather-emoji">' + ec[0] + '</span>'
+        + '<span class="weather-temp">' + temp + '°F</span>'
+        + (ec[1] ? '<span class="weather-label">· ' + ec[1] + '</span>' : '');
+      banner.classList.remove('hidden');
+    })
+    .catch(function () { /* silent — weather is a nice-to-have */ });
+}
+
 // ---- Hours rendering ----
 function renderHours(result) {
   // Nothing if Google didn't give us either field
@@ -522,6 +563,8 @@ function renderResults(results) {
     resultsSection.classList.add('hidden');
     resultsToolbar.classList.add('hidden');
     if (fiveThingsStrip) fiveThingsStrip.classList.remove('hidden');
+    var weatherBanner = document.getElementById('weather-banner');
+    if (weatherBanner) weatherBanner.classList.add('hidden');
     resultsList.innerHTML = '';
     return;
   }
@@ -638,6 +681,9 @@ function handleCoordinates(lat, lng) {
           if (needsSignals.length > 0) {
             fetchSignals(needsSignals, thisRequest);
           }
+
+          // Also fetch current weather at the search location (in parallel)
+          fetchWeather(lat, lng, thisRequest);
         });
       }
       if (response.status === 400) {
