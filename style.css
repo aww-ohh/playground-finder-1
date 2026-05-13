@@ -752,8 +752,8 @@ main {
   color: #888;
 }
 
-/* Yelp row (sits below the Google rating row) */
-.yelp-rating {
+/* Second-source rating row (Foursquare) — sits below the Google rating */
+.fsq-rating {
   display: flex;
   align-items: center;
   gap: 0.3rem;

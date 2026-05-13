@@ -244,12 +244,12 @@ function renderReviews(result) {
     + '</div>';
 }
 
-// ---- Yelp ratings (cached in localStorage per placeId) ----
-var YELP_CACHE_PREFIX = 'playgroundFinder.yelp.';
+// ---- Foursquare ratings (cached in localStorage per placeId) ----
+var FSQ_CACHE_PREFIX = 'playgroundFinder.fsq.';
 
-function loadCachedYelp(placeId) {
+function loadCachedFsq(placeId) {
   try {
-    var raw = localStorage.getItem(YELP_CACHE_PREFIX + placeId);
+    var raw = localStorage.getItem(FSQ_CACHE_PREFIX + placeId);
     if (raw === null) return undefined; // never looked up
     var parsed = JSON.parse(raw);
     if (parsed && parsed.noMatch === true) return null; // looked up, no match
@@ -257,52 +257,49 @@ function loadCachedYelp(placeId) {
   } catch (e) { return undefined; }
 }
 
-function saveCachedYelp(placeId, dataOrNull) {
+function saveCachedFsq(placeId, dataOrNull) {
   try {
     var toStore = dataOrNull || { noMatch: true };
-    localStorage.setItem(YELP_CACHE_PREFIX + placeId, JSON.stringify(toStore));
+    localStorage.setItem(FSQ_CACHE_PREFIX + placeId, JSON.stringify(toStore));
   } catch (e) { /* ignore */ }
 }
 
-function renderYelpRatingHtml(yelpData) {
-  if (!yelpData) return '';
-  var stars = renderStars(yelpData.rating || 0);
-  var url = yelpData.yelpUrl
-    ? '<a href="' + yelpData.yelpUrl + '" target="_blank" rel="noopener noreferrer" class="rating-source-link">Yelp →</a>'
-    : '<span class="rating-source">Yelp</span>';
+function renderFsqRatingHtml(fsqData) {
+  if (!fsqData) return '';
+  var stars = renderStars(fsqData.rating || 0);
   return stars
-    + ' <span class="rating-number">' + (yelpData.rating || '?') + '</span>'
-    + ' <span class="rating-meta">(' + (yelpData.reviewCount || 0).toLocaleString() + ')</span> '
-    + url;
+    + ' <span class="rating-number">' + (fsqData.rating || '?') + '</span>'
+    + ' <span class="rating-meta">(' + (fsqData.reviewCount || 0).toLocaleString() + ')</span> '
+    + '<span class="rating-source">Foursquare</span>';
 }
 
-function renderYelpRow(r) {
-  if (!r.yelp) return '<span class="result-meta yelp-rating hidden"></span>';
-  return '<span class="result-meta yelp-rating">' + renderYelpRatingHtml(r.yelp) + '</span>';
+function renderFsqRow(r) {
+  if (!r.fsq) return '<span class="result-meta fsq-rating hidden"></span>';
+  return '<span class="result-meta fsq-rating">' + renderFsqRatingHtml(r.fsq) + '</span>';
 }
 
-function updateAndCacheYelp(placeId, yelpData) {
+function updateAndCacheFsq(placeId, fsqData) {
   for (var i = 0; i < currentResults.length; i++) {
     if (currentResults[i].placeId === placeId) {
-      currentResults[i].yelp = yelpData;
+      currentResults[i].fsq = fsqData;
       break;
     }
   }
-  saveCachedYelp(placeId, yelpData);
+  saveCachedFsq(placeId, fsqData);
   var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
   if (!card) return;
-  var existing = card.querySelector('.yelp-rating');
+  var existing = card.querySelector('.fsq-rating');
   if (!existing) return;
-  if (yelpData) {
-    existing.innerHTML = renderYelpRatingHtml(yelpData);
+  if (fsqData) {
+    existing.innerHTML = renderFsqRatingHtml(fsqData);
     existing.classList.remove('hidden');
   } else {
     existing.classList.add('hidden');
   }
 }
 
-function fetchYelp(parks, thisRequest) {
-  fetch('/api/yelp', {
+function fetchFsq(parks, thisRequest) {
+  fetch('/api/foursquare', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ parks: parks })
@@ -314,17 +311,16 @@ function fetchYelp(parks, thisRequest) {
     })
     .then(function (data) {
       if (thisRequest !== requestId) return;
-      if (!data || !data.yelp) {
-        // Cache "no match" so we don't retry next session
-        parks.forEach(function (p) { updateAndCacheYelp(p.placeId, null); });
+      if (!data || !data.fsq) {
+        parks.forEach(function (p) { updateAndCacheFsq(p.placeId, null); });
         return;
       }
       parks.forEach(function (p) {
-        var match = data.yelp[p.placeId] || null;
-        updateAndCacheYelp(p.placeId, match);
+        var match = data.fsq[p.placeId] || null;
+        updateAndCacheFsq(p.placeId, match);
       });
     })
-    .catch(function () { /* silent — Yelp is supplementary */ });
+    .catch(function () { /* silent — supplementary data */ });
 }
 
 // ---- Weather (Open-Meteo, no API key) ----
@@ -691,7 +687,7 @@ function renderResults(results) {
       + '</div>'
       + '<span class="result-meta">' + r.distance + ' mi away</span>'
       + '<span class="result-meta result-rating">' + ratingHtml + ' <span class="rating-source">Google</span></span>'
-      + renderYelpRow(r)
+      + renderFsqRow(r)
       + renderHours(r)
       + renderSignals(r.signals)
       + renderReviews(r)
@@ -744,7 +740,7 @@ function handleCoordinates(lat, lng) {
 
           // Decide initial signals state per park: cached \u2192 use it; no reviews \u2192 defaults; else loading
           var needsSignals = []; // parks that will be sent to /api/signals
-          var needsYelp = [];    // parks that will be sent to /api/yelp
+          var needsFsq = [];     // parks that will be sent to /api/foursquare
           data.results.forEach(function (r) {
             var cached = loadCachedSignals(r.placeId);
             if (cached) {
@@ -755,13 +751,13 @@ function handleCoordinates(lat, lng) {
               r.signals = loadingSignals();
               needsSignals.push({ placeId: r.placeId, name: r.name, reviews: r.reviews });
             }
-            // Yelp: undefined = never looked up; null = looked up, no match; object = match
-            var yelpCached = loadCachedYelp(r.placeId);
-            if (yelpCached === undefined) {
-              r.yelp = null; // start hidden, may fill in
-              needsYelp.push({ placeId: r.placeId, name: r.name, lat: r.lat, lng: r.lng });
+            // Foursquare: undefined = never looked up; null = looked up, no match; object = match
+            var fsqCached = loadCachedFsq(r.placeId);
+            if (fsqCached === undefined) {
+              r.fsq = null; // start hidden, may fill in
+              needsFsq.push({ placeId: r.placeId, name: r.name, lat: r.lat, lng: r.lng });
             } else {
-              r.yelp = yelpCached; // null (no match) or the cached match object
+              r.fsq = fsqCached; // null (no match) or the cached match object
             }
           });
 
@@ -775,9 +771,9 @@ function handleCoordinates(lat, lng) {
             fetchSignals(needsSignals, thisRequest);
           }
 
-          // Phase 2b: fetch Yelp ratings for parks not in cache (in parallel)
-          if (needsYelp.length > 0) {
-            fetchYelp(needsYelp, thisRequest);
+          // Phase 2b: fetch Foursquare ratings for parks not in cache (in parallel)
+          if (needsFsq.length > 0) {
+            fetchFsq(needsFsq, thisRequest);
           }
 
           // Also fetch current weather at the search location (in parallel)
