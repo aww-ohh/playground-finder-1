@@ -773,6 +773,57 @@ main {
   display: block;
 }
 
+/* Reviews section (collapsible) */
+.reviews-section {
+  margin-top: 0.5rem;
+}
+.reviews-toggle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1410;
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.reviews-toggle:hover {
+  color: #c0202c;
+}
+.reviews-arrow {
+  font-size: 0.55rem;
+  color: #bbb;
+  transition: transform 0.15s;
+}
+.reviews-expanded .reviews-arrow {
+  transform: rotate(90deg);
+}
+.reviews-content {
+  display: none;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 2px dashed #eee;
+  display: none;
+}
+.reviews-expanded .reviews-content {
+  display: block;
+}
+.review-snippet {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #555;
+  line-height: 1.4;
+  padding: 0.4rem 0;
+  border-bottom: 1px dashed #eee;
+}
+.review-snippet:last-child {
+  border-bottom: none;
+}
+
 /* Result links */
 .result-links {
   display: flex;

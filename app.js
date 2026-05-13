@@ -210,6 +210,40 @@ function renderPopupPhoto(result) {
     + '</div>';
 }
 
+// ---- Review snippets ----
+function truncateReview(text, maxLen) {
+  if (!text) return '';
+  text = text.trim();
+  if (text.length <= maxLen) return text;
+  // Cut on a word boundary close to maxLen
+  var cut = text.substring(0, maxLen);
+  var lastSpace = cut.lastIndexOf(' ');
+  if (lastSpace > maxLen * 0.6) cut = cut.substring(0, lastSpace);
+  return cut + '…';
+}
+
+function escapeReviewHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderReviews(result) {
+  if (!result.reviews || result.reviews.length === 0) return '';
+  var count = result.reviews.length;
+  var items = result.reviews.map(function (text) {
+    return '<div class="review-snippet">"' + escapeReviewHtml(truncateReview(text, 220)) + '"</div>';
+  }).join('');
+  return '<div class="reviews-section">'
+    + '<button type="button" class="reviews-toggle" aria-expanded="false">'
+    + '📝 Read reviews (' + count + ') <span class="reviews-arrow">▶</span>'
+    + '</button>'
+    + '<div class="reviews-content">' + items + '</div>'
+    + '</div>';
+}
+
 // ---- Hours rendering ----
 function renderHours(result) {
   // Nothing if Google didn't give us either field
@@ -533,6 +567,7 @@ function renderResults(results) {
       + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
       + renderHours(r)
       + renderSignals(r.signals)
+      + renderReviews(r)
       + '<div class="result-links">'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
@@ -738,6 +773,18 @@ document.getElementById('results-list').addEventListener('click', function (e) {
   if (signalRow) {
     signalRow.classList.toggle('signal-expanded');
     return; // Don't also pan the map
+  }
+
+  // Reviews section expand/collapse
+  var reviewsToggle = e.target.closest('.reviews-toggle');
+  if (reviewsToggle) {
+    e.stopPropagation();
+    var section = reviewsToggle.closest('.reviews-section');
+    if (section) {
+      var isOpen = section.classList.toggle('reviews-expanded');
+      reviewsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+    return;
   }
 
   var card = e.target.closest('.result-card');
