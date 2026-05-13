@@ -163,12 +163,18 @@ main {
   z-index: 2;
 }
 
+/* Positioning wrap so the autocomplete dropdown hangs below the search bar */
+.search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 34rem;
+}
+
 /* Sticker-style search bar */
 .search-bar {
   display: flex;
   align-items: center;
   width: 100%;
-  max-width: 34rem;
   background: #fff;
   border: 4px solid #1a1410;
   border-radius: 2rem;
@@ -181,6 +187,39 @@ main {
 .search-bar:focus-within {
   transform: rotate(-0.5deg) translateY(-1px);
   box-shadow: 8px 8px 0 #1a1410;
+}
+
+/* Autocomplete dropdown */
+.address-suggestions {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 3px solid #1a1410;
+  border-radius: 1rem;
+  box-shadow: 5px 5px 0 #1a1410;
+  z-index: 100;
+  max-height: 20rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.suggestion-item {
+  padding: 0.65rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #1a1410;
+  cursor: pointer;
+  border-bottom: 1px dashed #ddd;
+  line-height: 1.3;
+}
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+.suggestion-item:hover,
+.suggestion-item.highlighted {
+  background: #fff3cf;
 }
 
 .search-icon-btn {

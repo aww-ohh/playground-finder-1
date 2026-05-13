@@ -81,25 +81,28 @@
         Find playgrounds and parks with features that you want. <span class="arrow">↗</span>
       </div>
 
-      <!-- Real search bar -->
+      <!-- Real search bar with address autocomplete -->
       <div class="search-section">
-        <form id="address-form" class="search-bar">
-          <button
-            type="button"
-            id="geolocate-btn"
-            class="search-icon-btn"
-            aria-label="Use my current location"
-            title="Use my current location"
-          >📍</button>
-          <input
-            type="text"
-            id="address-input"
-            class="search-input"
-            placeholder="Enter an address, city, or zip — or tap the pin"
-            autocomplete="off"
-          />
-          <button type="submit" class="search-submit-btn">SEARCH</button>
-        </form>
+        <div class="search-wrap">
+          <form id="address-form" class="search-bar">
+            <button
+              type="button"
+              id="geolocate-btn"
+              class="search-icon-btn"
+              aria-label="Use my current location"
+              title="Use my current location"
+            >📍</button>
+            <input
+              type="text"
+              id="address-input"
+              class="search-input"
+              placeholder="Enter an address, city, or zip — or tap the pin"
+              autocomplete="off"
+            />
+            <button type="submit" class="search-submit-btn">SEARCH</button>
+          </form>
+          <div id="address-suggestions" class="address-suggestions hidden" role="listbox"></div>
+        </div>
       </div>
 
     </section>

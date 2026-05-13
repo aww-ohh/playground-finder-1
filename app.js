@@ -715,6 +715,103 @@ addressInput.addEventListener('focus', function () {
   addressInput.select();
 });
 
+// ---- Address autocomplete (Nominatim) ----
+var addressSuggestions = document.getElementById('address-suggestions');
+var suggestionsDebounce = null;
+var suggestionsRequestId = 0;
+
+function hideSuggestions() {
+  addressSuggestions.classList.add('hidden');
+  addressSuggestions.innerHTML = '';
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fetchSuggestions(query) {
+  var thisRequest = ++suggestionsRequestId;
+  var url = 'https://nominatim.openstreetmap.org/search'
+    + '?q=' + encodeURIComponent(query)
+    + '&format=json'
+    + '&countrycodes=us,ca'
+    + '&limit=5'
+    + '&addressdetails=0';
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      if (thisRequest !== suggestionsRequestId) return; // stale
+      renderSuggestions(data);
+    })
+    .catch(function () { /* silently swallow \u2014 no need to spam errors for typing */ });
+}
+
+function renderSuggestions(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    hideSuggestions();
+    return;
+  }
+  var html = '';
+  items.forEach(function (item) {
+    var label = item.display_name || '';
+    html += '<div class="suggestion-item" role="option"'
+      + ' data-lat="' + escapeHtml(item.lat) + '"'
+      + ' data-lng="' + escapeHtml(item.lon) + '"'
+      + ' data-label="' + escapeHtml(label) + '">'
+      + escapeHtml(label)
+      + '</div>';
+  });
+  addressSuggestions.innerHTML = html;
+  addressSuggestions.classList.remove('hidden');
+}
+
+// Input typing \u2192 debounced fetch
+addressInput.addEventListener('input', function () {
+  var q = addressInput.value.trim();
+  if (q.length < 3 || q === CURRENT_LOCATION_LABEL || q === MAP_AREA_LABEL) {
+    hideSuggestions();
+    return;
+  }
+  clearTimeout(suggestionsDebounce);
+  suggestionsDebounce = setTimeout(function () {
+    fetchSuggestions(q);
+  }, 300);
+});
+
+// Click a suggestion \u2192 fill input, hide dropdown, run search
+addressSuggestions.addEventListener('click', function (e) {
+  var item = e.target.closest('.suggestion-item');
+  if (!item) return;
+  var lat = parseFloat(item.getAttribute('data-lat'));
+  var lng = parseFloat(item.getAttribute('data-lng'));
+  var label = item.getAttribute('data-label');
+  if (isNaN(lat) || isNaN(lng)) return;
+  addressInput.value = label;
+  hideSuggestions();
+  handleCoordinates(lat, lng);
+});
+
+// Hide the dropdown when clicking outside the search area
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.search-wrap')) {
+    hideSuggestions();
+  }
+});
+
+// Hide when input loses focus (delay so a suggestion click registers first)
+addressInput.addEventListener('blur', function () {
+  setTimeout(hideSuggestions, 150);
+});
+
+// Escape key closes the dropdown
+addressInput.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') hideSuggestions();
+});
+
 // ---- "Search this area" \u2192 re-run search at the current map center ----
 searchHereBtn.addEventListener('click', function () {
   if (!map) return;
