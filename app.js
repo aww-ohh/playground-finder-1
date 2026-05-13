@@ -26,7 +26,7 @@ function savePref(key, value) {
 // ---- Restore saved preferences ----
 var savedSort = loadPref('playgroundFinder.sort', ['distance', 'rating', 'reviews'], 'distance');
 var savedType = loadPref('playgroundFinder.typeFilter', ['all', 'playground', 'park'], 'all');
-var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '2');
+var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '0.5');
 
 sortSelect.value = savedSort;
 radiusSelect.value = savedRadius;

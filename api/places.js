@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid radius parameter' });
   }
   if (isNaN(radiusMiles) || allowedRadii.indexOf(radiusMiles) === -1) {
-    radiusMiles = 2; // default
+    radiusMiles = 0.5; // default
   }
   var radiusMeters = radiusMiles * 1609.344;
   // ---- 2. Check for API keys ----

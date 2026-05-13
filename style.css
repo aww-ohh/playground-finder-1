@@ -773,19 +773,6 @@ main {
 }
 .leaflet-popup-content .popup-link-yelp:hover { text-decoration: underline; }
 
-/* ===== Footer tag ===== */
-.footer-tag {
-  text-align: center;
-  padding: 3rem 1rem 3rem;
-  font-family: 'Permanent Marker', cursive;
-  color: #e07a2a;
-  font-size: 1.2rem;
-  transform: rotate(-2deg);
-  text-shadow: 2px 2px 0 #ffb800, 4px 4px 0 #1a1410;
-  position: relative;
-  z-index: 2;
-}
-
 /* ===== Utility ===== */
 .hidden {
   display: none !important;
