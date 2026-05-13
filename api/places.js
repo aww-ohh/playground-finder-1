@@ -44,7 +44,9 @@ module.exports = async function handler(req, res) {
     'places.rating',
     'places.userRatingCount',
     'places.photos',
-    'places.reviews'
+    'places.reviews',
+    'places.regularOpeningHours',
+    'places.currentOpeningHours'
   ].join(',');
   try {
     var response = await fetch(googleUrl, {
@@ -101,6 +103,22 @@ module.exports = async function handler(req, res) {
           .map(function (rv) { return rv && rv.text ? rv.text.text : ''; })
           .filter(function (t) { return t && t.length > 0; });
       }
+      // Hours info: openNow + a short string for today's hours
+      var openNow = null;
+      if (place.currentOpeningHours && typeof place.currentOpeningHours.openNow === 'boolean') {
+        openNow = place.currentOpeningHours.openNow;
+      }
+      var todayHours = null;
+      if (place.regularOpeningHours && Array.isArray(place.regularOpeningHours.weekdayDescriptions)) {
+        // weekdayDescriptions is Mon-Sun. JS getDay() is Sun=0..Sat=6 → convert.
+        var jsDay = new Date().getDay();
+        var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+        var todayDesc = place.regularOpeningHours.weekdayDescriptions[dayIndex];
+        if (todayDesc) {
+          // "Monday: 6:00 AM – 10:00 PM" → "6:00 AM – 10:00 PM"
+          todayHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '');
+        }
+      }
       return {
         name: place.displayName.text,
         type: place.types.includes('playground') ? 'playground' : 'park',
@@ -112,7 +130,9 @@ module.exports = async function handler(req, res) {
         placeId: place.id,
         photoUrl: photo ? photo.photoUrl : null,
         photoAttribution: photo ? photo.photoAttribution : null,
-        reviews: reviewTexts
+        reviews: reviewTexts,
+        openNow: openNow,
+        todayHours: todayHours
       };
     });
     // ---- 6. Sort by distance, closest first ----

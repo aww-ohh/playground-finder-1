@@ -210,6 +210,23 @@ function renderPopupPhoto(result) {
     + '</div>';
 }
 
+// ---- Hours rendering ----
+function renderHours(result) {
+  // Nothing if Google didn't give us either field
+  if (result.openNow === null && !result.todayHours) return '';
+  var statusHtml = '';
+  if (result.openNow === true) {
+    statusHtml = '<span class="hours-open">Open now</span>';
+  } else if (result.openNow === false) {
+    statusHtml = '<span class="hours-closed">Closed</span>';
+  }
+  var todayHtml = result.todayHours
+    ? '<span class="hours-today">' + result.todayHours + '</span>'
+    : '';
+  var sep = (statusHtml && todayHtml) ? '<span class="hours-sep">·</span>' : '';
+  return '<span class="result-meta result-hours">🕐 ' + statusHtml + sep + todayHtml + '</span>';
+}
+
 // ---- Signal rendering helpers ----
 
 // Maps dimension values to display labels for category dimensions
@@ -514,6 +531,7 @@ function renderResults(results) {
       + '</div>'
       + '<span class="result-meta">' + r.distance + ' mi away</span>'
       + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
+      + renderHours(r)
       + renderSignals(r.signals)
       + '<div class="result-links">'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'

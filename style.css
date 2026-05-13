@@ -659,6 +659,19 @@ main {
   color: #555;
   font-weight: 700;
 }
+
+/* Hours line */
+.result-hours {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+.hours-open   { color: #0d9b62; font-weight: 700; }
+.hours-closed { color: #c0202c; font-weight: 700; }
+.hours-today  { color: #555;    font-weight: 600; }
+.hours-sep    { color: #bbb; }
+
 .result-rating {
   display: flex;
   align-items: center;
