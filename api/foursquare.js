@@ -30,11 +30,19 @@ module.exports = async function handler(req, res) {
   }
 
   // Diagnostic counters — surfaced in response when no matches found
+  var keyTrimmed = fsqKey.trim();
   var debugInfo = {
     parksAttempted: 0,
     statusCodes: {},
     firstErrorBody: null,
-    sampleResponse: null
+    sampleResponse: null,
+    keyFingerprint: {
+      length: fsqKey.length,
+      trimmedLength: keyTrimmed.length,
+      first3: fsqKey.substring(0, 3),
+      last3: fsqKey.substring(fsqKey.length - 3),
+      hasWhitespace: fsqKey !== keyTrimmed
+    }
   };
 
   // ---- For each park, search Foursquare in parallel ----
