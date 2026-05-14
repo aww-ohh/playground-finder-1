@@ -244,85 +244,6 @@ function renderReviews(result) {
     + '</div>';
 }
 
-// ---- Foursquare ratings (cached in localStorage per placeId) ----
-var FSQ_CACHE_PREFIX = 'playgroundFinder.fsq.';
-
-function loadCachedFsq(placeId) {
-  try {
-    var raw = localStorage.getItem(FSQ_CACHE_PREFIX + placeId);
-    if (raw === null) return undefined; // never looked up
-    var parsed = JSON.parse(raw);
-    if (parsed && parsed.noMatch === true) return null; // looked up, no match
-    return parsed;
-  } catch (e) { return undefined; }
-}
-
-function saveCachedFsq(placeId, dataOrNull) {
-  try {
-    var toStore = dataOrNull || { noMatch: true };
-    localStorage.setItem(FSQ_CACHE_PREFIX + placeId, JSON.stringify(toStore));
-  } catch (e) { /* ignore */ }
-}
-
-function renderFsqRatingHtml(fsqData) {
-  if (!fsqData) return '';
-  var stars = renderStars(fsqData.rating || 0);
-  return stars
-    + ' <span class="rating-number">' + (fsqData.rating || '?') + '</span>'
-    + ' <span class="rating-meta">(' + (fsqData.reviewCount || 0).toLocaleString() + ')</span> '
-    + '<span class="rating-source">Foursquare</span>';
-}
-
-function renderFsqRow(r) {
-  if (!r.fsq) return '<span class="result-meta fsq-rating hidden"></span>';
-  return '<span class="result-meta fsq-rating">' + renderFsqRatingHtml(r.fsq) + '</span>';
-}
-
-function updateAndCacheFsq(placeId, fsqData) {
-  for (var i = 0; i < currentResults.length; i++) {
-    if (currentResults[i].placeId === placeId) {
-      currentResults[i].fsq = fsqData;
-      break;
-    }
-  }
-  saveCachedFsq(placeId, fsqData);
-  var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
-  if (!card) return;
-  var existing = card.querySelector('.fsq-rating');
-  if (!existing) return;
-  if (fsqData) {
-    existing.innerHTML = renderFsqRatingHtml(fsqData);
-    existing.classList.remove('hidden');
-  } else {
-    existing.classList.add('hidden');
-  }
-}
-
-function fetchFsq(parks, thisRequest) {
-  fetch('/api/foursquare', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ parks: parks })
-  })
-    .then(function (response) {
-      if (thisRequest !== requestId) return;
-      if (!response.ok) return null;
-      return response.json();
-    })
-    .then(function (data) {
-      if (thisRequest !== requestId) return;
-      if (!data || !data.fsq) {
-        parks.forEach(function (p) { updateAndCacheFsq(p.placeId, null); });
-        return;
-      }
-      parks.forEach(function (p) {
-        var match = data.fsq[p.placeId] || null;
-        updateAndCacheFsq(p.placeId, match);
-      });
-    })
-    .catch(function () { /* silent — supplementary data */ });
-}
-
 // ---- Weather (Open-Meteo, no API key) ----
 function weatherCodeToEmoji(code) {
   if (code === 0) return ['☀️', 'Clear'];
@@ -686,8 +607,7 @@ function renderResults(results) {
       + '<span class="result-type ' + typeClass + '">' + typeBadgeLabel(r.type) + '</span>'
       + '</div>'
       + '<span class="result-meta">' + r.distance + ' mi away</span>'
-      + '<span class="result-meta result-rating">' + ratingHtml + ' <span class="rating-source">Google</span></span>'
-      + renderFsqRow(r)
+      + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
       + renderHours(r)
       + renderSignals(r.signals)
       + renderReviews(r)
@@ -740,7 +660,6 @@ function handleCoordinates(lat, lng) {
 
           // Decide initial signals state per park: cached \u2192 use it; no reviews \u2192 defaults; else loading
           var needsSignals = []; // parks that will be sent to /api/signals
-          var needsFsq = [];     // parks that will be sent to /api/foursquare
           data.results.forEach(function (r) {
             var cached = loadCachedSignals(r.placeId);
             if (cached) {
@@ -750,14 +669,6 @@ function handleCoordinates(lat, lng) {
             } else {
               r.signals = loadingSignals();
               needsSignals.push({ placeId: r.placeId, name: r.name, reviews: r.reviews });
-            }
-            // Foursquare: undefined = never looked up; null = looked up, no match; object = match
-            var fsqCached = loadCachedFsq(r.placeId);
-            if (fsqCached === undefined) {
-              r.fsq = null; // start hidden, may fill in
-              needsFsq.push({ placeId: r.placeId, name: r.name, lat: r.lat, lng: r.lng });
-            } else {
-              r.fsq = fsqCached; // null (no match) or the cached match object
             }
           });
 
@@ -769,11 +680,6 @@ function handleCoordinates(lat, lng) {
           // Phase 2: fetch signals for parks not in cache (in the background)
           if (needsSignals.length > 0) {
             fetchSignals(needsSignals, thisRequest);
-          }
-
-          // Phase 2b: fetch Foursquare ratings for parks not in cache (in parallel)
-          if (needsFsq.length > 0) {
-            fetchFsq(needsFsq, thisRequest);
           }
 
           // Also fetch current weather at the search location (in parallel)
