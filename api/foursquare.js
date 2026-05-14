@@ -43,17 +43,17 @@ module.exports = async function handler(req, res) {
       return Promise.resolve({ placeId: p && p.placeId, match: null });
     }
     debugInfo.parksAttempted++;
-    // Try the legacy v3 endpoint with raw-key auth (no "Bearer ")
-    var url = 'https://api.foursquare.com/v3/places/search'
+    var url = 'https://places-api.foursquare.com/places/search'
       + '?query=' + encodeURIComponent(p.name)
       + '&ll=' + p.lat + ',' + p.lng
       + '&radius=400'
       + '&limit=3'
       + '&sort=DISTANCE'
-      + '&fields=fsq_id,name,rating,stats';
+      + '&fields=fsq_place_id,name,rating,stats';
     return fetch(url, {
       headers: {
-        'Authorization': fsqKey,
+        'Authorization': 'Bearer ' + fsqKey,
+        'X-Places-Api-Version': '2025-06-17',
         'Accept': 'application/json'
       }
     })
