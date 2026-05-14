@@ -1,4 +1,5 @@
 // api/foursquare.js — Vercel serverless function
+// Uses the new Foursquare Service API (places-api.foursquare.com) — Bearer auth.
 // Accepts a list of parks (placeId, name, lat, lng) and returns matching
 // Foursquare places (rating + total ratings) keyed by Google placeId.
 // Foursquare ratings are 0–10; we normalize to 0–5 to match Google.
@@ -30,21 +31,26 @@ module.exports = async function handler(req, res) {
     if (!p || !p.placeId || !p.name || typeof p.lat !== 'number' || typeof p.lng !== 'number') {
       return Promise.resolve({ placeId: p && p.placeId, match: null });
     }
-    var url = 'https://api.foursquare.com/v3/places/search'
+    var url = 'https://places-api.foursquare.com/places/search'
       + '?query=' + encodeURIComponent(p.name)
       + '&ll=' + p.lat + ',' + p.lng
       + '&radius=400'
       + '&limit=3'
       + '&sort=DISTANCE'
-      + '&fields=fsq_id,name,rating,total_ratings';
+      + '&fields=fsq_place_id,name,rating,stats';
     return fetch(url, {
       headers: {
-        'Authorization': fsqKey,        // Foursquare wants the raw key (no "Bearer ")
+        'Authorization': 'Bearer ' + fsqKey,
+        'X-Places-Api-Version': '2025-06-17',
         'Accept': 'application/json'
       }
     })
       .then(function (fsqRes) {
-        if (!fsqRes.ok) return null;
+        if (!fsqRes.ok) {
+          // Log status so we can debug from Vercel logs if needed
+          console.log('Foursquare status for', p.name, ':', fsqRes.status);
+          return null;
+        }
         return fsqRes.json();
       })
       .then(function (data) {
@@ -56,17 +62,27 @@ module.exports = async function handler(req, res) {
         if (!best || typeof best.rating !== 'number' || best.rating <= 0) {
           return { placeId: p.placeId, match: null };
         }
+        // Review count can live under stats.total_ratings (new API) or be missing
+        var reviewCount = 0;
+        if (best.stats && typeof best.stats.total_ratings === 'number') {
+          reviewCount = best.stats.total_ratings;
+        } else if (typeof best.total_ratings === 'number') {
+          reviewCount = best.total_ratings;
+        }
         return {
           placeId: p.placeId,
           match: {
-            fsqId: best.fsq_id,
+            fsqId: best.fsq_place_id || best.fsq_id,  // new uses fsq_place_id; fallback to legacy
             rating: Math.round((best.rating / 2) * 10) / 10, // 0–10 → 0–5, one decimal
             ratingOriginal: best.rating,
-            reviewCount: typeof best.total_ratings === 'number' ? best.total_ratings : 0
+            reviewCount: reviewCount
           }
         };
       })
-      .catch(function () { return { placeId: p.placeId, match: null }; });
+      .catch(function (err) {
+        console.log('Foursquare error for', p.name, ':', err && err.message);
+        return { placeId: p.placeId, match: null };
+      });
   });
 
   try {
