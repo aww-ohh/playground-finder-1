@@ -23,9 +23,10 @@ module.exports = async function handler(req, res) {
   }
 
   // ---- Check Foursquare key ----
-  var fsqKey = process.env.FOURSQUARE_API_KEY;
+  // Env var is named FourSquarePlayground on Vercel (couldn't be renamed after creation).
+  var fsqKey = process.env.FourSquarePlayground;
   if (!fsqKey) {
-    return res.status(200).json({ fsq: {}, _debug: { reason: 'FOURSQUARE_API_KEY env var is missing' } });
+    return res.status(200).json({ fsq: {}, _debug: { reason: 'FourSquarePlayground env var is missing' } });
   }
 
   // Diagnostic counters — surfaced in response when no matches found
