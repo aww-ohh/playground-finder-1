@@ -1,8 +1,10 @@
 // api/foursquare.js — Vercel serverless function
 // Uses the new Foursquare Service API (places-api.foursquare.com) — Bearer auth.
-// Accepts a list of parks (placeId, name, lat, lng) and returns matching
-// Foursquare places (rating + total ratings) keyed by Google placeId.
-// Foursquare ratings are 0–10; we normalize to 0–5 to match Google.
+// Returns matching places keyed by Google placeId. Foursquare ratings are 0–10;
+// we normalize to 0–5 to match Google.
+//
+// When no matches are found AND parks were attempted, the response includes a
+// non-sensitive _debug field so we can see what Foursquare is replying.
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -23,14 +25,23 @@ module.exports = async function handler(req, res) {
   // ---- Check Foursquare key ----
   var fsqKey = process.env.FOURSQUARE_API_KEY;
   if (!fsqKey) {
-    return res.status(200).json({ fsq: {} });
+    return res.status(200).json({ fsq: {}, _debug: { reason: 'FOURSQUARE_API_KEY env var is missing' } });
   }
+
+  // Diagnostic counters — surfaced in response when no matches found
+  var debugInfo = {
+    parksAttempted: 0,
+    statusCodes: {},
+    firstErrorBody: null,
+    sampleResponse: null
+  };
 
   // ---- For each park, search Foursquare in parallel ----
   var lookups = body.parks.map(function (p) {
     if (!p || !p.placeId || !p.name || typeof p.lat !== 'number' || typeof p.lng !== 'number') {
       return Promise.resolve({ placeId: p && p.placeId, match: null });
     }
+    debugInfo.parksAttempted++;
     var url = 'https://places-api.foursquare.com/places/search'
       + '?query=' + encodeURIComponent(p.name)
       + '&ll=' + p.lat + ',' + p.lng
@@ -46,41 +57,50 @@ module.exports = async function handler(req, res) {
       }
     })
       .then(function (fsqRes) {
+        var status = fsqRes.status;
+        debugInfo.statusCodes[status] = (debugInfo.statusCodes[status] || 0) + 1;
         if (!fsqRes.ok) {
-          // Log status so we can debug from Vercel logs if needed
-          console.log('Foursquare status for', p.name, ':', fsqRes.status);
-          return null;
+          return fsqRes.text().then(function (errBody) {
+            if (!debugInfo.firstErrorBody) {
+              debugInfo.firstErrorBody = errBody.substring(0, 400);
+            }
+            console.log('Foursquare HTTP', status, 'for', p.name, '— body:', errBody.substring(0, 200));
+            return { placeId: p.placeId, match: null };
+          });
         }
-        return fsqRes.json();
-      })
-      .then(function (data) {
-        if (!data || !Array.isArray(data.results) || data.results.length === 0) {
-          return { placeId: p.placeId, match: null };
-        }
-        var best = pickBestMatch(p.name, data.results);
-        // Only count it as a match if there's actually a rating to show
-        if (!best || typeof best.rating !== 'number' || best.rating <= 0) {
-          return { placeId: p.placeId, match: null };
-        }
-        // Review count can live under stats.total_ratings (new API) or be missing
-        var reviewCount = 0;
-        if (best.stats && typeof best.stats.total_ratings === 'number') {
-          reviewCount = best.stats.total_ratings;
-        } else if (typeof best.total_ratings === 'number') {
-          reviewCount = best.total_ratings;
-        }
-        return {
-          placeId: p.placeId,
-          match: {
-            fsqId: best.fsq_place_id || best.fsq_id,  // new uses fsq_place_id; fallback to legacy
-            rating: Math.round((best.rating / 2) * 10) / 10, // 0–10 → 0–5, one decimal
-            ratingOriginal: best.rating,
-            reviewCount: reviewCount
+        return fsqRes.json().then(function (data) {
+          if (!debugInfo.sampleResponse && data) {
+            debugInfo.sampleResponse = JSON.stringify(data).substring(0, 400);
           }
-        };
+          if (!data || !Array.isArray(data.results) || data.results.length === 0) {
+            return { placeId: p.placeId, match: null };
+          }
+          var best = pickBestMatch(p.name, data.results);
+          if (!best || typeof best.rating !== 'number' || best.rating <= 0) {
+            return { placeId: p.placeId, match: null };
+          }
+          var reviewCount = 0;
+          if (best.stats && typeof best.stats.total_ratings === 'number') {
+            reviewCount = best.stats.total_ratings;
+          } else if (typeof best.total_ratings === 'number') {
+            reviewCount = best.total_ratings;
+          }
+          return {
+            placeId: p.placeId,
+            match: {
+              fsqId: best.fsq_place_id || best.fsq_id,
+              rating: Math.round((best.rating / 2) * 10) / 10,
+              ratingOriginal: best.rating,
+              reviewCount: reviewCount
+            }
+          };
+        });
       })
       .catch(function (err) {
         console.log('Foursquare error for', p.name, ':', err && err.message);
+        if (!debugInfo.firstErrorBody) {
+          debugInfo.firstErrorBody = 'fetch threw: ' + (err && err.message);
+        }
         return { placeId: p.placeId, match: null };
       });
   });
@@ -93,9 +113,14 @@ module.exports = async function handler(req, res) {
         out[r.placeId] = r.match;
       }
     });
-    return res.status(200).json({ fsq: out });
+    var response = { fsq: out };
+    // Include debug info only when we got no matches at all (helps diagnose)
+    if (Object.keys(out).length === 0 && debugInfo.parksAttempted > 0) {
+      response._debug = debugInfo;
+    }
+    return res.status(200).json(response);
   } catch (err) {
-    return res.status(200).json({ fsq: {} });
+    return res.status(200).json({ fsq: {}, _debug: { reason: 'unhandled error', error: err && err.message } });
   }
 };
 
