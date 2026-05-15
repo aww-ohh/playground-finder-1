@@ -658,6 +658,60 @@ main {
   color: #ffb800;
   background: #fff3cf;
 }
+
+/* Visited button — sits below the favorite star */
+.visited-btn {
+  position: absolute;
+  top: 3.5rem;  /* below the favorite star */
+  right: 0.6rem;
+  z-index: 10;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 3px solid #1a1410;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #aaa;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #1a1410;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.visited-btn:hover {
+  transform: scale(1.06);
+  color: #0d9b62;
+}
+.visited-btn.is-visited {
+  color: #fff;
+  background: #0d9b62;
+}
+
+/* Visited card treatment — slight desaturation + a "VISITED" sticker */
+.result-card.is-visited .card-hero-image {
+  filter: saturate(0.7);
+}
+.result-card.is-visited::after {
+  content: 'VISITED';
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  z-index: 10;
+  background: #0d9b62;
+  color: #fff;
+  font-family: 'Bungee', cursive;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border: 2px solid #1a1410;
+  border-radius: 0.6rem;
+  box-shadow: 2px 2px 0 #1a1410;
+  transform: rotate(-4deg);
+}
 .result-card:hover {
   transform: translateY(-2px);
   box-shadow: 8px 8px 0 #0d9b62;

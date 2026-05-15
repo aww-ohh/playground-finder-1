@@ -119,6 +119,33 @@ function toggleFavorite(placeId) {
   return idx === -1;
 }
 
+// ---- Visited tracking (separate from favorites) ----
+var VISITED_KEY = 'playgroundFinder.visited';
+
+function getVisited() {
+  try {
+    var raw = localStorage.getItem(VISITED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function setVisited(arr) {
+  try { localStorage.setItem(VISITED_KEY, JSON.stringify(arr)); } catch (e) { /* ignore */ }
+}
+
+function isVisited(placeId) {
+  return getVisited().indexOf(placeId) !== -1;
+}
+
+function toggleVisited(placeId) {
+  var visited = getVisited();
+  var idx = visited.indexOf(placeId);
+  if (idx === -1) visited.push(placeId);
+  else visited.splice(idx, 1);
+  setVisited(visited);
+  return idx === -1;
+}
+
 // ---- Helper: filter results by type (or by favorited state) ----
 function filterByType(results, typeFilter) {
   if (typeFilter === 'all') return results;
@@ -759,8 +786,10 @@ function renderResults(results) {
     }
 
     var favClass = isFavorite(r.placeId) ? ' is-favorite' : '';
-    html += '<li class="result-card" data-place-id="' + r.placeId + '">'
+    var visitedClass = isVisited(r.placeId) ? ' is-visited' : '';
+    html += '<li class="result-card' + visitedClass + '" data-place-id="' + r.placeId + '">'
       + '<button class="favorite-btn' + favClass + '" data-place-id="' + r.placeId + '" aria-label="Save to favorites" title="Save to favorites">★</button>'
+      + '<button class="visited-btn' + visitedClass + '" data-place-id="' + r.placeId + '" aria-label="Mark as visited" title="Mark as visited">✓</button>'
       + renderHeroPhoto(r)
       + '<div class="result-card-body">'
       + '<div class="result-card-header">'
@@ -1024,6 +1053,19 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     if (getTypeFilter() === 'favorites' && !nowFav) {
       applyFilterAndSort();
     }
+    return;
+  }
+
+  // Visited button toggle
+  var visitedBtn = e.target.closest('.visited-btn');
+  if (visitedBtn) {
+    e.stopPropagation();
+    var vpid = visitedBtn.getAttribute('data-place-id');
+    var nowVisited = toggleVisited(vpid);
+    visitedBtn.classList.toggle('is-visited', nowVisited);
+    // Also toggle the parent card's class so styling can react
+    var card = visitedBtn.closest('.result-card');
+    if (card) card.classList.toggle('is-visited', nowVisited);
     return;
   }
 
