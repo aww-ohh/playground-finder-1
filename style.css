@@ -1194,6 +1194,39 @@ main {
   text-decoration: underline;
 }
 
+/* Per-card share button */
+.result-link-share {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0d9b62;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.result-link-share:hover { text-decoration: underline; }
+
+/* Share search button in the toolbar */
+.share-view-btn {
+  font-family: 'Bungee', cursive;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: #1a1410;
+  background: #fff;
+  border: 2px solid #1a1410;
+  border-radius: 1.25rem;
+  padding: 0.35rem 0.85rem;
+  box-shadow: 3px 3px 0 #1a1410;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.share-view-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 #1a1410;
+  background: #fff3cf;
+}
+
 /* ===== Map popup ===== */
 .popup-content {
   line-height: 1.5;

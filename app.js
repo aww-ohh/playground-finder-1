@@ -864,6 +864,7 @@ function renderResults(results) {
       + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions</a>'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
+      + '<button type="button" class="result-link-share" data-place-id="' + r.placeId + '" title="Share this park">\ud83d\udd17 Share</button>'
       + '</div>'
       + '</div>'
       + '</li>';
@@ -1144,6 +1145,16 @@ document.getElementById('results-list').addEventListener('click', function (e) {
       var isOpen = section.classList.toggle('reviews-expanded');
       reviewsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     }
+    return;
+  }
+
+  // Per-card share button
+  var shareBtn = e.target.closest('.result-link-share');
+  if (shareBtn) {
+    e.stopPropagation();
+    var spid = shareBtn.getAttribute('data-place-id');
+    var park = currentResults.find(function (r) { return r.placeId === spid; });
+    if (park) shareUrl(buildShareUrlForPark(park), 'Park link');
     return;
   }
 
@@ -1492,5 +1503,105 @@ addressForm.addEventListener('submit', function (e) {
   });
 })();
 
-// ---- Initial setup on page load ----
-refreshHomeButton();
+// ---- Sharing: URL params ----
+// Supported shapes:
+//   /?lat=42.3&lng=-71.0&radius=1            → load that exact search
+//   /?park=PLACE_ID&lat=42.3&lng=-71.0       → search around lat/lng, then highlight that park
+//   /?address=Boston+MA                       → geocode & search
+
+function buildShareUrlForSearch(lat, lng, radius) {
+  var u = new URL(window.location.origin + window.location.pathname);
+  u.searchParams.set('lat', lat.toFixed(5));
+  u.searchParams.set('lng', lng.toFixed(5));
+  if (radius) u.searchParams.set('radius', radius);
+  return u.toString();
+}
+
+function buildShareUrlForPark(park) {
+  var u = new URL(window.location.origin + window.location.pathname);
+  u.searchParams.set('park', park.placeId);
+  u.searchParams.set('lat', park.lat.toFixed(5));
+  u.searchParams.set('lng', park.lng.toFixed(5));
+  return u.toString();
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback: hidden textarea
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
+function shareUrl(url, label) {
+  // Try the native share sheet first (mobile), fall back to copy-to-clipboard
+  if (navigator.share) {
+    navigator.share({ title: 'Playground Finder', url: url }).catch(function () { /* user cancelled */ });
+  } else {
+    copyToClipboard(url).then(function () {
+      showMessage((label || 'Link') + ' copied to clipboard!', 'success');
+    });
+  }
+}
+
+// On page load, parse the URL and trigger the right action
+function handleSharedUrl() {
+  var params = new URLSearchParams(window.location.search);
+  var lat = parseFloat(params.get('lat'));
+  var lng = parseFloat(params.get('lng'));
+  var radius = params.get('radius');
+  var park = params.get('park');
+  var address = params.get('address');
+
+  if (!isNaN(lat) && !isNaN(lng)) {
+    if (radius) {
+      var allowed = ['0.5', '1', '2', '5'];
+      if (allowed.indexOf(radius) !== -1) {
+        radiusSelect.value = radius;
+        savePref('playgroundFinder.radius', radius);
+      }
+    }
+    addressInput.value = park ? 'Shared park' : 'Shared location';
+    handleCoordinates(lat, lng);
+    if (park) {
+      // Once results render, scroll to the shared park's card
+      var attempts = 0;
+      var trySelect = function () {
+        var card = document.querySelector('.result-card[data-place-id="' + park + '"]');
+        if (card) {
+          scrollToCard(park);
+        } else if (attempts++ < 20) {
+          setTimeout(trySelect, 300);
+        }
+      };
+      setTimeout(trySelect, 1500);
+    }
+    return;
+  }
+
+  if (address) {
+    addressInput.value = address;
+    addressForm.dispatchEvent(new Event('submit'));
+  }
+}
+
+// ---- "Share search" toolbar button ----
+(function () {
+  var btn = document.getElementById('share-view-btn');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    if (lastLat === null || lastLng === null) return;
+    shareUrl(buildShareUrlForSearch(lastLat, lastLng, getRadius()), 'Search link');
+  });
+})();
+
+// ---- Initial: handle URL share params on page load ----
+handleSharedUrl();
