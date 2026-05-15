@@ -367,9 +367,15 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 2rem 1.5rem 0;
-  position: relative;
-  z-index: 2;
+  padding: 1rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(243, 234, 219, 0.92);  /* cream wall, slightly translucent */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 3px solid #1a1410;
+  margin-bottom: 0.5rem;
 }
 .results-heading-row {
   display: flex;
