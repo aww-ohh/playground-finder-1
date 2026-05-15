@@ -493,6 +493,34 @@ function buildPopupContent(r) {
     + '</div>';
 }
 
+// ---- Helper: show shimmer skeleton cards while results are loading ----
+function showLoadingSkeletons() {
+  var resultsSection = document.getElementById('results-section');
+  var resultsList = document.getElementById('results-list');
+  var resultsToolbar = document.getElementById('results-toolbar');
+  var fiveThingsStrip = document.getElementById('five-things-strip');
+  // Hide the educational strip + show the results section while loading
+  if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
+  resultsSection.classList.remove('hidden');
+  resultsToolbar.classList.add('hidden'); // toolbar appears when real results arrive
+  // Render 4 skeleton placeholder cards
+  var html = '';
+  for (var i = 0; i < 4; i++) {
+    html += '<li class="result-card skeleton-card">'
+      + '<div class="skeleton skeleton-photo"></div>'
+      + '<div class="result-card-body">'
+      + '<div class="skeleton skeleton-line skeleton-line-title"></div>'
+      + '<div class="skeleton skeleton-line skeleton-line-meta"></div>'
+      + '<div class="skeleton skeleton-line skeleton-line-meta"></div>'
+      + '<div class="skeleton skeleton-line skeleton-line-row"></div>'
+      + '<div class="skeleton skeleton-line skeleton-line-row"></div>'
+      + '<div class="skeleton skeleton-line skeleton-line-row"></div>'
+      + '</div>'
+      + '</li>';
+  }
+  resultsList.innerHTML = html;
+}
+
 // ---- Helper: scroll the results list to a card and flash it ----
 function scrollToCard(placeId) {
   var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
@@ -667,6 +695,7 @@ function handleCoordinates(lat, lng) {
   lastLng = lng;
 
   showMessage('Searching for playgrounds and parks\u2026', 'info');
+  showLoadingSkeletons();
 
   var radius = getRadius();
   var thisRequest = ++requestId;

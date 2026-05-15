@@ -617,6 +617,35 @@ main {
 .result-card:nth-child(3n+3) { box-shadow: 6px 6px 0 #e07a2a; }
 .result-card:nth-child(3n+3):hover { box-shadow: 8px 8px 0 #e07a2a; }
 
+/* ===== Skeleton loading placeholders ===== */
+.skeleton-card {
+  cursor: default;
+  pointer-events: none;
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0e6cf 25%, #fff8e0 50%, #f0e6cf 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 0.5rem;
+}
+.skeleton-photo {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0;
+}
+.skeleton-line {
+  height: 0.95rem;
+  margin: 0.5rem 0;
+}
+.skeleton-line-title { width: 65%; height: 1.3rem; margin-bottom: 0.7rem; }
+.skeleton-line-meta { width: 45%; }
+.skeleton-line-row { width: 90%; height: 0.8rem; }
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 /* Brief gold-flash highlight when a marker click scrolls a card into view */
 .result-card.card-flash {
   animation: cardFlash 1.4s ease;
