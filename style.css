@@ -438,11 +438,7 @@ main {
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 3px solid #1a1410;
   margin-bottom: 0.5rem;
-  transition: transform 0.25s ease;
-}
-/* On mobile, JS toggles this class on scroll-down to slide the toolbar away */
-.results-toolbar.toolbar-hidden {
-  transform: translateY(-100%);
+  /* No CSS transition — JS sets transform directly per scroll frame so movement is 1:1 with scroll */
 }
 .results-heading-row {
   display: flex;
