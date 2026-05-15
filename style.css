@@ -617,6 +617,61 @@ main {
 .result-card:nth-child(3n+3) { box-shadow: 6px 6px 0 #e07a2a; }
 .result-card:nth-child(3n+3):hover { box-shadow: 8px 8px 0 #e07a2a; }
 
+/* ===== Empty state (no results) ===== */
+.empty-state {
+  background: #fff;
+  border: 3px solid #1a1410;
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  box-shadow: 6px 6px 0 #c0202c;
+  transform: rotate(-0.5deg);
+}
+.empty-emoji {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+.empty-title {
+  font-family: 'Bungee', cursive;
+  font-size: 1.25rem;
+  color: #1a1410;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.4rem;
+}
+.empty-sub {
+  font-family: 'Permanent Marker', cursive;
+  color: #c0202c;
+  font-size: 1rem;
+  margin-bottom: 1.25rem;
+}
+.empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+}
+.empty-cta {
+  font-family: 'Bungee', cursive;
+  font-size: 0.9rem;
+  color: #1a1410;
+  background: #ffb800;
+  border: 3px solid #1a1410;
+  border-radius: 1.5rem;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 #1a1410;
+  transition: transform 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.02em;
+}
+.empty-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 5px 5px 0 #1a1410;
+}
+.empty-cta:nth-child(2) {
+  background: #3aa9e8;
+  color: #fff;
+}
+
 /* ===== Skeleton loading placeholders ===== */
 .skeleton-card {
   cursor: default;

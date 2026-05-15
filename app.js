@@ -493,6 +493,52 @@ function buildPopupContent(r) {
     + '</div>';
 }
 
+// ---- Helper: render an empty state with actionable suggestions ----
+function renderEmptyState(currentRadius) {
+  var resultsSection = document.getElementById('results-section');
+  var resultsList = document.getElementById('results-list');
+  var resultsToolbar = document.getElementById('results-toolbar');
+  var fiveThingsStrip = document.getElementById('five-things-strip');
+  // Show the results section (so the empty state lives where cards would), hide toolbar + strip
+  resultsSection.classList.remove('hidden');
+  resultsToolbar.classList.add('hidden');
+  if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
+
+  // Find the next bigger radius to suggest
+  var radii = ['0.5', '1', '2', '5'];
+  var idx = radii.indexOf(String(currentRadius));
+  var nextRadius = (idx >= 0 && idx < radii.length - 1) ? radii[idx + 1] : null;
+
+  var html = '<div class="empty-state">'
+    + '<div class="empty-emoji">🤷</div>'
+    + '<div class="empty-title">No parks found here</div>'
+    + '<div class="empty-sub">Try one of these:</div>'
+    + '<div class="empty-actions">';
+  if (nextRadius) {
+    html += '<button type="button" class="empty-cta" data-action="widen-radius" data-radius="' + nextRadius + '">'
+      + 'Widen to ' + formatRadius(nextRadius) + ' →</button>';
+  }
+  html += '<button type="button" class="empty-cta" data-action="change-location">Change location ↩</button>';
+  html += '</div></div>';
+  resultsList.innerHTML = html;
+}
+
+// Wire up empty-state button clicks
+document.getElementById('results-list').addEventListener('click', function (e) {
+  var cta = e.target.closest('.empty-cta');
+  if (!cta) return;
+  var action = cta.getAttribute('data-action');
+  if (action === 'widen-radius') {
+    var newRadius = cta.getAttribute('data-radius');
+    radiusSelect.value = newRadius;
+    savePref('playgroundFinder.radius', newRadius);
+    if (lastLat !== null && lastLng !== null) handleCoordinates(lastLat, lastLng);
+  } else if (action === 'change-location') {
+    addressInput.value = '';
+    addressInput.focus();
+  }
+});
+
 // ---- Helper: show shimmer skeleton cards while results are loading ----
 function showLoadingSkeletons() {
   var resultsSection = document.getElementById('results-section');
@@ -712,7 +758,7 @@ function handleCoordinates(lat, lng) {
             showMessage('No playgrounds or parks found within ' + formatRadius(radius) + ' of this location.', 'info');
             showMap(lat, lng, []);
             currentResults = [];
-            renderResults([]);
+            renderEmptyState(radius);
             return;
           }
 
