@@ -1243,6 +1243,7 @@ typeFilterDiv.parentElement.addEventListener('click', function (e) {
   btn.classList.add('active');
   var type = btn.getAttribute('data-type');
   savePref('playgroundFinder.typeFilter', type);
+  refreshShareButtonLabel();
   // Saved tab can render with no current search (uses cross-search saved data)
   if (currentResults.length === 0 && type !== 'favorites') return;
   applyFilterAndSort();
@@ -1698,6 +1699,47 @@ function buildShareUrlForPark(park) {
   return u.toString();
 }
 
+// Encode the user's full saved-parks collection into a URL the recipient can open.
+// Each park is reduced to just placeId/name/lat/lng/type to keep the URL short.
+function buildShareUrlForSavedParks() {
+  var saved = getAllSavedParks();
+  if (saved.length === 0) return null;
+  var compact = saved.map(function (p) {
+    return { i: p.placeId, n: p.name, a: +p.lat.toFixed(5), o: +p.lng.toFixed(5), t: p.type };
+  });
+  var json = JSON.stringify(compact);
+  // base64 with Unicode-safe encoding
+  var encoded = btoa(unescape(encodeURIComponent(json)));
+  var u = new URL(window.location.origin + window.location.pathname);
+  u.searchParams.set('shared', encoded);
+  return u.toString();
+}
+
+function decodeSharedParks(encoded) {
+  try {
+    var json = decodeURIComponent(escape(atob(encoded)));
+    var compact = JSON.parse(json);
+    if (!Array.isArray(compact)) return null;
+    return compact.map(function (p) {
+      return {
+        placeId: p.i,
+        name: p.n,
+        lat: p.a,
+        lng: p.o,
+        type: p.t || 'park',
+        rating: null,
+        reviewCount: 0,
+        photoUrl: null,
+        photoAttribution: null,
+        openNow: null,
+        todayHours: null,
+        reviews: [],
+        signals: defaultSignalsClient()
+      };
+    });
+  } catch (e) { return null; }
+}
+
 function copyToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
     return navigator.clipboard.writeText(text);
@@ -1733,6 +1775,36 @@ function handleSharedUrl() {
   var radius = params.get('radius');
   var park = params.get('park');
   var address = params.get('address');
+  var shared = params.get('shared');
+
+  // Shared collection: someone sent you their saved parks
+  if (shared) {
+    var sharedParks = decodeSharedParks(shared);
+    if (sharedParks && sharedParks.length > 0) {
+      var n = sharedParks.length;
+      var ok = window.confirm('Someone shared ' + n + ' park' + (n > 1 ? 's' : '') + ' with you. Add to your saved collection?');
+      if (ok) {
+        var favs = getFavorites();
+        var map = getSavedParksMap();
+        var added = 0;
+        sharedParks.forEach(function (p) {
+          if (favs.indexOf(p.placeId) === -1) {
+            favs.push(p.placeId);
+            added++;
+          }
+          // Always update the map (in case the snapshot has fresher info)
+          map[p.placeId] = sanitizeParkForStorage(p);
+        });
+        setFavorites(favs);
+        setSavedParksMap(map);
+        showMessage(added + ' new park' + (added !== 1 ? 's' : '') + ' added to your saved collection.', 'success');
+        // Switch to Saved tab to show them
+        var savedBtn = document.querySelector('.type-btn[data-type="favorites"]');
+        if (savedBtn) savedBtn.click();
+      }
+      return;
+    }
+  }
 
   if (!isNaN(lat) && !isNaN(lng)) {
     if (radius) {
@@ -1766,18 +1838,39 @@ function handleSharedUrl() {
   }
 }
 
-// ---- "Share search" toolbar button ----
+// ---- Share button: context-switches between "share search" and "share saved" ----
 (function () {
   var btn = document.getElementById('share-view-btn');
   if (!btn) return;
   btn.addEventListener('click', function () {
-    if (lastLat === null || lastLng === null) return;
-    shareUrl(buildShareUrlForSearch(lastLat, lastLng, getRadius()), 'Search link');
+    var typeFilter = getTypeFilter();
+    if (typeFilter === 'favorites') {
+      var url = buildShareUrlForSavedParks();
+      if (!url) {
+        showMessage('No saved parks to share. Tap ★ on a park to save it first.', 'info');
+        return;
+      }
+      shareUrl(url, 'Saved-parks link');
+    } else {
+      if (lastLat === null || lastLng === null) {
+        showMessage('Search a location first to share it.', 'info');
+        return;
+      }
+      shareUrl(buildShareUrlForSearch(lastLat, lastLng, getRadius()), 'Search link');
+    }
   });
 })();
 
-// ---- Initial: handle URL share params on page load ----
+// Update the share button label to reflect what it'll share
+function refreshShareButtonLabel() {
+  var btn = document.getElementById('share-view-btn');
+  if (!btn) return;
+  btn.textContent = getTypeFilter() === 'favorites' ? '🔗 Share saved' : '🔗 Share search';
+}
+
+// ---- Initial: handle URL share params on page load + refresh button labels ----
 handleSharedUrl();
+refreshShareButtonLabel();
 
 // ---- PWA: register the service worker (offline support + add to home screen) ----
 if ('serviceWorker' in navigator) {
