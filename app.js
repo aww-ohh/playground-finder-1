@@ -24,7 +24,7 @@ function savePref(key, value) {
 }
 
 // ---- Restore saved preferences ----
-var savedSort = loadPref('playgroundFinder.sort', ['distance', 'rating', 'reviews'], 'distance');
+var savedSort = loadPref('playgroundFinder.sort', ['distance', 'rating', 'reviews', 'data'], 'distance');
 var savedType = loadPref('playgroundFinder.typeFilter', ['all', 'playground', 'park', 'favorites'], 'playground');
 var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '0.5');
 
@@ -121,8 +121,28 @@ function sortResults(results, sortBy) {
     sorted.sort(function (a, b) { return (b.rating || 0) - (a.rating || 0); });
   } else if (sortBy === 'reviews') {
     sorted.sort(function (a, b) { return b.reviewCount - a.reviewCount; });
+  } else if (sortBy === 'data') {
+    // Rank by how many signal dimensions have a real (non-N/A) value.
+    // Tie-break by distance so closer parks win when richness is equal.
+    sorted.sort(function (a, b) {
+      var diff = signalRichness(b.signals) - signalRichness(a.signals);
+      if (diff !== 0) return diff;
+      return a.distance - b.distance;
+    });
   }
   return sorted;
+}
+
+// Count how many of the 5 signal dimensions are populated (non-N/A and non-loading)
+function signalRichness(signals) {
+  if (!signals) return 0;
+  var dims = ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking'];
+  var count = 0;
+  dims.forEach(function (d) {
+    var v = signals[d] && signals[d].value;
+    if (v && v !== 'not_mentioned' && v !== 'loading') count++;
+  });
+  return count;
 }
 
 // ---- Helper: type badge label with emoji ----
