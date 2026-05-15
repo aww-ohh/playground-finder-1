@@ -38,8 +38,9 @@ document.querySelectorAll('.type-btn').forEach(function (btn) {
 
 // ---- State ----
 var map = null;
-var markerGroup = L.layerGroup();
+var markerGroup = null;          // initialized after Leaflet finishes lazy-loading
 var markersByPlaceId = {};
+var leafletLoadPromise = null;    // memoized Promise so we only load Leaflet once
 var currentResults = [];
 var lastLat = null;
 var lastLng = null;
@@ -824,6 +825,35 @@ function renderPopupSignals(signals) {
   return html;
 }
 
+// ---- Lazy-load Leaflet CSS + JS on first map use ----
+// We don't include Leaflet in index.html anymore, saving ~47KB on the initial page load
+// for visitors who never run a search. This loads it once, memoizing the Promise.
+function ensureLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (leafletLoadPromise) return leafletLoadPromise;
+  leafletLoadPromise = new Promise(function (resolve, reject) {
+    // 1. CSS
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.integrity = 'sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H';
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+    // 2. JS — wait for it to load before resolving so subsequent code can use L
+    var script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.integrity = 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH';
+    script.crossOrigin = 'anonymous';
+    script.onload = function () {
+      if (!markerGroup) markerGroup = L.layerGroup();
+      resolve();
+    };
+    script.onerror = function () { reject(new Error('Failed to load Leaflet')); };
+    document.head.appendChild(script);
+  });
+  return leafletLoadPromise;
+}
+
 // ---- Helper: build the HTML content for a map popup ----
 function buildPopupContent(r) {
   var popupRating;
@@ -934,6 +964,11 @@ function scrollToCard(placeId) {
 
 // ---- Helper: show the map and place markers ----
 function showMap(lat, lng, results) {
+  // Lazy-load Leaflet on first call; subsequent calls resolve immediately
+  ensureLeaflet().then(function () { showMapInternal(lat, lng, results); });
+}
+
+function showMapInternal(lat, lng, results) {
   document.getElementById('map-section').classList.remove('hidden');
 
   if (!map) {
@@ -1013,6 +1048,11 @@ function updateMarkerVisibility(typeFilter, activeSignals) {
 
 // Add map markers for saved parks that aren't already in markersByPlaceId
 function addMarkersForSavedParks(savedFilteredResults) {
+  // Defer if Leaflet hasn't loaded yet — showMap will fire the load and call us back
+  if (!window.L) {
+    ensureLeaflet().then(function () { addMarkersForSavedParks(savedFilteredResults); });
+    return;
+  }
   if (!map) return;
   var bounds = L.latLngBounds([]);
   var added = 0;
@@ -1089,14 +1129,19 @@ function renderResults(results) {
   if (typeFilterNow === 'favorites' && !map && hasSavedToShow) {
     var savedParks = getAllSavedParks();
     if (savedParks.length > 0) {
-      // Initialize map centered on the first saved park; markers will be added by addMarkersForSavedParks
+      // Initialize map centered on the first saved park (lazy-loads Leaflet first)
       var first = savedParks[0];
       document.getElementById('map-section').classList.remove('hidden');
-      map = L.map('map').setView([first.lat, first.lng], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
-      markerGroup.addTo(map);
+      ensureLeaflet().then(function () {
+        if (map) return; // another path may have initialized it
+        map = L.map('map').setView([first.lat, first.lng], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        markerGroup.addTo(map);
+        // Now that map is ready, run the marker-add path for saved parks
+        applyFilterAndSort();
+      });
     }
   }
 
