@@ -516,6 +516,20 @@ main {
   background: #f3eadb;
 }
 
+/* "Saved" button is visually separate from the type-filter pill — it's a different concept
+   (a view of your collection, not a way to slice the current search). */
+.saved-btn {
+  margin-left: 0.5rem;     /* gap separates it from the pill */
+  border: 3px solid #1a1410;
+  border-radius: 1.5rem;
+  box-shadow: 4px 4px 0 #1a1410;
+  padding: 0.4rem 0.85rem;
+}
+.saved-btn.active {
+  background: #ffb800;     /* same active treatment as type-filter buttons */
+  color: #1a1410;
+}
+
 .filter-message {
   font-family: 'Nunito', sans-serif;
   font-size: 0.95rem;

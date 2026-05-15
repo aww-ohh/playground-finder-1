@@ -31,8 +31,8 @@ var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '0
 
 sortSelect.value = savedSort;
 radiusSelect.value = savedRadius;
-// Set active type button
-typeFilterDiv.querySelectorAll('.type-btn').forEach(function (btn) {
+// Set active type button (search across all .type-btn buttons including the standalone Saved)
+document.querySelectorAll('.type-btn').forEach(function (btn) {
   btn.classList.toggle('active', btn.getAttribute('data-type') === savedType);
 });
 
@@ -62,7 +62,8 @@ function showMessage(text, type) {
 
 // ---- Helper: get current UI state ----
 function getTypeFilter() {
-  var active = typeFilterDiv.querySelector('.type-btn.active');
+  // Search across all .type-btn buttons (the type pill + the standalone Saved button)
+  var active = document.querySelector('.type-btn.active');
   return active ? active.getAttribute('data-type') : 'all';
 }
 
@@ -1231,10 +1232,12 @@ sortSelect.addEventListener('change', function () {
 })();
 
 // ---- Event: type filter change ----
-typeFilterDiv.addEventListener('click', function (e) {
+// Listen at the parent filter-row so we catch clicks on both the type-filter pill
+// AND the standalone Saved button (which sits outside the pill for visual demarcation).
+typeFilterDiv.parentElement.addEventListener('click', function (e) {
   var btn = e.target.closest('.type-btn');
   if (!btn) return;
-  typeFilterDiv.querySelectorAll('.type-btn').forEach(function (b) {
+  document.querySelectorAll('.type-btn').forEach(function (b) {
     b.classList.remove('active');
   });
   btn.classList.add('active');
