@@ -1481,5 +1481,16 @@ addressForm.addEventListener('submit', function (e) {
 });
 
 
+// ---- "Show parks near me" landing CTA — same as clicking the pin button ----
+(function () {
+  var nearMeCta = document.getElementById('near-me-cta');
+  if (!nearMeCta) return;
+  nearMeCta.addEventListener('click', function () {
+    geolocateBtn.click();
+    // Hide the CTA after clicking; landing CTA only useful when no search has happened
+    nearMeCta.classList.add('hidden');
+  });
+})();
+
 // ---- Initial setup on page load ----
 refreshHomeButton();

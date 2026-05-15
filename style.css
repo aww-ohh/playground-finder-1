@@ -153,6 +153,30 @@ main {
 }
 .pov .arrow { color: #0d9b62; }
 
+/* "Show parks near me" CTA on the landing page */
+.near-me-cta {
+  margin: 1.5rem auto 0;
+  display: inline-block;
+  font-family: 'Bungee', cursive;
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  color: #1a1410;
+  background: #ffb800;
+  border: 3px solid #1a1410;
+  border-radius: 2rem;
+  padding: 0.65rem 1.4rem;
+  cursor: pointer;
+  box-shadow: 5px 5px 0 #1a1410;
+  transform: rotate(-1deg);
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+  z-index: 2;
+}
+.near-me-cta:hover {
+  transform: rotate(-1deg) translateY(-1px);
+  box-shadow: 6px 6px 0 #1a1410;
+}
+
 /* ===== Search section (real, functional) ===== */
 .search-section {
   display: flex;
