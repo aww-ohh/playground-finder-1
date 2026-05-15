@@ -568,13 +568,17 @@ main {
 /* Mobile-specific toolbar tweaks */
 @media (max-width: 767px) {
   /* Toolbar lives in normal flow above the map and scrolls away with the page.
-     Tighter horizontal padding so there's more room for buttons + their box-shadows. */
+     Tighter horizontal padding so there's more room for buttons + their box-shadows.
+     Drop the bottom border (which conflicts with the map's own border below it) and
+     use margin instead so there's clean separation between toolbar and map. */
   .results-toolbar {
     position: static;
     padding: 0.75rem 0.75rem;
     background: #f3eadb;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+    border-bottom: none;
+    margin-bottom: 1.5rem;
   }
 
   /* Heading row wraps if needed; smaller heading; share button can drop below */

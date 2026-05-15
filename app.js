@@ -772,16 +772,20 @@ function renderSignalRow(icon, label, valueHtml, summary) {
     + '</div>';
 }
 
-// Builds the full signals list for a card
+// Builds the full signals list for a card.
+// Defensive against missing dimensions or missing .source on cached pre-OSM data.
 function renderSignals(signals) {
   if (!signals) return '';
-
+  function get(dim) {
+    return signals[dim] || { value: 'not_mentioned', summary: null, source: null };
+  }
+  var f = get('fenced'), s = get('shade'), b = get('bathrooms'), a = get('ageSuitability'), p = get('parking');
   var html = '<div class="signals-list">';
-  html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(signals.fenced.value, signals.fenced.source), signals.fenced.summary);
-  html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(signals.shade.value, signals.shade.source), signals.shade.summary);
-  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(signals.bathrooms.value, signals.bathrooms.source), signals.bathrooms.summary);
-  html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value), signals.ageSuitability.source), signals.ageSuitability.summary);
-  html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(signals.parking.value), signals.parking.source), signals.parking.summary);
+  html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(f.value, f.source), f.summary);
+  html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(s.value, s.source), s.summary);
+  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(b.value, b.source), b.summary);
+  html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(a.value), a.source), a.summary);
+  html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(p.value), p.source), p.summary);
   html += '</div>';
   return html;
 }
