@@ -818,6 +818,23 @@ radiusSelect.addEventListener('change', function () {
   }
 });
 
+// ---- Card hover → highlight matching marker on the map ----
+(function () {
+  var resultsList = document.getElementById('results-list');
+  resultsList.addEventListener('mouseover', function (e) {
+    var card = e.target.closest('.result-card');
+    if (!card) return;
+    var marker = markersByPlaceId[card.getAttribute('data-place-id')];
+    if (marker && marker._icon) marker._icon.classList.add('marker-highlight');
+  });
+  resultsList.addEventListener('mouseout', function (e) {
+    var card = e.target.closest('.result-card');
+    if (!card) return;
+    var marker = markersByPlaceId[card.getAttribute('data-place-id')];
+    if (marker && marker._icon) marker._icon.classList.remove('marker-highlight');
+  });
+})();
+
 // ---- Event: card click → pan map to marker ----
 document.getElementById('results-list').addEventListener('click', function (e) {
   // Favorite button toggle
