@@ -368,8 +368,12 @@ function googleDirectionsUrl(placeId, lat, lng) {
 
 // ---- Yelp search URL ----
 function yelpSearchUrl(name, lat, lng) {
-  return 'https://www.yelp.com/search?find_desc=' + encodeURIComponent(name)
-    + '&find_loc=' + lat + '%2C' + lng;
+  // Filter by Yelp's "parks" category so we don't surface random restaurants/cafes
+  // that share the park's name. Parameter `cflt=parks` constrains results.
+  return 'https://www.yelp.com/search'
+    + '?find_desc=' + encodeURIComponent(name)
+    + '&find_loc=' + lat + ',' + lng
+    + '&cflt=parks';
 }
 
 // ---- Helper: build star icons HTML for a rating ----
