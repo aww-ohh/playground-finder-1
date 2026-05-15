@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Cream background to match the site -->
+  <rect width="512" height="512" rx="96" fill="#f3eadb"/>
+
+  <!-- Burnt orange splatter behind the slide -->
+  <circle cx="120" cy="120" r="42" fill="#e07a2a" opacity="0.78"/>
+  <circle cx="430" cy="155" r="22" fill="#e07a2a" opacity="0.78"/>
+  <circle cx="80" cy="380" r="18" fill="#e07a2a" opacity="0.78"/>
+
+  <!-- Emerald grass mound at the bottom -->
+  <ellipse cx="256" cy="490" rx="240" ry="60" fill="#0d9b62"/>
+  <ellipse cx="256" cy="500" rx="240" ry="40" fill="#0a7a4d"/>
+
+  <!-- Slide ladder (left side, sky-blue rails) -->
+  <rect x="116" y="180" width="14" height="240" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="6"/>
+  <rect x="158" y="180" width="14" height="240" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="6"/>
+  <!-- Ladder rungs -->
+  <rect x="120" y="220" width="48" height="10" rx="3" fill="#1a1410"/>
+  <rect x="120" y="265" width="48" height="10" rx="3" fill="#1a1410"/>
+  <rect x="120" y="310" width="48" height="10" rx="3" fill="#1a1410"/>
+  <rect x="120" y="355" width="48" height="10" rx="3" fill="#1a1410"/>
+
+  <!-- Slide platform top — yellow circle with crimson border -->
+  <circle cx="146" cy="180" r="36" fill="#ffb800" stroke="#1a1410" stroke-width="6"/>
+
+  <!-- Slide curve - gold -->
+  <path d="M 144 180 Q 280 200, 360 320 Q 400 400, 380 460"
+        stroke="#ffb800" stroke-width="42" fill="none" stroke-linecap="round"/>
+  <path d="M 144 180 Q 280 200, 360 320 Q 400 400, 380 460"
+        stroke="#1a1410" stroke-width="50" fill="none" stroke-linecap="round" opacity="0"/>
+  <!-- Slide black outline using a wider path drawn underneath -->
+  <path d="M 144 180 Q 280 200, 360 320 Q 400 400, 380 460"
+        stroke="#1a1410" stroke-width="52" fill="none" stroke-linecap="round" opacity="1"/>
+  <path d="M 144 180 Q 280 200, 360 320 Q 400 400, 380 460"
+        stroke="#ffb800" stroke-width="42" fill="none" stroke-linecap="round"/>
+
+  <!-- Crimson splatter dot for graffiti energy -->
+  <circle cx="420" cy="420" r="14" fill="#c0202c"/>
+
+  <!-- "PG" tag overlay in Bungee-like chunky letters, rotated -->
+  <g transform="translate(256 290) rotate(-6)">
+    <text x="0" y="0" font-family="'Bungee', 'Arial Black', sans-serif" font-weight="900"
+          font-size="120" text-anchor="middle"
+          fill="#ffb800" stroke="#1a1410" stroke-width="8" paint-order="stroke">PG</text>
+  </g>
+</svg>

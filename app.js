@@ -1605,3 +1605,11 @@ function handleSharedUrl() {
 
 // ---- Initial: handle URL share params on page load ----
 handleSharedUrl();
+
+// ---- PWA: register the service worker (offline support + add to home screen) ----
+if ('serviceWorker' in navigator) {
+  // Wait until after the load event so SW registration doesn't fight for the network with first paint
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () { /* registration failed — silently OK */ });
+  });
+}

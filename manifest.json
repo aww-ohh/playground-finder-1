@@ -1,0 +1,15 @@
+{
+  "name": "Playground Finder",
+  "short_name": "PG Finder",
+  "description": "Find playgrounds and parks with the features that you want.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3eadb",
+  "theme_color": "#ffb800",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
