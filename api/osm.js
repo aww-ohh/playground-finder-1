@@ -13,6 +13,9 @@ module.exports = async function handler(req, res) {
   }
   var radiusMiles = parseFloat(req.query.radius);
   if (isNaN(radiusMiles)) radiusMiles = 1;
+  // Cap to prevent abusive Overpass queries that could hang the function.
+  if (radiusMiles > 5) radiusMiles = 5;
+  if (radiusMiles < 0.1) radiusMiles = 0.1;
   // OSM uses meters. Add a small buffer so we catch parks near the edge.
   var radiusMeters = Math.round(radiusMiles * 1609.344) + 100;
 
@@ -30,9 +33,13 @@ module.exports = async function handler(req, res) {
     + 'out tags center;';
 
   try {
+    // Overpass requires a User-Agent header — they reject default fetch User-Agent with 406
     var overpassRes = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'PlaygroundFinder/1.0 (https://playground-finder-1.vercel.app)'
+      },
       body: 'data=' + encodeURIComponent(query)
     });
     if (!overpassRes.ok) {

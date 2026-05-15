@@ -19,8 +19,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Modak&family=Permanent+Marker&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Leaflet CSS (for the map) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet CSS (for the map) — SRI-pinned to detect CDN tampering -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H"
+    crossorigin="anonymous" />
 
   <!-- Our stylesheet -->
   <link rel="stylesheet" href="style.css">
@@ -197,8 +199,10 @@
 
   </main>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet JS — SRI-pinned to detect CDN tampering -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH"
+    crossorigin="anonymous"></script>
 
   <!-- Our JavaScript -->
   <script src="app.js"></script>

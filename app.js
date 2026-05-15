@@ -48,6 +48,18 @@ var CURRENT_LOCATION_LABEL = 'Current location';
 var MAP_AREA_LABEL = 'Map area';
 var searchHereBtn = document.getElementById('search-here-btn');
 
+// ---- Helper: escape user/API content for safe insertion into HTML strings ----
+// Used everywhere DOM is built via innerHTML with strings that originate from
+// Google Places (park names, reviews) or from URL params/localStorage (shared parks).
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ---- Helper: show a status message ----
 function showMessage(text, type) {
   var msg = document.getElementById('status-message');
@@ -406,20 +418,20 @@ function renderHeroPhoto(result) {
   if (result.photoAttribution && result.photoAttribution.name) {
     if (result.photoAttribution.url) {
       attributionHtml = '<div class="card-hero-attribution">'
-        + 'Photo by <a href="' + result.photoAttribution.url
+        + 'Photo by <a href="' + escapeHtml(result.photoAttribution.url)
         + '" target="_blank" rel="noopener noreferrer">'
-        + result.photoAttribution.name + '</a>'
+        + escapeHtml(result.photoAttribution.name) + '</a>'
         + '</div>';
     } else {
       attributionHtml = '<div class="card-hero-attribution">'
-        + 'Photo by ' + result.photoAttribution.name
+        + 'Photo by ' + escapeHtml(result.photoAttribution.name)
         + '</div>';
     }
   }
 
   return '<div class="card-hero">'
-    + '<img class="card-hero-image" src="' + result.photoUrl
-    + '" alt="Photo of ' + result.name
+    + '<img class="card-hero-image" src="' + escapeHtml(result.photoUrl)
+    + '" alt="Photo of ' + escapeHtml(result.name)
     + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'">'
     + attributionHtml
     + '</div>';
@@ -431,8 +443,8 @@ function renderPopupPhoto(result) {
   if (!result.photoUrl) return '';
 
   return '<div class="popup-hero">'
-    + '<img class="popup-hero-image" src="' + result.photoUrl
-    + '" alt="Photo of ' + result.name
+    + '<img class="popup-hero-image" src="' + escapeHtml(result.photoUrl)
+    + '" alt="Photo of ' + escapeHtml(result.name)
     + '" onerror="this.parentElement.style.display=\'none\'">'
     + '</div>';
 }
@@ -449,19 +461,11 @@ function truncateReview(text, maxLen) {
   return cut + '…';
 }
 
-function escapeReviewHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 function renderReviews(result) {
   if (!result.reviews || result.reviews.length === 0) return '';
   var count = result.reviews.length;
   var items = result.reviews.map(function (text) {
-    return '<div class="review-snippet">"' + escapeReviewHtml(truncateReview(text, 220)) + '"</div>';
+    return '<div class="review-snippet">"' + escapeHtml(truncateReview(text, 220)) + '"</div>';
   }).join('');
   return '<div class="reviews-section">'
     + '<button type="button" class="reviews-toggle" aria-expanded="false">'
@@ -620,7 +624,7 @@ function renderNoteSection(result) {
     + '<div class="note-content"' + (hasExisting ? '' : ' style="display:none"') + '>'
     + '<textarea class="note-input" data-place-id="' + result.placeId + '" '
     + 'placeholder="e.g. fence on south side has a gap, swings squeak in the rain..." '
-    + 'rows="3">' + escapeReviewHtml(existing) + '</textarea>'
+    + 'rows="3">' + escapeHtml(existing) + '</textarea>'
     + '<div class="note-status" data-place-id="' + result.placeId + '"></div>'
     + '</div></div>';
 }
@@ -826,7 +830,7 @@ function buildPopupContent(r) {
   return '<div class="popup-content">'
     + renderPopupPhoto(r)
     + '<div class="popup-body">'
-    + '<strong>' + r.name + '</strong><br>'
+    + '<strong>' + escapeHtml(r.name) + '</strong><br>'
     + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
     + renderPopupSignals(r.signals)
     + '<a class="popup-link-google" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">🚗 Directions in Google Maps</a><br>'
@@ -1121,7 +1125,7 @@ function renderResults(results) {
       + renderHeroPhoto(r)
       + '<div class="result-card-body">'
       + '<div class="result-card-header">'
-      + '<span class="result-name">' + r.name + '</span>'
+      + '<span class="result-name">' + escapeHtml(r.name) + '</span>'
       + '<span class="result-type ' + typeClass + '">' + typeBadgeLabel(r.type) + '</span>'
       + '</div>'
       + '<span class="result-meta result-distance">' + renderTravelTime(r.distance) + '</span>'
@@ -1633,14 +1637,6 @@ function hideSuggestions() {
   addressSuggestions.innerHTML = '';
 }
 
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
 function fetchSuggestions(query) {
   var thisRequest = ++suggestionsRequestId;
   var url = 'https://nominatim.openstreetmap.org/search'
@@ -1841,13 +1837,16 @@ function decodeSharedParks(encoded) {
     var json = decodeURIComponent(escape(atob(encoded)));
     var compact = JSON.parse(json);
     if (!Array.isArray(compact)) return null;
+    // Cap shared collection size to protect against malicious URLs trying to
+    // overload localStorage or render thousands of cards.
+    if (compact.length > 100) compact = compact.slice(0, 100);
     return compact.map(function (p) {
       return {
-        placeId: p.i,
-        name: p.n,
-        lat: p.a,
-        lng: p.o,
-        type: p.t || 'park',
+        placeId: typeof p.i === 'string' ? p.i.substring(0, 200) : '',
+        name: typeof p.n === 'string' ? p.n.substring(0, 200) : '',
+        lat: typeof p.a === 'number' ? p.a : 0,
+        lng: typeof p.o === 'number' ? p.o : 0,
+        type: p.t === 'playground' ? 'playground' : 'park',
         rating: null,
         reviewCount: 0,
         photoUrl: null,
@@ -1857,7 +1856,7 @@ function decodeSharedParks(encoded) {
         reviews: [],
         signals: defaultSignalsClient()
       };
-    });
+    }).filter(function (p) { return p.placeId && p.name && p.lat && p.lng; });
   } catch (e) { return null; }
 }
 

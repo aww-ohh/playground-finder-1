@@ -18,6 +18,10 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Missing or invalid parks array' });
   }
   var parks = body.parks;
+  // Cap parks count to prevent abusive payloads (each park can be ~5 reviews ~1KB each).
+  if (parks.length > 30) {
+    return res.status(400).json({ error: 'Too many parks in one request (max 30)' });
+  }
   if (parks.length === 0) {
     return res.status(200).json({ signals: {} });
   }
