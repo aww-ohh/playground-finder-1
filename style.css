@@ -728,6 +728,32 @@ main {
   background: #0d9b62;
 }
 
+/* "Perfect park" treatment — fenced + bathrooms + toddler-friendly = gold border + sparkle badge */
+.result-card.is-perfect {
+  border-color: #ffb800;
+  box-shadow: 6px 6px 0 #ffb800, inset 0 0 0 2px #1a1410;
+}
+.result-card.is-perfect:hover {
+  box-shadow: 8px 8px 0 #ffb800, inset 0 0 0 2px #1a1410;
+}
+.result-card.is-perfect::before {
+  content: '✨ PERFECT';
+  position: absolute;
+  top: 0.6rem;
+  right: 3.4rem;  /* sit to the left of the favorite star */
+  z-index: 10;
+  background: #ffb800;
+  color: #1a1410;
+  font-family: 'Bungee', cursive;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.55rem;
+  border: 2px solid #1a1410;
+  border-radius: 0.6rem;
+  box-shadow: 2px 2px 0 #1a1410;
+  transform: rotate(4deg);
+}
+
 /* Visited card treatment — slight desaturation + a "VISITED" sticker */
 .result-card.is-visited .card-hero-image {
   filter: saturate(0.7);

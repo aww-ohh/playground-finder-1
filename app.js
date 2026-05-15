@@ -259,6 +259,16 @@ function sortResults(results, sortBy) {
   return sorted;
 }
 
+// Is this a "perfect park" for a toddler? Fenced + bathrooms + toddler-friendly.
+function isPerfectPark(signals) {
+  if (!signals) return false;
+  if (!(signals.fenced && signals.fenced.value === 'yes')) return false;
+  if (!(signals.bathrooms && signals.bathrooms.value === 'yes')) return false;
+  var age = signals.ageSuitability && signals.ageSuitability.value;
+  if (age !== 'toddler' && age !== 'both') return false;
+  return true;
+}
+
 // Count how many of the 5 signal dimensions are populated (non-N/A and non-loading)
 function signalRichness(signals) {
   if (!signals) return 0;
@@ -570,11 +580,14 @@ function updateCardSignals(placeId, signals) {
   var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
   if (!card) return;
   var oldList = card.querySelector('.signals-list');
-  if (!oldList) return;
-  var temp = document.createElement('div');
-  temp.innerHTML = renderSignals(signals);
-  var newList = temp.firstChild;
-  if (newList) oldList.replaceWith(newList);
+  if (oldList) {
+    var temp = document.createElement('div');
+    temp.innerHTML = renderSignals(signals);
+    var newList = temp.firstChild;
+    if (newList) oldList.replaceWith(newList);
+  }
+  // Re-evaluate "perfect park" status now that signals have arrived
+  card.classList.toggle('is-perfect', isPerfectPark(signals));
 }
 
 // Builds one signal row for a card (with expandable summary)
@@ -864,7 +877,8 @@ function renderResults(results) {
 
     var favClass = isFavorite(r.placeId) ? ' is-favorite' : '';
     var visitedClass = isVisited(r.placeId) ? ' is-visited' : '';
-    html += '<li class="result-card' + visitedClass + '" data-place-id="' + r.placeId + '">'
+    var perfectClass = isPerfectPark(r.signals) ? ' is-perfect' : '';
+    html += '<li class="result-card' + visitedClass + perfectClass + '" data-place-id="' + r.placeId + '">'
       + '<button class="favorite-btn' + favClass + '" data-place-id="' + r.placeId + '" aria-label="Save to favorites" title="Save to favorites">★</button>'
       + '<button class="visited-btn' + visitedClass + '" data-place-id="' + r.placeId + '" aria-label="Mark as visited" title="Mark as visited">✓</button>'
       + renderHeroPhoto(r)
