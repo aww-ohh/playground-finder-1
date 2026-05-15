@@ -981,13 +981,15 @@ function showMapInternal(lat, lng, results) {
     map.on('dragend', function () {
       searchHereBtn.classList.remove('hidden');
     });
-  } else {
-    map.flyTo([lat, lng], 13);
   }
+  // Note: don't pre-fly to lat/lng here when results exist — fitBounds below positions
+  // the map based on the actual markers, and the two animations would fight each other.
 
   // Hide the "Search this area" button now that we have fresh results centered here
   searchHereBtn.classList.add('hidden');
 
+  // Clear ALL previous markers before adding new ones (prevents stale markers
+  // bleeding through on "Search this area" or repeat searches).
   markerGroup.clearLayers();
   markersByPlaceId = {};
 
@@ -1017,7 +1019,10 @@ function showMapInternal(lat, lng, results) {
   });
 
   if (results.length > 0) {
-    map.fitBounds(bounds, { padding: [40, 40] });
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+  } else {
+    // No results — just center on the search location at the default zoom
+    map.setView([lat, lng], 13);
   }
 
   setTimeout(function () { map.invalidateSize(); }, 200);
@@ -1415,11 +1420,17 @@ sortSelect.addEventListener('change', function () {
 typeFilterDiv.parentElement.addEventListener('click', function (e) {
   var btn = e.target.closest('.type-btn');
   if (!btn) return;
+  var type = btn.getAttribute('data-type');
+  // Saved button toggles: clicking it again returns you to All
+  if (type === 'favorites' && btn.classList.contains('active')) {
+    type = 'all';
+    btn = document.querySelector('.type-btn[data-type="all"]');
+    if (!btn) return;
+  }
   document.querySelectorAll('.type-btn').forEach(function (b) {
     b.classList.remove('active');
   });
   btn.classList.add('active');
-  var type = btn.getAttribute('data-type');
   savePref('playgroundFinder.typeFilter', type);
   refreshShareButtonLabel();
   // Saved tab can render with no current search (uses cross-search saved data)
