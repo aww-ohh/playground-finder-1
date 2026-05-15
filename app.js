@@ -198,15 +198,6 @@ function toggleVisited(placeId) {
   return idx === -1;
 }
 
-// "Hide visited" toggle — persists in localStorage
-var HIDE_VISITED_KEY = 'playgroundFinder.hideVisited';
-function getHideVisited() {
-  try { return localStorage.getItem(HIDE_VISITED_KEY) === '1'; }
-  catch (e) { return false; }
-}
-function setHideVisited(on) {
-  try { localStorage.setItem(HIDE_VISITED_KEY, on ? '1' : '0'); } catch (e) { /* ignore */ }
-}
 
 // ---- Personal notes per park (localStorage) ----
 var NOTE_PREFIX = 'playgroundFinder.note.';
@@ -880,14 +871,11 @@ function showMap(lat, lng, results) {
 }
 
 // ---- Helper: update marker visibility based on type filter ----
-function updateMarkerVisibility(typeFilter, activeSignals, hideVisited) {
+function updateMarkerVisibility(typeFilter, activeSignals) {
   // Build a set of placeIds that pass the current filters
   var visibleIds = {};
   var filtered = filterByType(currentResults, typeFilter);
   filtered = filterBySignals(filtered, activeSignals || []);
-  if (hideVisited) {
-    filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
-  }
   filtered.forEach(function (r) { visibleIds[r.placeId] = true; });
 
   Object.keys(markersByPlaceId).forEach(function (placeId) {
@@ -1053,15 +1041,11 @@ function applyFilterAndSort() {
   var typeFilter = getTypeFilter();
   var sortBy = getSortOrder();
   var activeSignals = getActiveSignalFilters();
-  var hideVisited = getHideVisited();
   var filtered = filterByType(currentResults, typeFilter);
   filtered = filterBySignals(filtered, activeSignals);
-  if (hideVisited) {
-    filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
-  }
   var sorted = sortResults(filtered, sortBy);
   renderResults(sorted);
-  updateMarkerVisibility(typeFilter, activeSignals, hideVisited);
+  updateMarkerVisibility(typeFilter, activeSignals);
 }
 
 // ---- Helper: called once we have coordinates ----
@@ -1226,22 +1210,9 @@ sortSelect.addEventListener('change', function () {
     var sig = chip.getAttribute('data-signal');
     if (sig && active.indexOf(sig) !== -1) chip.classList.add('active');
   });
-  // Restore hide-visited toggle
-  var hideVisitedChip = document.getElementById('hide-visited-toggle');
-  if (hideVisitedChip && getHideVisited()) hideVisitedChip.classList.add('active');
-
   signalFilter.addEventListener('click', function (e) {
     var chip = e.target.closest('.signal-chip');
     if (!chip) return;
-    // Hide-visited has its own handling
-    if (chip.id === 'hide-visited-toggle') {
-      var newState = !chip.classList.contains('active');
-      chip.classList.toggle('active', newState);
-      setHideVisited(newState);
-      if (currentResults.length === 0) return;
-      applyFilterAndSort();
-      return;
-    }
     var sig = chip.getAttribute('data-signal');
     if (!sig) return;
     var current = getActiveSignalFilters();

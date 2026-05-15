@@ -575,25 +575,8 @@ main {
   .signal-chip {
     flex-shrink: 0;
   }
-  /* Don't push hide-visited to the right on mobile — it's just last in the swipe row */
-  .hide-visited-chip {
-    margin-left: 0 !important;
-  }
 }
 
-/* Hide-visited chip uses a distinct (red) active state since it's a "remove these" filter */
-.hide-visited-chip {
-  margin-left: auto;  /* pushes it to the right edge of the row on wider screens */
-  border-color: #c0202c;
-  color: #c0202c;
-}
-.hide-visited-chip.active {
-  background: #c0202c;
-  color: #fff;
-  border-color: #c0202c;
-  box-shadow: 2px 2px 0 #1a1410;
-  transform: translate(-1px, -1px);
-}
 
 /* Sort + Radius selects */
 .sort-control {
