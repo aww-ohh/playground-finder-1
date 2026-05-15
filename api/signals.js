@@ -118,6 +118,7 @@ module.exports = async function handler(req, res) {
 };
 
 // ---- Helper: validate and normalize Gemini's response ----
+// Each signal is tagged with source: 'gemini' when value is real (not 'not_mentioned').
 function validateSignals(parsed) {
   var booleanDimensions = ['fenced', 'shade', 'bathrooms'];
   var booleanAllowed = ['yes', 'no', 'not_mentioned'];
@@ -128,31 +129,37 @@ function validateSignals(parsed) {
 
   booleanDimensions.forEach(function (dim) {
     if (parsed[dim] && booleanAllowed.indexOf(parsed[dim].value) !== -1) {
+      var v = parsed[dim].value;
       result[dim] = {
-        value: parsed[dim].value,
-        summary: parsed[dim].value === 'not_mentioned' ? null : (parsed[dim].summary || null)
+        value: v,
+        summary: v === 'not_mentioned' ? null : (parsed[dim].summary || null),
+        source: v === 'not_mentioned' ? null : 'gemini'
       };
     } else {
-      result[dim] = { value: 'not_mentioned', summary: null };
+      result[dim] = { value: 'not_mentioned', summary: null, source: null };
     }
   });
 
   if (parsed.ageSuitability && ageAllowed.indexOf(parsed.ageSuitability.value) !== -1) {
+    var av = parsed.ageSuitability.value;
     result.ageSuitability = {
-      value: parsed.ageSuitability.value,
-      summary: parsed.ageSuitability.value === 'not_mentioned' ? null : (parsed.ageSuitability.summary || null)
+      value: av,
+      summary: av === 'not_mentioned' ? null : (parsed.ageSuitability.summary || null),
+      source: av === 'not_mentioned' ? null : 'gemini'
     };
   } else {
-    result.ageSuitability = { value: 'not_mentioned', summary: null };
+    result.ageSuitability = { value: 'not_mentioned', summary: null, source: null };
   }
 
   if (parsed.parking && parkingAllowed.indexOf(parsed.parking.value) !== -1) {
+    var pv = parsed.parking.value;
     result.parking = {
-      value: parsed.parking.value,
-      summary: parsed.parking.value === 'not_mentioned' ? null : (parsed.parking.summary || null)
+      value: pv,
+      summary: pv === 'not_mentioned' ? null : (parsed.parking.summary || null),
+      source: pv === 'not_mentioned' ? null : 'gemini'
     };
   } else {
-    result.parking = { value: 'not_mentioned', summary: null };
+    result.parking = { value: 'not_mentioned', summary: null, source: null };
   }
 
   return result;

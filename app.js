@@ -471,6 +471,102 @@ function renderReviews(result) {
     + '</div>';
 }
 
+// ---- OpenStreetMap-verified signals (cached per placeId) ----
+// We fetch OSM data once per search area, match each Google park to the closest
+// OSM-tagged park within ~60 meters, and override Gemini-extracted signals with
+// the OSM-verified ones (marked source: 'osm' so the UI can show them in green).
+var OSM_CACHE_PREFIX = 'playgroundFinder.osm.';
+var OSM_MATCH_RADIUS_METERS = 60;
+
+function loadCachedOsm(placeId) {
+  try {
+    var raw = localStorage.getItem(OSM_CACHE_PREFIX + placeId);
+    if (raw === null) return undefined;
+    return JSON.parse(raw);
+  } catch (e) { return undefined; }
+}
+
+function saveCachedOsm(placeId, signalsOrEmpty) {
+  try { localStorage.setItem(OSM_CACHE_PREFIX + placeId, JSON.stringify(signalsOrEmpty || {})); }
+  catch (e) { /* ignore */ }
+}
+
+function fetchOsmAndMerge(lat, lng, radius, thisRequest) {
+  fetch('/api/osm?lat=' + lat + '&lng=' + lng + '&radius=' + radius)
+    .then(function (response) {
+      if (thisRequest !== requestId) return;
+      if (!response.ok) return null;
+      return response.json();
+    })
+    .then(function (data) {
+      if (thisRequest !== requestId) return;
+      if (!data || !Array.isArray(data.parks)) return;
+      currentResults.forEach(function (gp) {
+        var match = findClosestOsmPark(gp.lat, gp.lng, data.parks);
+        if (match && Object.keys(match.signals).length > 0) {
+          mergeOsmSignals(gp.placeId, match.signals);
+        } else {
+          // Cache an empty marker so we don't keep retrying
+          saveCachedOsm(gp.placeId, {});
+        }
+      });
+    })
+    .catch(function () { /* OSM is supplementary — fail silently */ });
+}
+
+function findClosestOsmPark(lat, lng, osmParks) {
+  var best = null;
+  var bestDist = Infinity;
+  for (var i = 0; i < osmParks.length; i++) {
+    var d = haversineMeters(lat, lng, osmParks[i].lat, osmParks[i].lng);
+    if (d < bestDist && d <= OSM_MATCH_RADIUS_METERS) {
+      bestDist = d;
+      best = osmParks[i];
+    }
+  }
+  return best;
+}
+
+function haversineMeters(lat1, lng1, lat2, lng2) {
+  var R = 6371000;
+  var toRad = function (d) { return d * Math.PI / 180; };
+  var dLat = toRad(lat2 - lat1);
+  var dLng = toRad(lng2 - lng1);
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+    * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Merge OSM signals into a park's existing signals. OSM wins per dimension.
+function mergeOsmSignals(placeId, osmSignals) {
+  saveCachedOsm(placeId, osmSignals);
+  var park = null;
+  for (var i = 0; i < currentResults.length; i++) {
+    if (currentResults[i].placeId === placeId) {
+      park = currentResults[i];
+      break;
+    }
+  }
+  if (!park || !park.signals) return;
+  var changed = false;
+  ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking'].forEach(function (dim) {
+    if (osmSignals[dim] && osmSignals[dim].value) {
+      park.signals[dim] = {
+        value: osmSignals[dim].value,
+        summary: (park.signals[dim] && park.signals[dim].summary) || null,
+        source: 'osm'
+      };
+      changed = true;
+    }
+  });
+  if (changed) {
+    updateCardSignals(placeId, park.signals);
+    var marker = markersByPlaceId[placeId];
+    if (marker) marker.setPopupContent(buildPopupContent(park));
+  }
+}
+
 // ---- Weather (Open-Meteo, no API key) ----
 function weatherCodeToEmoji(code) {
   if (code === 0) return ['☀️', 'Clear'];
@@ -584,39 +680,44 @@ function parkingLabel(value) {
 }
 
 // Builds the value indicator HTML for a boolean dimension (fenced, shade, bathrooms)
-function booleanValueHtml(value) {
-  if (value === 'yes') return '<span class="signal-yes">\u2705 Yes</span>';
+// `source` is 'osm' (verified, green) or 'gemini' (review-extracted, gold) or null
+function booleanValueHtml(value, source) {
+  if (value === 'yes') {
+    var cls = 'signal-yes' + (source === 'osm' ? ' signal-verified' : '');
+    return '<span class="' + cls + '">\u2705 Yes</span>';
+  }
   if (value === 'no') return '<span class="signal-no">\u274C No</span>';
   if (value === 'loading') return '<span class="signal-loading">\u23F3 \u2026</span>';
   return '<span class="signal-na">\u2796 N/A</span>';
 }
 
 // Builds the value indicator HTML for a category dimension (age, parking)
-function categoryValueHtml(label) {
+function categoryValueHtml(label, source) {
   if (label === '...') return '<span class="signal-loading">\u23F3 \u2026</span>';
   if (label === 'N/A') return '<span class="signal-na">\u2796 N/A</span>';
-  return '<span class="signal-category">' + label + '</span>';
+  var cls = 'signal-category' + (source === 'osm' ? ' signal-verified' : '');
+  return '<span class="' + cls + '">' + label + '</span>';
 }
 
 // Stand-in signals while we wait for /api/signals to return
 function loadingSignals() {
   return {
-    fenced: { value: 'loading', summary: null },
-    shade: { value: 'loading', summary: null },
-    bathrooms: { value: 'loading', summary: null },
-    ageSuitability: { value: 'loading', summary: null },
-    parking: { value: 'loading', summary: null }
+    fenced: { value: 'loading', summary: null, source: null },
+    shade: { value: 'loading', summary: null, source: null },
+    bathrooms: { value: 'loading', summary: null, source: null },
+    ageSuitability: { value: 'loading', summary: null, source: null },
+    parking: { value: 'loading', summary: null, source: null }
   };
 }
 
 // Default (all N/A) signals \u2014 used for parks with no reviews
 function defaultSignalsClient() {
   return {
-    fenced: { value: 'not_mentioned', summary: null },
-    shade: { value: 'not_mentioned', summary: null },
-    bathrooms: { value: 'not_mentioned', summary: null },
-    ageSuitability: { value: 'not_mentioned', summary: null },
-    parking: { value: 'not_mentioned', summary: null }
+    fenced: { value: 'not_mentioned', summary: null, source: null },
+    shade: { value: 'not_mentioned', summary: null, source: null },
+    bathrooms: { value: 'not_mentioned', summary: null, source: null },
+    ageSuitability: { value: 'not_mentioned', summary: null, source: null },
+    parking: { value: 'not_mentioned', summary: null, source: null }
   };
 }
 
@@ -676,11 +777,11 @@ function renderSignals(signals) {
   if (!signals) return '';
 
   var html = '<div class="signals-list">';
-  html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(signals.fenced.value), signals.fenced.summary);
-  html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(signals.shade.value), signals.shade.summary);
-  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(signals.bathrooms.value), signals.bathrooms.summary);
-  html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value)), signals.ageSuitability.summary);
-  html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(signals.parking.value)), signals.parking.summary);
+  html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(signals.fenced.value, signals.fenced.source), signals.fenced.summary);
+  html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(signals.shade.value, signals.shade.source), signals.shade.summary);
+  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(signals.bathrooms.value, signals.bathrooms.source), signals.bathrooms.summary);
+  html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value), signals.ageSuitability.source), signals.ageSuitability.summary);
+  html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(signals.parking.value), signals.parking.source), signals.parking.summary);
   html += '</div>';
   return html;
 }
@@ -698,11 +799,11 @@ function renderPopupSignals(signals) {
   if (!signals) return '';
 
   var html = '<div class="popup-signals">';
-  html += renderPopupSignalRow('\uD83D\uDD12', booleanValueHtml(signals.fenced.value));
-  html += renderPopupSignalRow('\uD83C\uDF33', booleanValueHtml(signals.shade.value));
-  html += renderPopupSignalRow('\uD83D\uDEBB', booleanValueHtml(signals.bathrooms.value));
-  html += renderPopupSignalRow('\uD83D\uDC76', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value)));
-  html += renderPopupSignalRow('\uD83C\uDD7F\uFE0F', categoryValueHtml(parkingLabel(signals.parking.value)));
+  html += renderPopupSignalRow('\uD83D\uDD12', booleanValueHtml(signals.fenced.value, signals.fenced.source));
+  html += renderPopupSignalRow('\uD83C\uDF33', booleanValueHtml(signals.shade.value, signals.shade.source));
+  html += renderPopupSignalRow('\uD83D\uDEBB', booleanValueHtml(signals.bathrooms.value, signals.bathrooms.source));
+  html += renderPopupSignalRow('\uD83D\uDC76', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value), signals.ageSuitability.source));
+  html += renderPopupSignalRow('\uD83C\uDD7F\uFE0F', categoryValueHtml(parkingLabel(signals.parking.value), signals.parking.source));
   html += '</div>';
   return html;
 }
@@ -1089,6 +1190,19 @@ function handleCoordinates(lat, lng) {
               r.signals = loadingSignals();
               needsSignals.push({ placeId: r.placeId, name: r.name, reviews: r.reviews });
             }
+            // Apply any cached OSM signals immediately (they win over Gemini)
+            var cachedOsm = loadCachedOsm(r.placeId);
+            if (cachedOsm && Object.keys(cachedOsm).length > 0) {
+              ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking'].forEach(function (dim) {
+                if (cachedOsm[dim] && cachedOsm[dim].value) {
+                  r.signals[dim] = {
+                    value: cachedOsm[dim].value,
+                    summary: (r.signals[dim] && r.signals[dim].summary) || null,
+                    source: 'osm'
+                  };
+                }
+              });
+            }
           });
 
           showMessage('Found ' + data.results.length + ' playgrounds and parks nearby.', 'success');
@@ -1105,6 +1219,9 @@ function handleCoordinates(lat, lng) {
               fetchSignals(needsSignals.slice(i, i + SIGNAL_CHUNK_SIZE), thisRequest);
             }
           }
+
+          // Phase 2b: fetch OSM-verified signals for the area (parallel)
+          fetchOsmAndMerge(lat, lng, radius, thisRequest);
 
           // Also fetch current weather at the search location (in parallel)
           fetchWeather(lat, lng, thisRequest);

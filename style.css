@@ -1139,11 +1139,16 @@ main {
 }
 
 /* Signal value indicators */
-.signal-yes      { color: #0d9b62; font-weight: 700; font-size: 0.88rem; }
+/* Signal value styling.
+   Default "yes" / "category" colors are amber/gold — these come from AI extraction of reviews.
+   When OSM verifies a signal, the .signal-verified class kicks in (deep green) for higher confidence. */
+.signal-yes      { color: #c89a17; font-weight: 700; font-size: 0.88rem; }
 .signal-no       { color: #c0202c; font-weight: 700; font-size: 0.88rem; }
 .signal-na       { color: #888;    font-weight: 700; font-size: 0.88rem; }
-.signal-category { color: #3aa9e8; font-weight: 700; font-size: 0.88rem; }
+.signal-category { color: #c89a17; font-weight: 700; font-size: 0.88rem; }
 .signal-loading  { color: #aaa;    font-weight: 700; font-size: 0.88rem; font-style: italic; }
+/* OSM-verified signals win the green "high confidence" color */
+.signal-verified { color: #0d9b62 !important; }
 
 .signal-arrow {
   margin-left: auto;
