@@ -155,6 +155,14 @@ function googleMapsUrl(placeId) {
   return 'https://www.google.com/maps/place/?q=place_id:' + placeId;
 }
 
+// Google Maps directions URL — opens turn-by-turn navigation to that park
+function googleDirectionsUrl(placeId, lat, lng) {
+  // place_id makes the destination unambiguous; lat/lng is a fallback
+  return 'https://www.google.com/maps/dir/?api=1'
+    + '&destination=' + lat + ',' + lng
+    + '&destination_place_id=' + encodeURIComponent(placeId);
+}
+
 // ---- Yelp search URL ----
 function yelpSearchUrl(name, lat, lng) {
   return 'https://www.yelp.com/search?find_desc=' + encodeURIComponent(name)
@@ -632,6 +640,7 @@ function renderResults(results) {
       + renderSignals(r.signals)
       + renderReviews(r)
       + '<div class="result-links">'
+      + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions</a>'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
       + '</div>'
