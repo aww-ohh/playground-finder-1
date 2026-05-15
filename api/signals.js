@@ -73,7 +73,9 @@ module.exports = async function handler(req, res) {
     + ']';
 
   // ---- 5. Call Gemini ----
-  var geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey;
+  // gemini-2.5-flash-lite has a more generous free tier than gemini-2.5-flash and is faster.
+  // For a structured-extraction task like ours, lite is plenty accurate.
+  var geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=' + geminiKey;
   try {
     var geminiRes = await fetch(geminiUrl, {
       method: 'POST',
