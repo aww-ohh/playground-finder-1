@@ -25,7 +25,8 @@ function savePref(key, value) {
 
 // ---- Restore saved preferences ----
 var savedSort = loadPref('playgroundFinder.sort', ['distance', 'rating', 'reviews', 'data'], 'distance');
-var savedType = loadPref('playgroundFinder.typeFilter', ['all', 'playground', 'park', 'favorites'], 'all');
+// Always default to 'all' on initial load — type filter is situational, not a preference
+var savedType = 'all';
 var savedRadius = loadPref('playgroundFinder.radius', ['0.5', '1', '2', '5'], '0.5');
 
 sortSelect.value = savedSort;
