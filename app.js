@@ -1500,12 +1500,21 @@ geolocateBtn.addEventListener('click', function () {
       addressInput.value = CURRENT_LOCATION_LABEL;
       handleCoordinates(position.coords.latitude, position.coords.longitude);
     },
-    function () {
-      showMessage(
-        'We couldn\u2019t get your location. Please enter an address below instead.',
-        'info'
-      );
-    }
+    function (err) {
+      // Tailor the message to the error so users know what to do next
+      var msg;
+      if (err && err.code === 1) {
+        msg = 'Location permission denied. Type an address below instead.';
+      } else if (err && err.code === 3) {
+        msg = 'Location lookup timed out. Try typing an address instead.';
+      } else {
+        msg = 'We couldn\u2019t get your location. Type an address below instead.';
+      }
+      showMessage(msg, 'info');
+      // Move focus to the address input to nudge the user toward the fallback
+      addressInput.focus();
+    },
+    { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
   );
 });
 

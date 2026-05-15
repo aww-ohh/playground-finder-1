@@ -72,9 +72,11 @@ module.exports = async function handler(req, res) {
         return Promise.resolve(null);
       }
       var firstPhoto = place.photos[0];
+      // 300px is plenty for the 16:9 card hero at typical device pixel ratios;
+      // smaller than 400px saves ~30-40% in photo payload size.
       var photoMediaUrl = 'https://places.googleapis.com/v1/'
         + firstPhoto.name
-        + '/media?maxHeightPx=400&skipHttpRedirect=true&key=' + apiKey;
+        + '/media?maxHeightPx=300&skipHttpRedirect=true&key=' + apiKey;
       return fetch(photoMediaUrl)
         .then(function (photoRes) {
           if (!photoRes.ok) return null;
