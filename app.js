@@ -165,6 +165,28 @@ function hasNote(placeId) {
   return getNote(placeId).length > 0;
 }
 
+// ---- Recent searches (last 5, newest first) ----
+var RECENTS_KEY = 'playgroundFinder.recentSearches';
+var RECENTS_MAX = 5;
+
+function getRecents() {
+  try {
+    var raw = localStorage.getItem(RECENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function pushRecent(label, lat, lng) {
+  if (!label || label === CURRENT_LOCATION_LABEL || label === MAP_AREA_LABEL) return;
+  var recents = getRecents();
+  // Remove any existing entry with the same label
+  recents = recents.filter(function (r) { return r.label !== label; });
+  // Add new entry at the front
+  recents.unshift({ label: label, lat: lat, lng: lng, ts: Date.now() });
+  if (recents.length > RECENTS_MAX) recents = recents.slice(0, RECENTS_MAX);
+  try { localStorage.setItem(RECENTS_KEY, JSON.stringify(recents)); } catch (e) { /* ignore */ }
+}
+
 // ---- Helper: filter results by type (or by favorited state) ----
 function filterByType(results, typeFilter) {
   if (typeFilter === 'all') return results;
@@ -1180,7 +1202,30 @@ geolocateBtn.addEventListener('click', function () {
 // ---- Focus the input \u2192 select all so typing replaces the current label ----
 addressInput.addEventListener('focus', function () {
   addressInput.select();
+  // If input is empty (or just whitespace), show recent searches as a quick-pick
+  var current = addressInput.value.trim();
+  if (current.length === 0) {
+    showRecentsInDropdown();
+  }
 });
+
+// Show recent searches in the same dropdown used for autocomplete
+function showRecentsInDropdown() {
+  var recents = getRecents();
+  if (recents.length === 0) return;
+  var html = '<div class="suggestion-header">Recent searches</div>';
+  recents.forEach(function (r) {
+    html += '<div class="suggestion-item" role="option"'
+      + ' data-lat="' + escapeHtml(r.lat) + '"'
+      + ' data-lng="' + escapeHtml(r.lng) + '"'
+      + ' data-label="' + escapeHtml(r.label) + '">'
+      + '<span class="suggestion-recent-icon">\ud83d\udd50</span> '
+      + escapeHtml(r.label)
+      + '</div>';
+  });
+  addressSuggestions.innerHTML = html;
+  addressSuggestions.classList.remove('hidden');
+}
 
 // ---- Home shortcut button ----
 // State machine:
@@ -1349,6 +1394,7 @@ addressSuggestions.addEventListener('click', function (e) {
   if (isNaN(lat) || isNaN(lng)) return;
   addressInput.value = label;
   hideSuggestions();
+  pushRecent(label, lat, lng);
   handleCoordinates(lat, lng);
 });
 
@@ -1421,7 +1467,10 @@ addressForm.addEventListener('submit', function (e) {
         );
         return;
       }
-      handleCoordinates(parseFloat(data[0].lat), parseFloat(data[0].lon));
+      var resolvedLat = parseFloat(data[0].lat);
+      var resolvedLng = parseFloat(data[0].lon);
+      pushRecent(address, resolvedLat, resolvedLng);
+      handleCoordinates(resolvedLat, resolvedLng);
     })
     .catch(function () {
       showMessage(

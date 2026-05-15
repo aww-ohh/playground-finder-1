@@ -246,6 +246,19 @@ main {
 .suggestion-item.highlighted {
   background: #fff3cf;
 }
+.suggestion-header {
+  padding: 0.4rem 1rem;
+  font-family: 'Bungee', cursive;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  color: #888;
+  background: #f3eadb;
+  border-bottom: 1px dashed #ddd;
+}
+.suggestion-recent-icon {
+  font-size: 0.85rem;
+  margin-right: 0.2rem;
+}
 
 .search-icon-btn {
   flex: 0 0 auto;
