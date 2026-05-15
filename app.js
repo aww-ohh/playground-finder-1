@@ -112,6 +112,46 @@ function filterByType(results, typeFilter) {
   return results.filter(function (r) { return r.type === typeFilter; });
 }
 
+// ---- Signal filters (multi-select with AND logic) ----
+var SIGNAL_FILTERS_KEY = 'playgroundFinder.signalFilters';
+
+function getActiveSignalFilters() {
+  try {
+    var raw = localStorage.getItem(SIGNAL_FILTERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function setActiveSignalFilters(arr) {
+  try { localStorage.setItem(SIGNAL_FILTERS_KEY, JSON.stringify(arr)); }
+  catch (e) { /* ignore */ }
+}
+
+// AND filter: a park must satisfy EVERY active signal chip to pass.
+// "fenced", "shade", "bathrooms" require value === 'yes'.
+// "toddler" requires ageSuitability === 'toddler' or 'both'.
+// "parking" requires parking === 'lot', 'street', or 'both'.
+function filterBySignals(results, activeSignals) {
+  if (!activeSignals || activeSignals.length === 0) return results;
+  return results.filter(function (r) {
+    if (!r.signals) return false;
+    return activeSignals.every(function (sig) {
+      if (sig === 'fenced')    return r.signals.fenced && r.signals.fenced.value === 'yes';
+      if (sig === 'shade')     return r.signals.shade && r.signals.shade.value === 'yes';
+      if (sig === 'bathrooms') return r.signals.bathrooms && r.signals.bathrooms.value === 'yes';
+      if (sig === 'toddler')   {
+        var v = r.signals.ageSuitability && r.signals.ageSuitability.value;
+        return v === 'toddler' || v === 'both';
+      }
+      if (sig === 'parking')   {
+        var p = r.signals.parking && r.signals.parking.value;
+        return p === 'lot' || p === 'street' || p === 'both';
+      }
+      return true;
+    });
+  });
+}
+
 // ---- Sort helpers ----
 function sortResults(results, sortBy) {
   var sorted = results.slice();
@@ -635,14 +675,16 @@ function showMap(lat, lng, results) {
 }
 
 // ---- Helper: update marker visibility based on type filter ----
-function updateMarkerVisibility(typeFilter) {
+function updateMarkerVisibility(typeFilter, activeSignals) {
+  // Build a set of placeIds that pass the current filters
+  var visibleIds = {};
+  var filtered = filterByType(currentResults, typeFilter);
+  filtered = filterBySignals(filtered, activeSignals || []);
+  filtered.forEach(function (r) { visibleIds[r.placeId] = true; });
+
   Object.keys(markersByPlaceId).forEach(function (placeId) {
     var marker = markersByPlaceId[placeId];
-    // Find the result to check its type
-    var result = currentResults.find(function (r) { return r.placeId === placeId; });
-    if (!result) return;
-
-    if (typeFilter === 'all' || result.type === typeFilter) {
+    if (visibleIds[placeId]) {
       if (!markerGroup.hasLayer(marker)) markerGroup.addLayer(marker);
     } else {
       if (markerGroup.hasLayer(marker)) markerGroup.removeLayer(marker);
@@ -729,10 +771,12 @@ function renderResults(results) {
 function applyFilterAndSort() {
   var typeFilter = getTypeFilter();
   var sortBy = getSortOrder();
+  var activeSignals = getActiveSignalFilters();
   var filtered = filterByType(currentResults, typeFilter);
+  filtered = filterBySignals(filtered, activeSignals);
   var sorted = sortResults(filtered, sortBy);
   renderResults(sorted);
-  updateMarkerVisibility(typeFilter);
+  updateMarkerVisibility(typeFilter, activeSignals);
 }
 
 // ---- Helper: called once we have coordinates ----
@@ -880,6 +924,36 @@ sortSelect.addEventListener('change', function () {
   if (currentResults.length === 0) return;
   applyFilterAndSort();
 });
+
+// ---- Event: signal filter chip click ----
+(function () {
+  var signalFilter = document.getElementById('signal-filter');
+  if (!signalFilter) return;
+  // Restore active state from localStorage
+  var active = getActiveSignalFilters();
+  signalFilter.querySelectorAll('.signal-chip').forEach(function (chip) {
+    if (active.indexOf(chip.getAttribute('data-signal')) !== -1) {
+      chip.classList.add('active');
+    }
+  });
+  signalFilter.addEventListener('click', function (e) {
+    var chip = e.target.closest('.signal-chip');
+    if (!chip) return;
+    var sig = chip.getAttribute('data-signal');
+    var current = getActiveSignalFilters();
+    var idx = current.indexOf(sig);
+    if (idx === -1) {
+      current.push(sig);
+      chip.classList.add('active');
+    } else {
+      current.splice(idx, 1);
+      chip.classList.remove('active');
+    }
+    setActiveSignalFilters(current);
+    if (currentResults.length === 0) return;
+    applyFilterAndSort();
+  });
+})();
 
 // ---- Event: type filter change ----
 typeFilterDiv.addEventListener('click', function (e) {

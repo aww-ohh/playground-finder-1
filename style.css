@@ -461,6 +461,33 @@ main {
   padding: 0.5rem 0;
 }
 
+/* Signal filter chips — multi-select AND filtering by signal value */
+.signal-filter-row {
+  gap: 0.4rem;
+}
+.signal-chip {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid #1a1410;
+  background: #fff;
+  color: #1a1410;
+  cursor: pointer;
+  border-radius: 1.25rem;
+  letter-spacing: 0.01em;
+  transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.signal-chip:hover {
+  background: #f3eadb;
+}
+.signal-chip.active {
+  background: #ffb800;
+  color: #1a1410;
+  box-shadow: 2px 2px 0 #1a1410;
+  transform: translate(-1px, -1px);
+}
+
 /* Sort + Radius selects */
 .sort-control {
   display: flex;
