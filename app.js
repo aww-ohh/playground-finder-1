@@ -357,12 +357,8 @@ function typeBadgeLabel(type) {
   return type === 'playground' ? '\uD83D\uDEDD playground' : '\uD83C\uDF33 park';
 }
 
-// ---- Google Maps URL ----
-function googleMapsUrl(placeId) {
-  return 'https://www.google.com/maps/place/?q=place_id:' + placeId;
-}
-
-// Google Maps directions URL — opens turn-by-turn navigation to that park
+// Google Maps directions URL — opens turn-by-turn navigation to that park,
+// and also shows the destination park's info card on the way.
 function googleDirectionsUrl(placeId, lat, lng) {
   // place_id makes the destination unambiguous; lat/lng is a fallback
   return 'https://www.google.com/maps/dir/?api=1'
@@ -732,7 +728,7 @@ function buildPopupContent(r) {
     + '<strong>' + r.name + '</strong><br>'
     + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
     + renderPopupSignals(r.signals)
-    + '<a class="popup-link-google" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps →</a><br>'
+    + '<a class="popup-link-google" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">🚗 Directions in Google Maps</a><br>'
     + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
     + '</div>'
     + '</div>';
@@ -1037,8 +1033,7 @@ function renderResults(results) {
       + renderReviews(r)
       + renderNoteSection(r)
       + '<div class="result-links">'
-      + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions</a>'
-      + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
+      + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions in Google Maps</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
       + '<button type="button" class="result-link-share" data-place-id="' + r.placeId + '" title="Share this park">\ud83d\udd17 Share</button>'
       + '</div>'
