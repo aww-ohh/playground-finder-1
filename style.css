@@ -459,6 +459,56 @@ main {
 }
 
 /* Weather banner — sticker-style chip next to the heading */
+/* "Verifying with map data" pulsing pill — shown while /api/osm is in flight */
+.osm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f3eadb;
+  border: 2px solid #1a1410;
+  border-radius: 1rem;
+  padding: 0.25rem 0.7rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1a1410;
+  animation: osmPulse 1.4s ease-in-out infinite;
+}
+@keyframes osmPulse {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+/* Signal color legend under the toolbar heading — explains gold vs green checks */
+.signal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555;
+  margin-top: 0.15rem;
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.legend-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.75rem;
+  color: #fff;
+}
+.legend-swatch-gold  { background: #c89a17; }
+.legend-swatch-green { background: #0d9b62; }
+
 .weather-banner {
   display: inline-flex;
   align-items: center;

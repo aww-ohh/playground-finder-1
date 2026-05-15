@@ -496,6 +496,7 @@ function saveCachedOsm(placeId, signalsOrEmpty) {
 }
 
 function fetchOsmAndMerge(lat, lng, radius, thisRequest) {
+  setOsmStatus(true);
   fetch('/api/osm?lat=' + lat + '&lng=' + lng + '&radius=' + radius)
     .then(function (response) {
       if (thisRequest !== requestId) return;
@@ -515,7 +516,14 @@ function fetchOsmAndMerge(lat, lng, radius, thisRequest) {
         }
       });
     })
-    .catch(function () { /* OSM is supplementary — fail silently */ });
+    .catch(function () { /* OSM is supplementary — fail silently */ })
+    .then(function () { if (thisRequest === requestId) setOsmStatus(false); });
+}
+
+function setOsmStatus(verifying) {
+  var el = document.getElementById('osm-status');
+  if (!el) return;
+  el.classList.toggle('hidden', !verifying);
 }
 
 function findClosestOsmPark(lat, lng, osmParks) {
