@@ -614,13 +614,17 @@ main {
     padding: 0.35rem 0.55rem;
   }
 
-  /* Signal chips become a single horizontally-scrollable row to save vertical space */
+  /* Signal chips become a single horizontally-scrollable row to save vertical space.
+     Right-edge fade-out signals "more content to swipe to" — the standard mobile pattern. */
   .signal-filter-row {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
     padding-bottom: 0.25rem;
+    padding-right: 0.5rem; /* keep last chip out from under the fade */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
   }
   .signal-filter-row::-webkit-scrollbar {
     display: none;
