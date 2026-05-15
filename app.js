@@ -1798,6 +1798,28 @@ function handleSharedUrl() {
   });
 })();
 
+// ---- Mobile: hide the sticky toolbar when scrolling down, reveal when scrolling up ----
+(function () {
+  if (window.matchMedia('(min-width: 768px)').matches) return; // desktop: stay sticky always
+  var toolbar = document.getElementById('results-toolbar');
+  if (!toolbar) return;
+  var lastY = window.scrollY;
+  var SCROLL_THRESHOLD = 8;
+  var TOP_BUFFER = 120; // never hide while user is near the top of the page
+
+  window.addEventListener('scroll', function () {
+    var currentY = window.scrollY;
+    var diff = currentY - lastY;
+    if (Math.abs(diff) < SCROLL_THRESHOLD) return;
+    if (diff > 0 && currentY > TOP_BUFFER) {
+      toolbar.classList.add('toolbar-hidden');
+    } else if (diff < 0) {
+      toolbar.classList.remove('toolbar-hidden');
+    }
+    lastY = currentY;
+  }, { passive: true });
+})();
+
 // ---- Initial: handle URL share params on page load ----
 handleSharedUrl();
 

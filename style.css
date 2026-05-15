@@ -438,6 +438,11 @@ main {
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 3px solid #1a1410;
   margin-bottom: 0.5rem;
+  transition: transform 0.25s ease;
+}
+/* On mobile, JS toggles this class on scroll-down to slide the toolbar away */
+.results-toolbar.toolbar-hidden {
+  transform: translateY(-100%);
 }
 .results-heading-row {
   display: flex;
@@ -548,6 +553,27 @@ main {
   color: #1a1410;
   box-shadow: 2px 2px 0 #1a1410;
   transform: translate(-1px, -1px);
+}
+
+/* On mobile, signal chips become a single horizontally-scrollable row to save vertical space */
+@media (max-width: 767px) {
+  .signal-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 0.25rem; /* room so chips don't clip against the bottom border */
+  }
+  .signal-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+  .signal-chip {
+    flex-shrink: 0;
+  }
+  /* Don't push hide-visited to the right on mobile — it's just last in the swipe row */
+  .hide-visited-chip {
+    margin-left: 0 !important;
+  }
 }
 
 /* Hide-visited chip uses a distinct (red) active state since it's a "remove these" filter */
