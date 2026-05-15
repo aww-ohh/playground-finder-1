@@ -146,6 +146,25 @@ function toggleVisited(placeId) {
   return idx === -1;
 }
 
+// ---- Personal notes per park (localStorage) ----
+var NOTE_PREFIX = 'playgroundFinder.note.';
+
+function getNote(placeId) {
+  try { return localStorage.getItem(NOTE_PREFIX + placeId) || ''; }
+  catch (e) { return ''; }
+}
+
+function setNote(placeId, text) {
+  try {
+    if (text && text.trim()) localStorage.setItem(NOTE_PREFIX + placeId, text);
+    else localStorage.removeItem(NOTE_PREFIX + placeId);
+  } catch (e) { /* ignore */ }
+}
+
+function hasNote(placeId) {
+  return getNote(placeId).length > 0;
+}
+
 // ---- Helper: filter results by type (or by favorited state) ----
 function filterByType(results, typeFilter) {
   if (typeFilter === 'all') return results;
@@ -395,6 +414,23 @@ function fetchWeather(lat, lng, thisRequest) {
       banner.classList.remove('hidden');
     })
     .catch(function () { /* silent — weather is a nice-to-have */ });
+}
+
+// ---- Personal notes section per card ----
+function renderNoteSection(result) {
+  var existing = getNote(result.placeId);
+  var hasExisting = existing && existing.length > 0;
+  var label = hasExisting ? '📝 Your note' : '📝 Add a note';
+  return '<div class="note-section' + (hasExisting ? ' has-note' : '') + '">'
+    + '<button type="button" class="note-toggle" aria-expanded="' + (hasExisting ? 'true' : 'false') + '">'
+    + label + ' <span class="note-arrow">▶</span>'
+    + '</button>'
+    + '<div class="note-content"' + (hasExisting ? '' : ' style="display:none"') + '>'
+    + '<textarea class="note-input" data-place-id="' + result.placeId + '" '
+    + 'placeholder="e.g. fence on south side has a gap, swings squeak in the rain..." '
+    + 'rows="3">' + escapeReviewHtml(existing) + '</textarea>'
+    + '<div class="note-status" data-place-id="' + result.placeId + '"></div>'
+    + '</div></div>';
 }
 
 // ---- Hours rendering ----
@@ -801,6 +837,7 @@ function renderResults(results) {
       + renderHours(r)
       + renderSignals(r.signals)
       + renderReviews(r)
+      + renderNoteSection(r)
       + '<div class="result-links">'
       + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions</a>'
       + '<a class="result-link" href="' + googleMapsUrl(r.placeId) + '" target="_blank" rel="noopener noreferrer">View on Google Maps \u2192</a>'
@@ -1088,6 +1125,21 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     return;
   }
 
+  // Note section toggle (show/hide the textarea)
+  var noteToggle = e.target.closest('.note-toggle');
+  if (noteToggle) {
+    e.stopPropagation();
+    var nSection = noteToggle.closest('.note-section');
+    var content = nSection && nSection.querySelector('.note-content');
+    if (content) {
+      var open = content.style.display !== 'none';
+      content.style.display = open ? 'none' : 'block';
+      noteToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      nSection.classList.toggle('note-expanded', !open);
+    }
+    return;
+  }
+
   var card = e.target.closest('.result-card');
   if (!card) return;
   if (e.target.closest('a')) return; // any link inside a card opens in a new tab
@@ -1189,6 +1241,36 @@ document.getElementById('home-btn').addEventListener('click', function () {
     handleCoordinates(home.lat, home.lng);
   }
 });
+
+// ---- Note auto-save (debounced) ----
+(function () {
+  var noteSaveTimers = {};
+  document.getElementById('results-list').addEventListener('input', function (e) {
+    var ta = e.target.closest('.note-input');
+    if (!ta) return;
+    var pid = ta.getAttribute('data-place-id');
+    var status = document.querySelector('.note-status[data-place-id="' + pid + '"]');
+    if (status) status.textContent = 'Saving…';
+    clearTimeout(noteSaveTimers[pid]);
+    noteSaveTimers[pid] = setTimeout(function () {
+      setNote(pid, ta.value);
+      // Update toggle label to reflect "has note" state
+      var section = ta.closest('.note-section');
+      if (section) {
+        var hasContent = ta.value && ta.value.trim().length > 0;
+        section.classList.toggle('has-note', hasContent);
+        var toggle = section.querySelector('.note-toggle');
+        if (toggle) {
+          toggle.firstChild.textContent = hasContent ? '📝 Your note ' : '📝 Add a note ';
+        }
+      }
+      if (status) {
+        status.textContent = 'Saved ✓';
+        setTimeout(function () { if (status) status.textContent = ''; }, 1200);
+      }
+    }, 600);
+  });
+})();
 
 // ---- Address autocomplete (Nominatim) ----
 var addressSuggestions = document.getElementById('address-suggestions');

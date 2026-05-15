@@ -1058,6 +1058,60 @@ main {
   border-bottom: none;
 }
 
+/* Personal notes section */
+.note-section {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 2px dashed #eee;
+}
+.note-toggle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1410;
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.note-section.has-note .note-toggle { color: #c0202c; }
+.note-toggle:hover { color: #c0202c; }
+.note-arrow {
+  font-size: 0.55rem;
+  color: #bbb;
+  transition: transform 0.15s;
+}
+.note-expanded .note-arrow { transform: rotate(90deg); }
+.note-input {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  color: #1a1410;
+  background: #fff8e0;
+  border: 2px dashed #c0202c;
+  border-radius: 0.5rem;
+  resize: vertical;
+  min-height: 3rem;
+  outline: none;
+}
+.note-input:focus {
+  background: #fff;
+  border-style: solid;
+}
+.note-input::placeholder { color: #999; font-style: italic; }
+.note-status {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  color: #888;
+  margin-top: 0.2rem;
+  height: 1rem;
+}
+
 /* Result links */
 .result-links {
   display: flex;
