@@ -551,8 +551,17 @@ main {
   transform: translate(-1px, -1px);
 }
 
-/* On mobile, signal chips become a single horizontally-scrollable row to save vertical space */
+/* Mobile-specific toolbar tweaks */
 @media (max-width: 767px) {
+  /* Toolbar lives in normal flow above the map and scrolls away with the page */
+  .results-toolbar {
+    position: static;
+    /* No translucency needed when not overlapping content */
+    background: #f3eadb;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  /* Signal chips become a single horizontally-scrollable row to save vertical space */
   .signal-filter-row {
     flex-wrap: nowrap;
     overflow-x: auto;

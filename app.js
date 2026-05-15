@@ -1798,36 +1798,6 @@ function handleSharedUrl() {
   });
 })();
 
-// ---- Mobile: scroll-linked toolbar position (moves 1:1 with scroll) ----
-// Toolbar slides away as you scroll down and reappears as you scroll up,
-// always at the exact rate of your finger — no separate animation/spring.
-(function () {
-  if (window.matchMedia('(min-width: 768px)').matches) return; // desktop: stay sticky always
-  var toolbar = document.getElementById('results-toolbar');
-  if (!toolbar) return;
-  var lastY = window.scrollY;
-  var offset = 0;          // current vertical offset, clamped to [-height, 0]
-  var ticking = false;
-
-  function update() {
-    var currentY = window.scrollY;
-    var delta = currentY - lastY;
-    lastY = currentY;
-    var height = toolbar.offsetHeight;
-    // Scrolling down (delta > 0) → toolbar moves up (offset decreases)
-    offset = Math.max(-height, Math.min(0, offset - delta));
-    toolbar.style.transform = offset === 0 ? '' : 'translateY(' + offset + 'px)';
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', function () {
-    if (!ticking) {
-      window.requestAnimationFrame(update);
-      ticking = true;
-    }
-  }, { passive: true });
-})();
-
 // ---- Initial: handle URL share params on page load ----
 handleSharedUrl();
 
