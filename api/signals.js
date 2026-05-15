@@ -87,8 +87,13 @@ module.exports = async function handler(req, res) {
       })
     });
     if (!geminiRes.ok) {
-      // Gemini failed — return empty so frontend falls back.
-      return res.status(200).json({ signals: {} });
+      // Capture the Gemini error so we can see it in the browser response.
+      var errBody = '';
+      try { errBody = await geminiRes.text(); } catch (e) {}
+      return res.status(200).json({
+        signals: {},
+        _debug: { geminiStatus: geminiRes.status, geminiError: errBody.substring(0, 400) }
+      });
     }
     var geminiData = await geminiRes.json();
     var text = geminiData.candidates
@@ -98,7 +103,10 @@ module.exports = async function handler(req, res) {
       && geminiData.candidates[0].content.parts[0]
       && geminiData.candidates[0].content.parts[0].text;
     if (!text) {
-      return res.status(200).json({ signals: {} });
+      return res.status(200).json({
+        signals: {},
+        _debug: { reason: 'no text in Gemini response', sample: JSON.stringify(geminiData).substring(0, 300) }
+      });
     }
     var cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
     var parsed = JSON.parse(cleaned);
