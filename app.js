@@ -92,7 +92,10 @@ function setHome(home) {
 }
 
 // ---- Favorites (persisted in localStorage as an array of placeIds) ----
+// Plus a separate map of full park data for ALL favorites, so the Saved
+// tab can show parks across every search you've ever done.
 var FAVORITES_KEY = 'playgroundFinder.favorites';
+var SAVED_PARKS_KEY = 'playgroundFinder.savedParks';
 
 function getFavorites() {
   try {
@@ -110,14 +113,62 @@ function isFavorite(placeId) {
   return getFavorites().indexOf(placeId) !== -1;
 }
 
+// Map of placeId → minimal park data for offline/cross-search rendering
+function getSavedParksMap() {
+  try {
+    var raw = localStorage.getItem(SAVED_PARKS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+
+function setSavedParksMap(obj) {
+  try { localStorage.setItem(SAVED_PARKS_KEY, JSON.stringify(obj)); }
+  catch (e) { /* storage full — ignore */ }
+}
+
+// Pull the full saved-park objects in the same order as getFavorites()
+function getAllSavedParks() {
+  var favs = getFavorites();
+  var map = getSavedParksMap();
+  return favs.map(function (pid) { return map[pid]; }).filter(Boolean);
+}
+
 // Returns true if it's now favorited, false if it was unfavorited
 function toggleFavorite(placeId) {
   var favs = getFavorites();
+  var map = getSavedParksMap();
   var idx = favs.indexOf(placeId);
-  if (idx === -1) favs.push(placeId);
-  else favs.splice(idx, 1);
+  if (idx === -1) {
+    favs.push(placeId);
+    // Snapshot the park's data so it's accessible later regardless of search
+    var park = currentResults.find(function (r) { return r.placeId === placeId; });
+    if (park) map[placeId] = sanitizeParkForStorage(park);
+  } else {
+    favs.splice(idx, 1);
+    delete map[placeId];
+  }
   setFavorites(favs);
+  setSavedParksMap(map);
   return idx === -1;
+}
+
+// Strip transient/large fields before saving (reviews are big; signals stale on the cache anyway)
+function sanitizeParkForStorage(park) {
+  return {
+    placeId: park.placeId,
+    name: park.name,
+    type: park.type,
+    lat: park.lat,
+    lng: park.lng,
+    rating: park.rating,
+    reviewCount: park.reviewCount,
+    photoUrl: park.photoUrl,           // may expire eventually but useful for a while
+    photoAttribution: park.photoAttribution,
+    openNow: park.openNow,
+    todayHours: park.todayHours,
+    signals: park.signals
+    // intentionally NOT storing: reviews (big), distance (search-relative)
+  };
 }
 
 // ---- Visited tracking (separate from favorites) ----
@@ -202,8 +253,18 @@ function pushRecent(label, lat, lng) {
 function filterByType(results, typeFilter) {
   if (typeFilter === 'all') return results;
   if (typeFilter === 'favorites') {
-    var favs = getFavorites();
-    return results.filter(function (r) { return favs.indexOf(r.placeId) !== -1; });
+    // Cross-search saved parks. Returns ALL favorites regardless of current search.
+    var saved = getAllSavedParks();
+    // Recompute distance from the most recent search location (or 0 if none)
+    if (lastLat !== null && lastLng !== null) {
+      saved = saved.map(function (p) {
+        var d = distanceBetween(lastLat, lastLng, p.lat, p.lng);
+        return Object.assign({}, p, { distance: Math.round(d * 100) / 100 });
+      });
+    } else {
+      saved = saved.map(function (p) { return Object.assign({}, p, { distance: 0 }); });
+    }
+    return saved;
   }
   return results.filter(function (r) { return r.type === typeFilter; });
 }
@@ -837,6 +898,39 @@ function updateMarkerVisibility(typeFilter, activeSignals, hideVisited) {
       if (markerGroup.hasLayer(marker)) markerGroup.removeLayer(marker);
     }
   });
+
+  // Saved tab special-case: also place markers for saved parks NOT in the current search
+  if (typeFilter === 'favorites' && map) {
+    addMarkersForSavedParks(filtered);
+  }
+}
+
+// Add map markers for saved parks that aren't already in markersByPlaceId
+function addMarkersForSavedParks(savedFilteredResults) {
+  if (!map) return;
+  var bounds = L.latLngBounds([]);
+  var added = 0;
+  savedFilteredResults.forEach(function (r) {
+    if (markersByPlaceId[r.placeId]) {
+      bounds.extend([r.lat, r.lng]);
+      return; // already on map from current search
+    }
+    var marker = L.marker([r.lat, r.lng])
+      .bindPopup(buildPopupContent(r))
+      .addTo(markerGroup);
+    markersByPlaceId[r.placeId] = marker;
+    marker.on('click', (function (placeId) {
+      return function () { scrollToCard(placeId); };
+    })(r.placeId));
+    bounds.extend([r.lat, r.lng]);
+    added++;
+  });
+  // If we added new markers OR if the visible set differs from current search, refit
+  if (savedFilteredResults.length > 0) {
+    document.getElementById('map-section').classList.remove('hidden');
+    try { map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 }); } catch (e) { /* empty bounds */ }
+    setTimeout(function () { map.invalidateSize(); }, 200);
+  }
 }
 
 // ---- Helper: render the styled results list ----
@@ -850,7 +944,24 @@ function renderResults(results) {
   var existingMsg = resultsSection.querySelector('.filter-message');
   if (existingMsg) existingMsg.remove();
 
-  if (currentResults.length === 0) {
+  // Special case: Saved tab with no current search but with saved parks → still show
+  var typeFilterNow = getTypeFilter();
+  var hasSavedToShow = typeFilterNow === 'favorites' && getAllSavedParks().length > 0;
+
+  // Saved tab with NO saved parks at all: friendly empty state
+  if (typeFilterNow === 'favorites' && getAllSavedParks().length === 0) {
+    resultsSection.classList.remove('hidden');
+    resultsToolbar.classList.remove('hidden');
+    if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
+    resultsList.innerHTML = '<div class="empty-state">'
+      + '<div class="empty-emoji">⭐</div>'
+      + '<div class="empty-title">No saved parks yet</div>'
+      + '<div class="empty-sub">Tap the ★ on any park to save it here</div>'
+      + '</div>';
+    return;
+  }
+
+  if (currentResults.length === 0 && !hasSavedToShow) {
     resultsSection.classList.add('hidden');
     resultsToolbar.classList.add('hidden');
     if (fiveThingsStrip) fiveThingsStrip.classList.remove('hidden');
@@ -860,9 +971,28 @@ function renderResults(results) {
     return;
   }
 
+  // Saved tab with no live search: ensure UI chrome is visible
+  if (currentResults.length === 0 && hasSavedToShow) {
+    if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
+  }
+
   resultsSection.classList.remove('hidden');
   resultsToolbar.classList.remove('hidden');
   if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
+  // Ensure the map is initialized for the Saved tab too (so saved markers render)
+  if (typeFilterNow === 'favorites' && !map && hasSavedToShow) {
+    var savedParks = getAllSavedParks();
+    if (savedParks.length > 0) {
+      // Initialize map centered on the first saved park; markers will be added by addMarkersForSavedParks
+      var first = savedParks[0];
+      document.getElementById('map-section').classList.remove('hidden');
+      map = L.map('map').setView([first.lat, first.lng], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      markerGroup.addTo(map);
+    }
+  }
 
   if (results.length === 0) {
     // We have results but the filter hid them all
@@ -1138,8 +1268,10 @@ typeFilterDiv.addEventListener('click', function (e) {
     b.classList.remove('active');
   });
   btn.classList.add('active');
-  savePref('playgroundFinder.typeFilter', btn.getAttribute('data-type'));
-  if (currentResults.length === 0) return;
+  var type = btn.getAttribute('data-type');
+  savePref('playgroundFinder.typeFilter', type);
+  // Saved tab can render with no current search (uses cross-search saved data)
+  if (currentResults.length === 0 && type !== 'favorites') return;
   applyFilterAndSort();
 });
 
