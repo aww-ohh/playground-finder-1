@@ -456,6 +456,24 @@ function renderNoteSection(result) {
     + '</div></div>';
 }
 
+// ---- Travel-time estimate (from miles, no API) ----
+// Walking: 3 mph (about 20 minutes per mile)
+// Driving: 25 mph in-city (about 2.4 minutes per mile)
+function renderTravelTime(miles) {
+  if (typeof miles !== 'number' || miles <= 0) return '';
+  var walkMin = Math.max(1, Math.round(miles * 20));
+  var driveMin = Math.max(1, Math.round(miles * 2.4));
+  // Only show walk time if it's reasonable (< 45 min). Otherwise it's silly to suggest walking.
+  var showWalk = walkMin <= 45;
+  var milesText = miles < 0.1 ? '<0.1 mi' : (miles + ' mi');
+  if (showWalk) {
+    return '🚶 ' + walkMin + ' min · 🚗 ' + driveMin + ' min'
+      + ' <span class="distance-mi">· ' + milesText + '</span>';
+  }
+  return '🚗 ' + driveMin + ' min'
+    + ' <span class="distance-mi">· ' + milesText + '</span>';
+}
+
 // ---- Hours rendering ----
 function renderHours(result) {
   // Nothing if Google didn't give us either field
@@ -855,7 +873,7 @@ function renderResults(results) {
       + '<span class="result-name">' + r.name + '</span>'
       + '<span class="result-type ' + typeClass + '">' + typeBadgeLabel(r.type) + '</span>'
       + '</div>'
-      + '<span class="result-meta">' + r.distance + ' mi away</span>'
+      + '<span class="result-meta result-distance">' + renderTravelTime(r.distance) + '</span>'
       + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
       + renderHours(r)
       + renderSignals(r.signals)

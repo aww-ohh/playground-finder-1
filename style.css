@@ -931,6 +931,17 @@ main {
   font-weight: 700;
 }
 
+/* Distance / travel time line — bigger, more emphasized */
+.result-distance {
+  font-size: 0.95rem;
+  color: #1a1410;
+}
+.result-distance .distance-mi {
+  color: #888;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
 /* Hours line */
 .result-hours {
   display: flex;
