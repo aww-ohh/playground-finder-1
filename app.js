@@ -932,9 +932,14 @@ function handleCoordinates(lat, lng) {
           showMap(lat, lng, data.results);
           applyFilterAndSort();
 
-          // Phase 2: fetch signals for parks not in cache (in the background)
+          // Phase 2: fetch signals for parks not in cache.
+          // Chunk into parallel requests so closest parks get signals first
+          // (results are already distance-sorted, so the first chunk = nearest).
           if (needsSignals.length > 0) {
-            fetchSignals(needsSignals, thisRequest);
+            var SIGNAL_CHUNK_SIZE = 5;
+            for (var i = 0; i < needsSignals.length; i += SIGNAL_CHUNK_SIZE) {
+              fetchSignals(needsSignals.slice(i, i + SIGNAL_CHUNK_SIZE), thisRequest);
+            }
           }
 
           // Also fetch current weather at the search location (in parallel)
