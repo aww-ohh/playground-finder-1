@@ -73,6 +73,23 @@ function getSortOrder() {
   return sortSelect.value;
 }
 
+// ---- Home location (persisted in localStorage) ----
+var HOME_KEY = 'playgroundFinder.home';
+
+function getHome() {
+  try {
+    var raw = localStorage.getItem(HOME_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+
+function setHome(home) {
+  try {
+    if (home) localStorage.setItem(HOME_KEY, JSON.stringify(home));
+    else localStorage.removeItem(HOME_KEY);
+  } catch (e) { /* ignore */ }
+}
+
 // ---- Favorites (persisted in localStorage as an array of placeIds) ----
 var FAVORITES_KEY = 'playgroundFinder.favorites';
 
@@ -786,6 +803,7 @@ function handleCoordinates(lat, lng) {
 
   showMessage('Searching for playgrounds and parks\u2026', 'info');
   showLoadingSkeletons();
+  refreshHomeButton();
 
   var radius = getRadius();
   var thisRequest = ++requestId;
@@ -1070,6 +1088,66 @@ addressInput.addEventListener('focus', function () {
   addressInput.select();
 });
 
+// ---- Home shortcut button ----
+// State machine:
+//   - no home, no current search: button hidden
+//   - no home, current search exists: "🏠 Save as home" (sets current as home)
+//   - home set, currently AT home: "🏠 Replace home" (saves current as new home)
+//   - home set, NOT at home: "🏠 Take me home" (loads home search)
+function refreshHomeButton() {
+  var btn = document.getElementById('home-btn');
+  if (!btn) return;
+  var home = getHome();
+  var hasSearch = lastLat !== null && lastLng !== null;
+  if (!home && !hasSearch) {
+    btn.classList.add('hidden');
+    return;
+  }
+  btn.classList.remove('hidden');
+  if (!home) {
+    btn.textContent = '🏠 Save as home';
+    btn.setAttribute('data-mode', 'save');
+    return;
+  }
+  // Home is set. Are we currently at home (within ~50m)?
+  var atHome = hasSearch && distanceBetween(lastLat, lastLng, home.lat, home.lng) < 0.05;
+  if (atHome) {
+    btn.textContent = '🏠 Replace home';
+    btn.setAttribute('data-mode', 'replace');
+  } else {
+    btn.textContent = '🏠 Take me home';
+    btn.setAttribute('data-mode', 'go');
+  }
+}
+
+function distanceBetween(lat1, lng1, lat2, lng2) {
+  // Same as haversine in api/places.js — duplicated client-side, miles
+  var R = 3958.8;
+  var toRad = function (d) { return d * Math.PI / 180; };
+  var dLat = toRad(lat2 - lat1);
+  var dLng = toRad(lng2 - lng1);
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+    * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+document.getElementById('home-btn').addEventListener('click', function () {
+  var btn = this;
+  var mode = btn.getAttribute('data-mode');
+  if (mode === 'save' || mode === 'replace') {
+    if (lastLat === null || lastLng === null) return;
+    setHome({ lat: lastLat, lng: lastLng, label: addressInput.value || 'Home' });
+    refreshHomeButton();
+    showMessage('Saved as your home location.', 'success');
+  } else if (mode === 'go') {
+    var home = getHome();
+    if (!home) return;
+    addressInput.value = home.label || 'Home';
+    handleCoordinates(home.lat, home.lng);
+  }
+});
+
 // ---- Address autocomplete (Nominatim) ----
 var addressSuggestions = document.getElementById('address-suggestions');
 var suggestionsDebounce = null;
@@ -1228,3 +1306,7 @@ addressForm.addEventListener('submit', function (e) {
       );
     });
 });
+
+
+// ---- Initial setup on page load ----
+refreshHomeButton();

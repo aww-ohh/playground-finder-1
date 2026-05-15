@@ -189,6 +189,31 @@ main {
   box-shadow: 8px 8px 0 #1a1410;
 }
 
+/* Home shortcut button (sits below the search bar) */
+.home-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.home-btn {
+  font-family: 'Bungee', cursive;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: #1a1410;
+  background: #fff;
+  border: 2px solid #1a1410;
+  border-radius: 1.25rem;
+  padding: 0.35rem 0.85rem;
+  box-shadow: 3px 3px 0 #1a1410;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.home-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 #1a1410;
+  background: #fff3cf;
+}
+
 /* Autocomplete dropdown */
 .address-suggestions {
   position: absolute;
