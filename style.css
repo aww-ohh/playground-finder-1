@@ -1605,7 +1605,9 @@ main {
   }
 
   .results-toolbar {
-    padding: 2rem 2rem 0;
+    /* Bottom padding (2rem) keeps the Radius/Sort row clear of the divider line.
+       Previously this was 0 here, which silently overrode the base rule's bottom padding. */
+    padding: 2rem 2rem;
   }
 
   .strip {
