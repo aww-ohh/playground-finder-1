@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MOCKUP: 10 icon options</title>
+  <title>MOCKUP: PG/Park Finder icons — 10 variations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Modak&family=Permanent+Marker&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
@@ -28,15 +28,19 @@
       text-align: center;
       font-family: 'Permanent Marker', cursive;
       color: #c0202c;
-      margin-bottom: 2rem;
-      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+      font-size: 1.05rem;
     }
-    .section-title {
-      font-family: 'Bungee', cursive;
-      font-size: 1.4rem;
-      margin: 2rem 0 1rem;
-      color: #1a1410;
-      letter-spacing: 0.03em;
+    .banner {
+      background: #ffb800;
+      color: #000;
+      border: 3px solid #1a1410;
+      padding: 0.6rem 1rem;
+      border-radius: 1rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 2rem;
+      box-shadow: 4px 4px 0 #1a1410;
     }
     .grid {
       display: grid;
@@ -51,7 +55,7 @@
       padding: 1rem;
       text-align: center;
     }
-    .icon-card svg {
+    .icon-card svg.preview-svg {
       width: 100%;
       height: auto;
       max-width: 200px;
@@ -59,275 +63,310 @@
       display: block;
       margin: 0 auto;
     }
-    .icon-label {
-      margin-top: 0.75rem;
-      font-family: 'Bungee', cursive;
-      font-size: 0.9rem;
-      color: #1a1410;
+    .icon-card svg.preview-tiny {
+      width: 60px;
+      height: 60px;
+      margin: 0.6rem auto 0;
+      display: block;
+      border-radius: 0.5rem;
     }
     .icon-id {
+      margin-top: 0.6rem;
       font-size: 0.7rem;
       color: #888;
       font-family: 'Nunito', sans-serif;
       font-weight: 700;
       letter-spacing: 0.1em;
     }
+    .icon-label {
+      font-family: 'Bungee', cursive;
+      font-size: 0.82rem;
+      color: #1a1410;
+      margin-top: 0.15rem;
+    }
     .icon-desc {
-      margin-top: 0.4rem;
-      font-size: 0.78rem;
+      margin-top: 0.3rem;
+      font-size: 0.74rem;
       color: #555;
-      font-family: 'Nunito', sans-serif;
       line-height: 1.35;
     }
-    .banner {
-      background: #ffb800;
-      color: #000;
-      border: 3px solid #1a1410;
-      padding: 0.6rem 1rem;
-      border-radius: 1rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 2rem;
-      box-shadow: 4px 4px 0 #1a1410;
+    .tiny-label {
+      font-size: 0.65rem;
+      color: #999;
+      margin-top: 0.2rem;
     }
   </style>
 </head>
 <body>
-  <h1>10 ICON MOCKUPS</h1>
-  <p class="subtitle">pick one to ship!</p>
-  <div class="banner">Tell Claude which # you want (1–10), and that one becomes /icon.svg.</div>
+  <h1>10 PG/PARK FINDER ICONS</h1>
+  <p class="subtitle">all based on the slide design — varied by color and layout</p>
+  <div class="banner">Each option shows the full-size icon AND a tiny preview (close to home-screen size). Tell me which # to ship.</div>
 
-  <h2 class="section-title">Playground scenes (variations of original)</h2>
   <div class="grid">
 
-    <!-- 1. Refined slide + PG tag -->
+    <!-- #1 — Original layout, text moved to bottom -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
         <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="100" cy="100" r="40" fill="#e07a2a" opacity="0.7"/>
-        <circle cx="430" cy="155" r="22" fill="#e07a2a" opacity="0.7"/>
-        <circle cx="80" cy="380" r="16" fill="#0d9b62" opacity="0.7"/>
-        <ellipse cx="256" cy="495" rx="240" ry="55" fill="#0d9b62"/>
-        <rect x="116" y="180" width="14" height="250" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="6"/>
-        <rect x="158" y="180" width="14" height="250" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="6"/>
-        <rect x="120" y="225" width="48" height="10" rx="3" fill="#1a1410"/>
-        <rect x="120" y="275" width="48" height="10" rx="3" fill="#1a1410"/>
-        <rect x="120" y="325" width="48" height="10" rx="3" fill="#1a1410"/>
-        <rect x="120" y="375" width="48" height="10" rx="3" fill="#1a1410"/>
-        <circle cx="146" cy="180" r="36" fill="#ffb800" stroke="#1a1410" stroke-width="6"/>
-        <path d="M 144 180 Q 280 200, 360 320 Q 400 400, 380 460" stroke="#1a1410" stroke-width="52" fill="none" stroke-linecap="round"/>
-        <path d="M 144 180 Q 280 200, 360 320 Q 400 400, 380 460" stroke="#ffb800" stroke-width="42" fill="none" stroke-linecap="round"/>
-        <circle cx="420" cy="420" r="14" fill="#c0202c"/>
-        <g transform="translate(256 290) rotate(-6)">
-          <text x="0" y="0" font-family="'Bungee','Arial Black',sans-serif" font-weight="900" font-size="120" text-anchor="middle" fill="#ffb800" stroke="#1a1410" stroke-width="8" paint-order="stroke">PG</text>
-        </g>
+        <circle cx="100" cy="100" r="36" fill="#e07a2a" opacity="0.7"/>
+        <circle cx="430" cy="155" r="20" fill="#0d9b62" opacity="0.7"/>
+        <ellipse cx="256" cy="395" rx="240" ry="40" fill="#0d9b62"/>
+        <!-- Slide -->
+        <rect x="96" y="130" width="12" height="200" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="5"/>
+        <rect x="134" y="130" width="12" height="200" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="5"/>
+        <rect x="100" y="170" width="42" height="8" rx="2" fill="#1a1410"/>
+        <rect x="100" y="210" width="42" height="8" rx="2" fill="#1a1410"/>
+        <rect x="100" y="250" width="42" height="8" rx="2" fill="#1a1410"/>
+        <rect x="100" y="290" width="42" height="8" rx="2" fill="#1a1410"/>
+        <circle cx="121" cy="130" r="30" fill="#ffb800" stroke="#1a1410" stroke-width="5"/>
+        <path d="M 120 130 Q 250 145, 320 240 Q 360 310, 345 370" stroke="#1a1410" stroke-width="44" fill="none" stroke-linecap="round"/>
+        <path d="M 120 130 Q 250 145, 320 240 Q 360 310, 345 370" stroke="#ffb800" stroke-width="34" fill="none" stroke-linecap="round"/>
+        <circle cx="395" cy="365" r="12" fill="#c0202c"/>
+        <!-- Bottom text band -->
+        <rect x="0" y="420" width="512" height="92" fill="#1a1410"/>
+        <text x="256" y="460" font-family="'Bungee','Arial Black',sans-serif" font-size="46" text-anchor="middle" fill="#ffb800" letter-spacing="-1">PG/PARK</text>
+        <text x="256" y="500" font-family="'Bungee','Arial Black',sans-serif" font-size="36" text-anchor="middle" fill="#fff" letter-spacing="2">FINDER</text>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i1"/></svg>
       <div class="icon-id">#1</div>
-      <div class="icon-label">SLIDE + PG TAG</div>
-      <div class="icon-desc">The original. Slide, ladder, "PG" tag overlay.</div>
+      <div class="icon-label">BOTTOM BAND</div>
+      <div class="icon-desc">Slide on top 80%, black bar at bottom with text. Original palette.</div>
     </div>
 
-    <!-- 2. Swing set -->
+    <!-- #2 — Top band -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
         <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="100" cy="100" r="36" fill="#3aa9e8" opacity="0.6"/>
-        <circle cx="430" cy="430" r="30" fill="#c0202c" opacity="0.6"/>
-        <ellipse cx="256" cy="495" rx="240" ry="55" fill="#0d9b62"/>
-        <!-- Swing frame: A-frame style -->
-        <line x1="120" y1="450" x2="200" y2="140" stroke="#1a1410" stroke-width="14" stroke-linecap="round"/>
-        <line x1="280" y1="140" x2="200" y2="450" stroke="#1a1410" stroke-width="14" stroke-linecap="round"/>
-        <line x1="392" y1="450" x2="312" y2="140" stroke="#1a1410" stroke-width="14" stroke-linecap="round"/>
-        <line x1="232" y1="140" x2="312" y2="450" stroke="#1a1410" stroke-width="14" stroke-linecap="round"/>
-        <!-- Top crossbar -->
-        <line x1="180" y1="140" x2="332" y2="140" stroke="#1a1410" stroke-width="16" stroke-linecap="round"/>
-        <!-- Swing chains -->
-        <line x1="220" y1="148" x2="220" y2="320" stroke="#1a1410" stroke-width="6"/>
-        <line x1="290" y1="148" x2="290" y2="320" stroke="#1a1410" stroke-width="6"/>
-        <!-- Seat -->
-        <rect x="195" y="316" width="120" height="16" rx="4" fill="#ffb800" stroke="#1a1410" stroke-width="5"/>
-        <!-- Kid silhouette on swing -->
-        <circle cx="255" cy="298" r="22" fill="#c0202c" stroke="#1a1410" stroke-width="5"/>
-        <rect x="240" y="320" width="30" height="20" rx="4" fill="#c0202c" stroke="#1a1410" stroke-width="3"/>
+        <!-- Top text band -->
+        <rect x="0" y="0" width="512" height="100" fill="#c0202c"/>
+        <text x="256" y="48" font-family="'Bungee','Arial Black',sans-serif" font-size="44" text-anchor="middle" fill="#ffb800" letter-spacing="-1">PG/PARK</text>
+        <text x="256" y="86" font-family="'Bungee','Arial Black',sans-serif" font-size="32" text-anchor="middle" fill="#fff" letter-spacing="2">FINDER</text>
+        <!-- Slide -->
+        <circle cx="80" cy="180" r="28" fill="#0d9b62" opacity="0.65"/>
+        <circle cx="430" cy="430" r="32" fill="#e07a2a" opacity="0.65"/>
+        <ellipse cx="256" cy="500" rx="240" ry="40" fill="#0d9b62"/>
+        <rect x="96" y="210" width="12" height="200" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="5"/>
+        <rect x="134" y="210" width="12" height="200" rx="4" fill="#3aa9e8" stroke="#1a1410" stroke-width="5"/>
+        <rect x="100" y="250" width="42" height="8" rx="2" fill="#1a1410"/>
+        <rect x="100" y="290" width="42" height="8" rx="2" fill="#1a1410"/>
+        <rect x="100" y="330" width="42" height="8" rx="2" fill="#1a1410"/>
+        <rect x="100" y="370" width="42" height="8" rx="2" fill="#1a1410"/>
+        <circle cx="121" cy="210" r="30" fill="#ffb800" stroke="#1a1410" stroke-width="5"/>
+        <path d="M 120 210 Q 260 225, 340 320 Q 380 400, 360 460" stroke="#1a1410" stroke-width="46" fill="none" stroke-linecap="round"/>
+        <path d="M 120 210 Q 260 225, 340 320 Q 380 400, 360 460" stroke="#ffb800" stroke-width="36" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i2"/></svg>
       <div class="icon-id">#2</div>
-      <div class="icon-label">SWING SET</div>
-      <div class="icon-desc">A-frame swing set with kid on the swing.</div>
+      <div class="icon-label">TOP BAND</div>
+      <div class="icon-desc">Crimson banner on top with text, slide below.</div>
     </div>
 
-    <!-- 3. Monkey bars / climbing -->
+    <!-- #3 — Side-by-side: text left, slide right -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
         <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="80" cy="80" r="32" fill="#ffb800" opacity="0.65"/>
-        <circle cx="440" cy="120" r="20" fill="#c0202c" opacity="0.65"/>
-        <ellipse cx="256" cy="495" rx="240" ry="55" fill="#0d9b62"/>
-        <!-- Vertical supports -->
-        <rect x="100" y="160" width="20" height="290" rx="6" fill="#1a1410"/>
-        <rect x="392" y="160" width="20" height="290" rx="6" fill="#1a1410"/>
-        <!-- Horizontal bars -->
-        <rect x="100" y="170" width="312" height="14" rx="4" fill="#1a1410"/>
-        <!-- Rungs (vertical) -->
-        <rect x="160" y="170" width="10" height="60" rx="3" fill="#3aa9e8"/>
-        <rect x="220" y="170" width="10" height="60" rx="3" fill="#ffb800"/>
-        <rect x="280" y="170" width="10" height="60" rx="3" fill="#c0202c"/>
-        <rect x="340" y="170" width="10" height="60" rx="3" fill="#3aa9e8"/>
-        <!-- Kid hanging from middle -->
-        <circle cx="256" cy="280" r="30" fill="#ffb800" stroke="#1a1410" stroke-width="6"/>
-        <rect x="244" y="180" width="6" height="100" fill="#1a1410"/>
-        <rect x="262" y="180" width="6" height="100" fill="#1a1410"/>
-        <rect x="236" y="305" width="40" height="80" rx="8" fill="#c0202c" stroke="#1a1410" stroke-width="5"/>
+        <circle cx="430" cy="80" r="30" fill="#c0202c" opacity="0.6"/>
+        <ellipse cx="256" cy="500" rx="240" ry="40" fill="#0d9b62"/>
+        <!-- Text on left, stacked -->
+        <text x="40" y="200" font-family="'Bungee','Arial Black',sans-serif" font-size="62" fill="#ffb800" stroke="#1a1410" stroke-width="6" paint-order="stroke">PG/</text>
+        <text x="40" y="270" font-family="'Bungee','Arial Black',sans-serif" font-size="62" fill="#ffb800" stroke="#1a1410" stroke-width="6" paint-order="stroke">PARK</text>
+        <text x="40" y="340" font-family="'Bungee','Arial Black',sans-serif" font-size="62" fill="#c0202c" stroke="#1a1410" stroke-width="6" paint-order="stroke">FINDER</text>
+        <!-- Slide on right -->
+        <rect x="306" y="130" width="10" height="180" rx="3" fill="#3aa9e8" stroke="#1a1410" stroke-width="4"/>
+        <rect x="336" y="130" width="10" height="180" rx="3" fill="#3aa9e8" stroke="#1a1410" stroke-width="4"/>
+        <rect x="310" y="170" width="36" height="6" rx="2" fill="#1a1410"/>
+        <rect x="310" y="210" width="36" height="6" rx="2" fill="#1a1410"/>
+        <rect x="310" y="250" width="36" height="6" rx="2" fill="#1a1410"/>
+        <circle cx="326" cy="130" r="24" fill="#ffb800" stroke="#1a1410" stroke-width="4"/>
+        <path d="M 325 130 Q 420 145, 440 240 Q 450 330, 425 410" stroke="#1a1410" stroke-width="38" fill="none" stroke-linecap="round"/>
+        <path d="M 325 130 Q 420 145, 440 240 Q 450 330, 425 410" stroke="#ffb800" stroke-width="28" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i3"/></svg>
       <div class="icon-id">#3</div>
-      <div class="icon-label">MONKEY BARS</div>
-      <div class="icon-desc">Climbing structure with kid hanging from the bar.</div>
+      <div class="icon-label">SIDE BY SIDE</div>
+      <div class="icon-desc">Stacked text on left, smaller slide on right.</div>
     </div>
 
-    <!-- 4. Running kids silhouettes -->
+    <!-- #4 — Sunset palette, slide bottom-right -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="96" fill="#3aa9e8"/>
-        <!-- Sun -->
-        <circle cx="420" cy="100" r="50" fill="#ffb800" stroke="#1a1410" stroke-width="6"/>
-        <!-- Grass -->
-        <ellipse cx="256" cy="495" rx="280" ry="120" fill="#0d9b62"/>
-        <ellipse cx="256" cy="510" rx="280" ry="80" fill="#0a7a4d"/>
-        <!-- Kid 1 (running left) -->
-        <circle cx="160" cy="280" r="34" fill="#c0202c" stroke="#1a1410" stroke-width="6"/>
-        <path d="M 130 320 L 130 410 L 110 470 M 130 410 L 160 460 M 130 340 L 100 380 M 130 340 L 170 360" stroke="#c0202c" stroke-width="22" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Kid 2 (running right) -->
-        <circle cx="370" cy="290" r="34" fill="#ffb800" stroke="#1a1410" stroke-width="6"/>
-        <path d="M 370 325 L 370 410 L 405 460 M 370 410 L 340 470 M 370 345 L 415 380 M 370 345 L 330 365" stroke="#ffb800" stroke-width="22" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="sunset" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ff6b9d"/>
+            <stop offset="50%" stop-color="#ff9a6b"/>
+            <stop offset="100%" stop-color="#ffd24c"/>
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" rx="96" fill="url(#sunset)"/>
+        <!-- Mountain silhouette -->
+        <ellipse cx="256" cy="500" rx="280" ry="80" fill="#5b2a86"/>
+        <!-- Text top -->
+        <text x="256" y="120" font-family="'Bungee','Arial Black',sans-serif" font-size="64" text-anchor="middle" fill="#fff" stroke="#1a1410" stroke-width="6" paint-order="stroke">PG/PARK</text>
+        <text x="256" y="190" font-family="'Bungee','Arial Black',sans-serif" font-size="58" text-anchor="middle" fill="#ffd24c" stroke="#1a1410" stroke-width="6" paint-order="stroke">FINDER</text>
+        <!-- Smaller slide bottom -->
+        <rect x="290" y="260" width="10" height="140" rx="3" fill="#1a1410"/>
+        <rect x="318" y="260" width="10" height="140" rx="3" fill="#1a1410"/>
+        <circle cx="308" cy="260" r="22" fill="#fff" stroke="#1a1410" stroke-width="4"/>
+        <path d="M 307 260 Q 380 270, 410 350 Q 425 420, 405 470" stroke="#1a1410" stroke-width="34" fill="none" stroke-linecap="round"/>
+        <path d="M 307 260 Q 380 270, 410 350 Q 425 420, 405 470" stroke="#fff" stroke-width="24" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i4"/></svg>
       <div class="icon-id">#4</div>
-      <div class="icon-label">KIDS RUNNING</div>
-      <div class="icon-desc">Two kid silhouettes running on grass under the sun.</div>
+      <div class="icon-label">SUNSET</div>
+      <div class="icon-desc">Pink-orange-yellow gradient, purple mountain, white slide.</div>
     </div>
 
-    <!-- 5. Tree + bench -->
+    <!-- #5 — Beach/ocean palette -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="80" cy="80" r="34" fill="#ffb800" opacity="0.7"/>
-        <circle cx="440" cy="380" r="26" fill="#3aa9e8" opacity="0.6"/>
-        <ellipse cx="256" cy="495" rx="240" ry="55" fill="#0d9b62"/>
-        <!-- Tree trunk -->
-        <rect x="230" y="280" width="52" height="180" rx="10" fill="#8b5a2b" stroke="#1a1410" stroke-width="6"/>
-        <!-- Tree canopy (three overlapping circles) -->
-        <circle cx="200" cy="220" r="80" fill="#0d9b62" stroke="#1a1410" stroke-width="6"/>
-        <circle cx="312" cy="200" r="90" fill="#0d9b62" stroke="#1a1410" stroke-width="6"/>
-        <circle cx="256" cy="160" r="80" fill="#0d9b62" stroke="#1a1410" stroke-width="6"/>
-        <!-- Bench -->
-        <rect x="120" y="420" width="270" height="20" rx="4" fill="#c0202c" stroke="#1a1410" stroke-width="5"/>
-        <rect x="140" y="440" width="14" height="40" fill="#1a1410"/>
-        <rect x="358" y="440" width="14" height="40" fill="#1a1410"/>
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" rx="96" fill="#7ec8e3"/>
+        <!-- Sun -->
+        <circle cx="420" cy="100" r="50" fill="#ffd24c" stroke="#1a1410" stroke-width="5"/>
+        <!-- Sand -->
+        <ellipse cx="256" cy="500" rx="280" ry="100" fill="#f5d99b"/>
+        <ellipse cx="256" cy="515" rx="280" ry="70" fill="#e8c378"/>
+        <!-- Text top-left -->
+        <text x="36" y="100" font-family="'Bungee','Arial Black',sans-serif" font-size="56" fill="#fff" stroke="#1a1410" stroke-width="6" paint-order="stroke">PG/PARK</text>
+        <text x="36" y="160" font-family="'Bungee','Arial Black',sans-serif" font-size="50" fill="#ff6b6b" stroke="#1a1410" stroke-width="6" paint-order="stroke">FINDER</text>
+        <!-- Slide centered -->
+        <rect x="216" y="210" width="10" height="170" rx="3" fill="#1a1410"/>
+        <rect x="246" y="210" width="10" height="170" rx="3" fill="#1a1410"/>
+        <circle cx="236" cy="210" r="26" fill="#ff6b6b" stroke="#1a1410" stroke-width="5"/>
+        <path d="M 235 210 Q 330 225, 370 320 Q 395 400, 375 460" stroke="#1a1410" stroke-width="42" fill="none" stroke-linecap="round"/>
+        <path d="M 235 210 Q 330 225, 370 320 Q 395 400, 375 460" stroke="#ff6b6b" stroke-width="32" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i5"/></svg>
       <div class="icon-id">#5</div>
-      <div class="icon-label">TREE + BENCH</div>
-      <div class="icon-desc">Classic park scene: big leafy tree with bench beneath.</div>
+      <div class="icon-label">BEACH DAY</div>
+      <div class="icon-desc">Sky blue + sand + sun. Coral slide, summer vibes.</div>
     </div>
-  </div>
 
-  <h2 class="section-title">Alternative designs (typography &amp; minimal)</h2>
-  <div class="grid">
-
-    <!-- 6. Big "PF" letter mark -->
+    <!-- #6 — Forest palette -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="80" cy="80" r="30" fill="#0d9b62" opacity="0.6"/>
-        <circle cx="430" cy="430" r="34" fill="#c0202c" opacity="0.6"/>
-        <text x="256" y="320" font-family="'Bungee','Arial Black',sans-serif" font-weight="900" font-size="280" text-anchor="middle" fill="#ffb800" stroke="#1a1410" stroke-width="16" paint-order="stroke" style="text-shadow: 8px 8px 0 #c0202c;">PF</text>
-        <!-- Drips -->
-        <rect x="158" y="335" width="14" height="60" rx="6" fill="#ffb800" stroke="#1a1410" stroke-width="4"/>
-        <rect x="345" y="335" width="14" height="90" rx="6" fill="#ffb800" stroke="#1a1410" stroke-width="4"/>
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" rx="96" fill="#2d5016"/>
+        <!-- Trees behind -->
+        <ellipse cx="80" cy="380" r="100" fill="#3d6b1c"/>
+        <ellipse cx="432" cy="380" r="120" fill="#3d6b1c"/>
+        <!-- Grass -->
+        <ellipse cx="256" cy="510" rx="280" ry="80" fill="#5a8c2a"/>
+        <!-- Text -->
+        <text x="256" y="100" font-family="'Bungee','Arial Black',sans-serif" font-size="56" text-anchor="middle" fill="#ffd24c" stroke="#1a1410" stroke-width="6" paint-order="stroke">PG/PARK</text>
+        <text x="256" y="160" font-family="'Bungee','Arial Black',sans-serif" font-size="48" text-anchor="middle" fill="#fff" stroke="#1a1410" stroke-width="6" paint-order="stroke">FINDER</text>
+        <!-- Slide -->
+        <rect x="220" y="220" width="10" height="170" rx="3" fill="#1a1410"/>
+        <rect x="250" y="220" width="10" height="170" rx="3" fill="#1a1410"/>
+        <circle cx="240" cy="220" r="26" fill="#ffd24c" stroke="#1a1410" stroke-width="5"/>
+        <path d="M 239 220 Q 330 235, 365 320 Q 390 400, 370 460" stroke="#1a1410" stroke-width="42" fill="none" stroke-linecap="round"/>
+        <path d="M 239 220 Q 330 235, 365 320 Q 390 400, 370 460" stroke="#ffd24c" stroke-width="32" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i6"/></svg>
       <div class="icon-id">#6</div>
-      <div class="icon-label">"PF" LETTER MARK</div>
-      <div class="icon-desc">Pure typography. Big chunky "PF" in graffiti style with spray drips.</div>
+      <div class="icon-label">FOREST</div>
+      <div class="icon-desc">Deep green tones with bright yellow accents. Outdoor woodsy feel.</div>
     </div>
 
-    <!-- 7. "PG" + slide emoji -->
+    <!-- #7 — Punk: black + yellow + red -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="430" cy="100" r="28" fill="#3aa9e8" opacity="0.6"/>
-        <circle cx="80" cy="430" r="32" fill="#ffb800" opacity="0.6"/>
-        <text x="256" y="180" font-family="'Bungee','Arial Black',sans-serif" font-weight="900" font-size="160" text-anchor="middle" fill="#ffb800" stroke="#1a1410" stroke-width="12" paint-order="stroke">PG</text>
-        <text x="256" y="430" font-size="220" text-anchor="middle">🛝</text>
-      </svg>
-      <div class="icon-id">#7</div>
-      <div class="icon-label">"PG" + SLIDE EMOJI</div>
-      <div class="icon-desc">Letter mark on top, big slide emoji below. Most literal.</div>
-    </div>
-
-    <!-- 8. Stencil "PF" with spray dots -->
-    <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
         <rect width="512" height="512" rx="96" fill="#1a1410"/>
-        <!-- Spray dot texture -->
-        <circle cx="80" cy="80" r="6" fill="#ffb800" opacity="0.8"/>
-        <circle cx="120" cy="60" r="3" fill="#ffb800" opacity="0.6"/>
-        <circle cx="60" cy="130" r="4" fill="#ffb800" opacity="0.7"/>
-        <circle cx="430" cy="60" r="5" fill="#c0202c" opacity="0.8"/>
-        <circle cx="460" cy="100" r="3" fill="#c0202c" opacity="0.6"/>
-        <circle cx="60" cy="450" r="4" fill="#3aa9e8" opacity="0.7"/>
-        <circle cx="430" cy="430" r="6" fill="#3aa9e8" opacity="0.8"/>
-        <circle cx="470" cy="380" r="3" fill="#0d9b62" opacity="0.7"/>
-        <!-- Stencil PF -->
-        <text x="256" y="330" font-family="'Bungee','Arial Black',sans-serif" font-weight="900" font-size="260" text-anchor="middle" fill="#fff" letter-spacing="-12">PF</text>
-        <!-- Spray underline -->
-        <rect x="100" y="370" width="312" height="6" fill="#ffb800"/>
-        <rect x="80" y="380" width="80" height="3" fill="#ffb800" opacity="0.6"/>
-        <rect x="360" y="380" width="60" height="3" fill="#ffb800" opacity="0.6"/>
+        <!-- Spray accents -->
+        <circle cx="80" cy="80" r="4" fill="#ffb800" opacity="0.7"/>
+        <circle cx="120" cy="50" r="3" fill="#ffb800" opacity="0.5"/>
+        <circle cx="450" cy="430" r="5" fill="#c0202c" opacity="0.7"/>
+        <circle cx="60" cy="450" r="4" fill="#c0202c" opacity="0.6"/>
+        <!-- Text -->
+        <text x="256" y="100" font-family="'Bungee','Arial Black',sans-serif" font-size="60" text-anchor="middle" fill="#ffb800">PG/PARK</text>
+        <text x="256" y="160" font-family="'Bungee','Arial Black',sans-serif" font-size="52" text-anchor="middle" fill="#c0202c">FINDER</text>
+        <!-- Slide -->
+        <rect x="222" y="210" width="10" height="170" rx="3" fill="#fff"/>
+        <rect x="252" y="210" width="10" height="170" rx="3" fill="#fff"/>
+        <rect x="226" y="240" width="32" height="6" rx="2" fill="#ffb800"/>
+        <rect x="226" y="275" width="32" height="6" rx="2" fill="#ffb800"/>
+        <rect x="226" y="310" width="32" height="6" rx="2" fill="#ffb800"/>
+        <circle cx="242" cy="210" r="24" fill="#c0202c" stroke="#fff" stroke-width="4"/>
+        <path d="M 241 210 Q 330 225, 365 320 Q 390 400, 370 460" stroke="#ffb800" stroke-width="36" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i7"/></svg>
+      <div class="icon-id">#7</div>
+      <div class="icon-label">PUNK</div>
+      <div class="icon-desc">Black background, neon yellow + red. Stark and bold.</div>
+    </div>
+
+    <!-- #8 — Pastel -->
+    <div class="icon-card">
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" rx="96" fill="#fce0ec"/>
+        <circle cx="80" cy="100" r="38" fill="#c8e7d8" opacity="0.8"/>
+        <circle cx="430" cy="120" r="28" fill="#e5d4ef" opacity="0.8"/>
+        <ellipse cx="256" cy="500" rx="280" ry="60" fill="#c8e7d8"/>
+        <!-- Text -->
+        <text x="256" y="100" font-family="'Bungee','Arial Black',sans-serif" font-size="54" text-anchor="middle" fill="#a87bb8" stroke="#1a1410" stroke-width="5" paint-order="stroke">PG/PARK</text>
+        <text x="256" y="158" font-family="'Bungee','Arial Black',sans-serif" font-size="46" text-anchor="middle" fill="#e89bb5" stroke="#1a1410" stroke-width="5" paint-order="stroke">FINDER</text>
+        <!-- Slide -->
+        <rect x="222" y="210" width="10" height="170" rx="3" fill="#a87bb8" stroke="#1a1410" stroke-width="3"/>
+        <rect x="250" y="210" width="10" height="170" rx="3" fill="#a87bb8" stroke="#1a1410" stroke-width="3"/>
+        <circle cx="241" cy="210" r="26" fill="#fff" stroke="#1a1410" stroke-width="5"/>
+        <path d="M 240 210 Q 330 225, 365 320 Q 390 400, 370 460" stroke="#1a1410" stroke-width="38" fill="none" stroke-linecap="round"/>
+        <path d="M 240 210 Q 330 225, 365 320 Q 390 400, 370 460" stroke="#e89bb5" stroke-width="28" fill="none" stroke-linecap="round"/>
+      </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i8"/></svg>
       <div class="icon-id">#8</div>
-      <div class="icon-label">STENCIL "PF"</div>
-      <div class="icon-desc">Sharp black background, white stencil letters, spray-dot accents. Most punk.</div>
+      <div class="icon-label">PASTEL</div>
+      <div class="icon-desc">Soft pink/mint/lavender palette. Sweeter, less aggressive.</div>
     </div>
 
-    <!-- 9. Stylized slide (no kid, no ladder, just the slide shape) -->
+    <!-- #9 — Neon / dark high-contrast -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <ellipse cx="256" cy="495" rx="240" ry="60" fill="#0d9b62"/>
-        <!-- Big slide curve -->
-        <path d="M 130 130 Q 200 130, 230 200 Q 260 290, 360 380 Q 410 430, 390 470"
-              stroke="#1a1410" stroke-width="70" fill="none" stroke-linecap="round"/>
-        <path d="M 130 130 Q 200 130, 230 200 Q 260 290, 360 380 Q 410 430, 390 470"
-              stroke="#ffb800" stroke-width="58" fill="none" stroke-linecap="round"/>
-        <!-- Top platform circle -->
-        <circle cx="130" cy="130" r="46" fill="#c0202c" stroke="#1a1410" stroke-width="8"/>
-        <!-- Sparkle dots -->
-        <circle cx="100" cy="300" r="10" fill="#3aa9e8" stroke="#1a1410" stroke-width="3"/>
-        <circle cx="430" cy="220" r="14" fill="#0d9b62" stroke="#1a1410" stroke-width="4"/>
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" rx="96" fill="#0a0e3d"/>
+        <!-- Neon stars -->
+        <circle cx="80" cy="80" r="3" fill="#fff"/>
+        <circle cx="450" cy="60" r="2" fill="#fff"/>
+        <circle cx="420" cy="160" r="3" fill="#fff"/>
+        <circle cx="60" cy="200" r="2" fill="#fff"/>
+        <!-- Text -->
+        <text x="256" y="100" font-family="'Bungee','Arial Black',sans-serif" font-size="60" text-anchor="middle" fill="#39ff14" stroke="#1a1410" stroke-width="4">PG/PARK</text>
+        <text x="256" y="160" font-family="'Bungee','Arial Black',sans-serif" font-size="52" text-anchor="middle" fill="#ff2dd1" stroke="#1a1410" stroke-width="4">FINDER</text>
+        <!-- Slide in neon cyan -->
+        <rect x="222" y="210" width="10" height="170" rx="3" fill="#00f5ff"/>
+        <rect x="252" y="210" width="10" height="170" rx="3" fill="#00f5ff"/>
+        <circle cx="242" cy="210" r="26" fill="#ff2dd1" stroke="#fff" stroke-width="4"/>
+        <path d="M 241 210 Q 330 225, 365 320 Q 390 400, 370 460" stroke="#39ff14" stroke-width="34" fill="none" stroke-linecap="round"/>
+        <!-- Grass simplified -->
+        <ellipse cx="256" cy="500" rx="280" ry="40" fill="#39ff14" opacity="0.5"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i9"/></svg>
       <div class="icon-id">#9</div>
-      <div class="icon-label">JUST THE SLIDE</div>
-      <div class="icon-desc">Minimal: one big stylized slide curve. No ladder, no kid, no text.</div>
+      <div class="icon-label">NEON NIGHT</div>
+      <div class="icon-desc">Dark navy bg, neon green/pink/cyan. Cyberpunk playground.</div>
     </div>
 
-    <!-- 10. Stylized tree -->
+    <!-- #10 — Monochrome -->
     <div class="icon-card">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-        <rect width="512" height="512" rx="96" fill="#f3eadb"/>
-        <circle cx="80" cy="380" r="22" fill="#c0202c" opacity="0.6"/>
-        <circle cx="440" cy="120" r="32" fill="#ffb800" opacity="0.6"/>
-        <ellipse cx="256" cy="495" rx="240" ry="55" fill="#0d9b62"/>
-        <!-- Trunk -->
-        <rect x="222" y="280" width="68" height="200" rx="14" fill="#8b5a2b" stroke="#1a1410" stroke-width="8"/>
-        <!-- Big stylized canopy -->
-        <circle cx="256" cy="220" r="160" fill="#0d9b62" stroke="#1a1410" stroke-width="10"/>
-        <!-- Highlight blobs inside canopy -->
-        <circle cx="200" cy="170" r="40" fill="#39c785" opacity="0.7"/>
-        <circle cx="290" cy="240" r="30" fill="#39c785" opacity="0.5"/>
-        <!-- Apple / fruit accent -->
-        <circle cx="330" cy="170" r="18" fill="#c0202c" stroke="#1a1410" stroke-width="5"/>
+      <svg class="preview-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" rx="96" fill="#fff"/>
+        <ellipse cx="256" cy="500" rx="280" ry="50" fill="#1a1410"/>
+        <!-- Text -->
+        <text x="256" y="100" font-family="'Bungee','Arial Black',sans-serif" font-size="60" text-anchor="middle" fill="#1a1410">PG/PARK</text>
+        <text x="256" y="158" font-family="'Bungee','Arial Black',sans-serif" font-size="50" text-anchor="middle" fill="#ffb800" stroke="#1a1410" stroke-width="4" paint-order="stroke">FINDER</text>
+        <!-- Slide all black except gold accent -->
+        <rect x="222" y="210" width="10" height="170" rx="3" fill="#1a1410"/>
+        <rect x="252" y="210" width="10" height="170" rx="3" fill="#1a1410"/>
+        <rect x="226" y="240" width="32" height="6" rx="2" fill="#1a1410"/>
+        <rect x="226" y="275" width="32" height="6" rx="2" fill="#1a1410"/>
+        <rect x="226" y="310" width="32" height="6" rx="2" fill="#1a1410"/>
+        <rect x="226" y="345" width="32" height="6" rx="2" fill="#1a1410"/>
+        <circle cx="242" cy="210" r="26" fill="#ffb800" stroke="#1a1410" stroke-width="5"/>
+        <path d="M 241 210 Q 330 225, 365 320 Q 390 400, 370 460" stroke="#1a1410" stroke-width="40" fill="none" stroke-linecap="round"/>
+        <path d="M 241 210 Q 330 225, 365 320 Q 390 400, 370 460" stroke="#ffb800" stroke-width="30" fill="none" stroke-linecap="round"/>
       </svg>
+      <svg class="preview-tiny" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><use href="#i10"/></svg>
       <div class="icon-id">#10</div>
-      <div class="icon-label">BIG TREE</div>
-      <div class="icon-desc">Bold round tree with apple. Park vibe, no slide.</div>
+      <div class="icon-label">MONO GOLD</div>
+      <div class="icon-desc">White bg, black slide and text, gold accent on slide curve and "FINDER".</div>
     </div>
+
   </div>
 </body>
 </html>
