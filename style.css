@@ -688,6 +688,15 @@ main {
     flex-shrink: 0;
   }
 
+  /* ===== Splatters on mobile: smaller + repositioned so they don't crowd the title =====
+     Specifically: the green splatter-2 was crowding the "by AWW" signature (both green),
+     making the signature unreadable. Move it down out of the title area. */
+  .splatter-1 { width: 9rem;   height: 9rem;   top: 1%;   left: -4%; }
+  .splatter-2 { width: 6.5rem; height: 6.5rem; top: 45%;  right: -3%; }
+  .splatter-3 { width: 5rem;   height: 5rem;   bottom: 4%; left: -2%; }
+  .splatter-4 { width: 4rem;   height: 4rem;   bottom: 18%; right: 2%; }
+  .splatter-5 { width: 3.5rem; height: 3.5rem; top: 26%;  right: 4%; }
+
   /* ===== Denser cards on mobile so more park info fits per screen ===== */
   /* Slimmer hero photo (was 16:9 ≈ 200px tall on iPhone; now ~130px) */
   .card-hero-image {
