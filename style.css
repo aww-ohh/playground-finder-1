@@ -429,8 +429,9 @@ main {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  /* Extra bottom padding so the Radius / Sort row doesn't visually touch the divider line */
-  padding: 1rem 1.5rem 1.5rem;
+  /* Extra bottom padding so the Radius / Sort row (with its box-shadows) sits well clear
+     of the divider line below it. */
+  padding: 1rem 1.5rem 2rem;
   position: sticky;
   top: 0;
   z-index: 50;
@@ -686,6 +687,81 @@ main {
   .signal-chip {
     flex-shrink: 0;
   }
+
+  /* ===== Denser cards on mobile so more park info fits per screen ===== */
+  /* Slimmer hero photo (was 16:9 ≈ 200px tall on iPhone; now ~130px) */
+  .card-hero-image {
+    aspect-ratio: auto;
+    height: 130px;
+  }
+  /* Tighter card padding */
+  .result-card-body {
+    padding: 0.7rem 0.9rem 0.8rem;
+    gap: 0.2rem;
+  }
+  /* Compact name + meta */
+  .result-name {
+    font-size: 1rem;
+  }
+  .result-meta {
+    font-size: 0.84rem;
+  }
+  .result-distance {
+    font-size: 0.9rem;
+  }
+  /* Tighter signal rows — was ~30px each, now ~22px */
+  .signals-list {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+  }
+  .signal-row-header {
+    padding: 0.18rem 0;
+    font-size: 0.82rem;
+  }
+  .signal-icon {
+    width: 1.2rem;
+    font-size: 0.85rem;
+  }
+  .signal-label {
+    min-width: 4.5rem;
+    font-size: 0.82rem;
+  }
+  .signal-yes,
+  .signal-no,
+  .signal-na,
+  .signal-category,
+  .signal-loading {
+    font-size: 0.82rem;
+  }
+  /* Reviews and notes toggles tighter */
+  .reviews-section,
+  .note-section {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+  }
+  .reviews-toggle,
+  .note-toggle {
+    padding: 0.25rem 0;
+    font-size: 0.82rem;
+  }
+  /* Result links row tighter */
+  .result-links {
+    gap: 0.7rem;
+    margin-top: 0.4rem;
+  }
+  .result-link,
+  .result-link-secondary,
+  .result-link-share {
+    font-size: 0.82rem;
+  }
+  /* Slightly smaller favorite/visited buttons so they don't dominate the slimmer photo */
+  .favorite-btn,
+  .visited-btn {
+    width: 2.1rem;
+    height: 2.1rem;
+    font-size: 1.05rem;
+  }
+  .visited-btn { top: 3.05rem; }
 }
 
 
