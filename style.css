@@ -709,29 +709,46 @@ main {
   .result-distance {
     font-size: 0.9rem;
   }
-  /* Tighter signal rows — was ~30px each, now ~22px */
+  /* Signals: 2-column grid instead of 5 vertical rows — saves significant height */
   .signals-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 0.6rem;
+    row-gap: 0;
     margin-top: 0.35rem;
     padding-top: 0.35rem;
   }
+  .signal-row {
+    border-bottom: none;
+  }
+  /* When a row's summary is expanded, take the full row width so the prose can breathe */
+  .signal-row.signal-expanded {
+    grid-column: 1 / -1;
+  }
   .signal-row-header {
     padding: 0.18rem 0;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+    gap: 0.3rem;
+    min-width: 0;
   }
   .signal-icon {
-    width: 1.2rem;
+    width: 1.1rem;
     font-size: 0.85rem;
   }
   .signal-label {
-    min-width: 4.5rem;
-    font-size: 0.82rem;
+    min-width: 0;          /* let labels shrink in narrow grid cells */
+    font-size: 0.8rem;
   }
   .signal-yes,
   .signal-no,
   .signal-na,
   .signal-category,
   .signal-loading {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .signal-summary {
+    padding-left: 0;        /* full-width when expanded; no need for icon-aligned indent */
   }
   /* Reviews and notes toggles tighter */
   .reviews-section,
@@ -743,6 +760,12 @@ main {
   .note-toggle {
     padding: 0.25rem 0;
     font-size: 0.82rem;
+  }
+  /* On mobile, hide the "Add a note" placeholder when no note exists yet
+     (saved notes still show — they have the .has-note class). Adding new notes
+     remains available on desktop. */
+  .note-section:not(.has-note) {
+    display: none;
   }
   /* Result links row tighter */
   .result-links {
