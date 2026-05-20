@@ -697,6 +697,10 @@ main {
   .splatter-4 { width: 4rem;   height: 4rem;   bottom: 18%; right: 2%; }
   .splatter-5 { width: 3.5rem; height: 3.5rem; top: 26%;  right: 4%; }
 
+  /* Drips don't have room on a narrow viewport — one was overlapping the
+     "by AWW" signature. Hide them on mobile; the title still reads as graffiti. */
+  .drips { display: none; }
+
   /* ===== Denser cards on mobile so more park info fits per screen ===== */
   /* Slimmer hero photo (was 16:9 ≈ 200px tall on iPhone; now ~130px) */
   .card-hero-image {
