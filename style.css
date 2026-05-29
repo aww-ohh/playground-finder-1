@@ -17,6 +17,16 @@
   padding: 0;
 }
 
+/* Give <html> the same cream fallback as <body> so if body ever underdraws
+   (iOS Safari + overflow-x:hidden quirk, especially in PWA standalone mode),
+   the exposed edge doesn't render as white. Without this, the fixed
+   mix-blend-mode noise overlay would multiply against white html and
+   produce a darker grayish vertical stripe on the right edge. */
+html {
+  background: #f1e6cd;  /* matches the bottom of body's vertical gradient */
+  overflow-x: hidden;
+}
+
 body {
   font-family: 'Nunito', sans-serif;
   color: #1a1410;
@@ -26,6 +36,7 @@ body {
     radial-gradient(at 50% 100%, rgba(255,184,0,0.10), transparent 60%),
     linear-gradient(180deg, #f6efde 0%, #ecdfc4 100%);
   min-height: 100vh;
+  width: 100%;
   position: relative;
   overflow-x: hidden;  /* clips tilted strip / negative margins */
 }
