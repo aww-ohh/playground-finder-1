@@ -630,26 +630,20 @@ main {
 
 /* Mobile-specific tweaks */
 @media (max-width: 767px) {
-  /* Title was overflowing on iPhone widths: clamp(3rem, 13vw, 9rem) = ~49px on 375px,
-     and "PLAYGROUND" in Bungee at that size + 8px text-shadow + stroke + -3deg rotation
-     bled past the right edge (visible as a clipped "D" and a dark stripe where the
-     shadow met the noise overlay). Shrink the font, tighten the shadow + stroke,
-     drop the rotation, reduce hero side padding, and constrain the wrap to the
-     content box so it can't push past viewport. */
-  .hero {
-    padding: 4rem 1rem 3rem;
-  }
+  /* "PLAYGROUND" was bleeding past the right edge on iPhones because the original
+     clamp(3rem, 13vw, 9rem) resolved to ~49px on 375px and the bounding box
+     (font + 8px shadow + 4px stroke + -3deg rotation + 0.25em padding) ran ~30px
+     past the hero's content box. Just shrink the font slightly + trim the shadow
+     a hair — keep the look almost identical to before. */
   .tag-title-wrap {
     max-width: 100%;
   }
   .tag-title {
-    font-size: clamp(1.9rem, 8.5vw, 3rem);
-    -webkit-text-stroke-width: 3px;
+    font-size: clamp(2.6rem, 11.5vw, 3.6rem);  /* ~43px on 375px instead of 49px */
     text-shadow:
-      3px 3px 0 #e07a2a,
-      4px 4px 0 #1a1410;
-    padding: 0 0.1em;
-    transform: rotate(-2deg);  /* less rotation = less horizontal bounding-box expansion */
+      6px 6px 0 #e07a2a,
+      7px 7px 0 #1a1410;
+    padding: 0 0.2em;
   }
 
   /* Toolbar lives in normal flow above the map and scrolls with the page.
