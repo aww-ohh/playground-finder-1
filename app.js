@@ -1822,7 +1822,25 @@ document.getElementById('results-list').addEventListener('click', function (e) {
   var marker = markersByPlaceId[placeId];
   if (marker && map) {
     map.panTo(marker.getLatLng());
-    marker.openPopup();
+    // On TOUCH/mobile devices the Leaflet popup covers nearly the whole map,
+    // which is painful on a small screen — the card already shows every piece
+    // of info the popup would. So on coarse-pointer devices (phones, tablets,
+    // touchscreen laptops) we skip openPopup() and instead briefly pulse the
+    // marker for ~2 seconds so the user gets a clear "here it is" signal
+    // without occluding the map. Marker tap (handled separately) still opens
+    // the popup since the user specifically asked about THAT pin.
+    var isCoarsePointer = window.matchMedia
+      && window.matchMedia('(pointer: coarse)').matches;
+    if (isCoarsePointer) {
+      if (marker._icon) {
+        marker._icon.classList.add('marker-highlight');
+        setTimeout(function () {
+          if (marker._icon) marker._icon.classList.remove('marker-highlight');
+        }, 2000);
+      }
+    } else {
+      marker.openPopup();
+    }
   }
 });
 
