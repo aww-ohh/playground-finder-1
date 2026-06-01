@@ -116,7 +116,11 @@
           <div id="address-suggestions" class="address-suggestions hidden" role="listbox"></div>
         </div>
         <div class="home-controls">
-          <button type="button" id="home-btn" class="home-btn hidden" aria-label="Home shortcut"></button>
+          <!-- FIX E1: give the button visible content + tooltip so it's not a
+               mystery if the JS hasn't rewritten textContent yet (e.g. on a
+               fresh load before any search). refreshHomeButton() will replace
+               textContent with the correct mode label once state is known. -->
+          <button type="button" id="home-btn" class="home-btn hidden" aria-label="Search near saved home location" title="Home">🏠</button>
         </div>
       </div>
 
@@ -163,8 +167,22 @@
         <button class="signal-chip" data-signal="bathrooms">🚻 Bathrooms</button>
         <button class="signal-chip" data-signal="toddler">👶 Toddler</button>
         <button class="signal-chip" data-signal="parking">🅿️ Parking</button>
+        <!-- V3 Feature 1: tap to hide parks the user has already marked ✓ visited. -->
+        <button class="signal-chip hide-visited-chip" data-toggle="hide-visited" aria-pressed="false">👻 Hide visited</button>
       </div>
       <div class="filter-row">
+        <!-- V3 Feature 2: rough drive-time cap for "nap-window" planning. -->
+        <div class="sort-control">
+          <label for="naptime-select" class="sort-label">Drive time</label>
+          <select id="naptime-select" class="sort-select">
+            <option value="" selected>Any</option>
+            <option value="5">≤ 5 min</option>
+            <option value="10">≤ 10 min</option>
+            <option value="15">≤ 15 min</option>
+            <option value="20">≤ 20 min</option>
+            <option value="30">≤ 30 min</option>
+          </select>
+        </div>
         <div class="sort-control">
           <label for="radius-select" class="sort-label">Radius</label>
           <select id="radius-select" class="sort-select">

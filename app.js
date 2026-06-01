@@ -218,6 +218,45 @@ function toggleVisited(placeId) {
   return idx === -1;
 }
 
+// ---- "Hide visited" toggle (V3 Feature 1) ----
+// When on, parks the user has already marked ✓ visited disappear from the
+// results list AND the map. Persisted across reloads so parents who want a
+// "new parks only" view get it by default once they set it.
+var HIDE_VISITED_KEY = 'playgroundFinder.hideVisited';
+function getHideVisited() {
+  try { return localStorage.getItem(HIDE_VISITED_KEY) === 'true'; }
+  catch (e) { return false; }
+}
+function setHideVisited(bool) {
+  try { localStorage.setItem(HIDE_VISITED_KEY, bool ? 'true' : 'false'); }
+  catch (e) { /* ignore */ }
+}
+
+// ---- "Drive time" filter (V3 Feature 2) ----
+// Uses straight-line distance × 1.5 (city-grid fudge) / 25 mph (suburban avg)
+// to estimate minutes. Approximate but no API call required.
+var MAX_DRIVE_KEY = 'playgroundFinder.maxDriveMinutes';
+function getMaxDriveMinutes() {
+  try {
+    var raw = localStorage.getItem(MAX_DRIVE_KEY);
+    if (!raw) return null;
+    var n = Number(raw);
+    return isNaN(n) || n <= 0 ? null : n;
+  } catch (e) { return null; }
+}
+function setMaxDriveMinutes(val) {
+  try {
+    if (val == null || val === '') localStorage.removeItem(MAX_DRIVE_KEY);
+    else localStorage.setItem(MAX_DRIVE_KEY, String(val));
+  } catch (e) { /* ignore */ }
+}
+// Estimate drive-time minutes from origin (lastLat,lastLng) to a park.
+function estimateDriveMinutes(park) {
+  if (lastLat == null || lastLng == null) return null;
+  var meters = haversineMeters(lastLat, lastLng, park.lat, park.lng);
+  return (meters * 0.000621371 * 1.5 / 25) * 60;
+}
+
 
 // ---- Personal notes per park (localStorage) ----
 var NOTE_PREFIX = 'playgroundFinder.note.';
@@ -227,11 +266,17 @@ function getNote(placeId) {
   catch (e) { return ''; }
 }
 
+// FIX E3: cap notes at 2000 chars so a runaway paste can't blow up
+// localStorage. Returns true on success, false on failure (storage full /
+// disabled) so the UI can surface a visible "couldn't save" status instead
+// of silently failing.
 function setNote(placeId, text) {
   try {
+    if (text && text.length > 2000) text = text.slice(0, 2000);
     if (text && text.trim()) localStorage.setItem(NOTE_PREFIX + placeId, text);
     else localStorage.removeItem(NOTE_PREFIX + placeId);
-  } catch (e) { /* ignore */ }
+    return true;
+  } catch (e) { return false; }
 }
 
 function hasNote(placeId) {
@@ -449,10 +494,13 @@ function renderHeroPhoto(result) {
     }
   }
 
+  // FIX D1: no inline onerror (CSP blocks it anyway). Instead the .card-hero-image
+  // container has a fixed 16/9 aspect-ratio + cream background, so if the photo
+  // 404s the layout doesn't shift — you just see a clean cream box.
   return '<div class="card-hero">'
     + '<img class="card-hero-image" src="' + escapeHtml(result.photoUrl)
     + '" alt="Photo of ' + escapeHtml(result.name)
-    + '" loading="lazy" onerror="this.parentElement.style.display=\'none\'">'
+    + '" loading="lazy">'
     + attributionHtml
     + '</div>';
 }
@@ -462,10 +510,12 @@ function renderHeroPhoto(result) {
 function renderPopupPhoto(result) {
   if (!result.photoUrl) return '';
 
+  // FIX D1: no inline onerror — CSP would block it anyway. The container's
+  // CSS aspect-ratio + cream background gracefully handles a missing image.
   return '<div class="popup-hero">'
     + '<img class="popup-hero-image" src="' + escapeHtml(result.photoUrl)
     + '" alt="Photo of ' + escapeHtml(result.name)
-    + '" onerror="this.parentElement.style.display=\'none\'">'
+    + '">'
     + '</div>';
 }
 
@@ -652,7 +702,8 @@ function renderNoteSection(result) {
     + '<div class="note-content"' + (hasExisting ? '' : ' style="display:none"') + '>'
     + '<textarea class="note-input" data-place-id="' + result.placeId + '" '
     + 'placeholder="e.g. fence on south side has a gap, swings squeak in the rain..." '
-    + 'rows="3">' + escapeHtml(existing) + '</textarea>'
+    // FIX E3: cap at 2000 chars in the UI to match setNote()'s cap.
+    + 'maxlength="2000" rows="3">' + escapeHtml(existing) + '</textarea>'
     + '<div class="note-status" data-place-id="' + result.placeId + '"></div>'
     + '</div></div>';
 }
@@ -754,20 +805,32 @@ function defaultSignalsClient() {
 }
 
 // ---- localStorage cache for Gemini-extracted signals ----
-// Keyed by Google placeId. Signals don't change often, so we cache indefinitely.
+// Keyed by Google placeId. Cached entries now expire after 30 days so parks
+// that get re-reviewed or change over time don't show forever-stale info.
 var SIGNAL_CACHE_PREFIX = 'playgroundFinder.signals.';
+var SIGNAL_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 function loadCachedSignals(placeId) {
   try {
     var raw = localStorage.getItem(SIGNAL_CACHE_PREFIX + placeId);
     if (!raw) return null;
-    return JSON.parse(raw);
+    var parsed = JSON.parse(raw);
+    // New shape: { savedAt, signals }. Old shape: raw signals object (no savedAt).
+    // For backward compat, treat old-shape entries as fresh (they'll be rewritten
+    // in the new shape next time saveCachedSignals runs).
+    if (parsed && typeof parsed.savedAt === 'number' && parsed.signals) {
+      if (Date.now() - parsed.savedAt > SIGNAL_CACHE_MAX_AGE_MS) return null; // stale \u2192 fresh fetch
+      return parsed.signals;
+    }
+    return parsed;
   } catch (e) { return null; }
 }
 
 function saveCachedSignals(placeId, signals) {
   try {
-    localStorage.setItem(SIGNAL_CACHE_PREFIX + placeId, JSON.stringify(signals));
+    // Wrap with savedAt timestamp so we can expire old entries (see loadCachedSignals).
+    var wrapped = { savedAt: Date.now(), signals: signals };
+    localStorage.setItem(SIGNAL_CACHE_PREFIX + placeId, JSON.stringify(wrapped));
   } catch (e) { /* storage full or disabled \u2014 ignore */ }
 }
 
@@ -939,12 +1002,70 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     var newRadius = cta.getAttribute('data-radius');
     radiusSelect.value = newRadius;
     savePref('playgroundFinder.radius', newRadius);
+    // FIX A2: no third arg → searchOrigin preserved so the Directions link still
+    // starts from the same typed address even after radius change.
     if (lastLat !== null && lastLng !== null) handleCoordinates(lastLat, lastLng);
   } else if (action === 'change-location') {
+    // FIX E2: scroll the input into view + give the user a friendly nudge
+    // about what to type. On mobile the search bar can be off-screen.
     addressInput.value = '';
+    try { addressInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e2) { /* old browsers */ }
     addressInput.focus();
+    showMessage('Type any address, city, or zip, then tap Search.', 'info');
+  } else if (action === 'clear-filters') {
+    // FIX A3 + A5: one-click recovery from "everything filtered out".
+    setActiveSignalFilters([]);
+    setHideVisited(false);
+    setMaxDriveMinutes(null);
+    savePref('playgroundFinder.typeFilter', 'all');
+    // Clear the visual active state from chips, type buttons, and dropdowns.
+    document.querySelectorAll('.signal-chip.active').forEach(function (c) { c.classList.remove('active'); });
+    document.querySelectorAll('.type-btn').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-type') === 'all');
+    });
+    var hideBtn = document.querySelector('.hide-visited-chip');
+    if (hideBtn) { hideBtn.classList.remove('active'); hideBtn.setAttribute('aria-pressed', 'false'); }
+    var naptimeSel = document.getElementById('naptime-select');
+    if (naptimeSel) naptimeSel.value = '';
+    applyFilterAndSort();
   }
 });
+
+// FIX A5: show/hide an inline "Clear" button when any filters are active.
+// Lives inside the signal-filter-row so it sits next to the chips.
+function refreshClearFiltersBtn() {
+  var row = document.getElementById('signal-filter');
+  if (!row) return;
+  var anyActive = getActiveSignalFilters().length > 0
+    || getHideVisited()
+    || getMaxDriveMinutes() != null;
+  var btn = row.querySelector('.clear-filters-btn');
+  if (anyActive) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'clear-filters-btn';
+      btn.textContent = 'Clear';
+      btn.setAttribute('aria-label', 'Clear all filters');
+      btn.addEventListener('click', function () {
+        // Clear every kind of filter (signal chips, hide-visited, drive time)
+        // and re-render. Type filter is left alone (it's a view choice, not a filter).
+        setActiveSignalFilters([]);
+        setHideVisited(false);
+        setMaxDriveMinutes(null);
+        document.querySelectorAll('.signal-chip.active').forEach(function (c) { c.classList.remove('active'); });
+        var hideBtn = document.querySelector('.hide-visited-chip');
+        if (hideBtn) { hideBtn.classList.remove('active'); hideBtn.setAttribute('aria-pressed', 'false'); }
+        var naptimeSel = document.getElementById('naptime-select');
+        if (naptimeSel) naptimeSel.value = '';
+        applyFilterAndSort();
+      });
+      row.appendChild(btn);
+    }
+  } else if (btn) {
+    btn.remove();
+  }
+}
 
 // ---- Helper: show shimmer skeleton cards while results are loading ----
 function showLoadingSkeletons() {
@@ -1004,6 +1125,12 @@ function showMapInternal(lat, lng, results) {
     map.on('dragend', function () {
       searchHereBtn.classList.remove('hidden');
     });
+    // FIX C1: also show "Search this area" on zoom changes — pinch-zoom is
+    // how mobile users explore the map. Delay attaching by 1.5s so the
+    // initial fitBounds() call doesn't trigger the button on first render.
+    setTimeout(function () {
+      if (map) map.on('zoomend', function () { searchHereBtn.classList.remove('hidden'); });
+    }, 1500);
   }
   // Note: don't pre-fly to lat/lng here when results exist — fitBounds below positions
   // the map based on the actual markers, and the two animations would fight each other.
@@ -1056,7 +1183,22 @@ function updateMarkerVisibility(typeFilter, activeSignals) {
   // Build a set of placeIds that pass the current filters
   var visibleIds = {};
   var filtered = filterByType(currentResults, typeFilter);
-  filtered = filterBySignals(filtered, activeSignals || []);
+  // Mirror applyFilterAndSort: skip signal filters on Saved view (FIX A1).
+  if (typeFilter !== 'favorites') {
+    filtered = filterBySignals(filtered, activeSignals || []);
+  }
+  // V3 Feature 1: hide visited markers too when the toggle is on.
+  if (getHideVisited()) {
+    filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
+  }
+  // V3 Feature 2: respect drive-time cap for markers.
+  var maxMin = getMaxDriveMinutes();
+  if (maxMin != null && lastLat != null && lastLng != null) {
+    filtered = filtered.filter(function (r) {
+      var mins = estimateDriveMinutes(r);
+      return mins == null || mins <= maxMin;
+    });
+  }
   filtered.forEach(function (r) { visibleIds[r.placeId] = true; });
 
   Object.keys(markersByPlaceId).forEach(function (placeId) {
@@ -1108,7 +1250,10 @@ function addMarkersForSavedParks(savedFilteredResults) {
 }
 
 // ---- Helper: render the styled results list ----
-function renderResults(results) {
+// `unfilteredCount` (optional): the total before filters were applied. When
+// filtered results are empty but unfiltered are not, we show a "clear filters"
+// empty state so the user can recover (FIX A3).
+function renderResults(results, unfilteredCount) {
   var resultsSection = document.getElementById('results-section');
   var resultsList = document.getElementById('results-list');
   var resultsToolbar = document.getElementById('results-toolbar');
@@ -1174,7 +1319,19 @@ function renderResults(results) {
   }
 
   if (results.length === 0) {
-    // We have results but the filter hid them all
+    // FIX A3: when filters have hidden everything, show an actionable empty
+    // state with a one-tap "Clear filters" button instead of a silent blank list.
+    var hasUnfiltered = unfilteredCount && unfilteredCount > 0;
+    if (hasUnfiltered) {
+      resultsList.innerHTML = '<div class="empty-state">'
+        + '<div class="empty-emoji">🔎</div>'
+        + '<div class="empty-title">No parks match these filters.</div>'
+        + '<div class="empty-actions">'
+        + '<button type="button" class="empty-cta" data-action="clear-filters">Clear filters</button>'
+        + '</div></div>';
+      return;
+    }
+    // No unfiltered results either — fall back to the old "no results in this category" line.
     var typeFilter = getTypeFilter();
     var msgText = typeFilter === 'playground'
       ? 'No playgrounds in your current results.'
@@ -1233,10 +1390,33 @@ function applyFilterAndSort() {
   var sortBy = getSortOrder();
   var activeSignals = getActiveSignalFilters();
   var filtered = filterByType(currentResults, typeFilter);
-  filtered = filterBySignals(filtered, activeSignals);
+  // FIX A1: Saved parks may have come from another search and have stale or
+  // missing signals data, so skip the signal-chip filter while viewing Saved —
+  // otherwise the user's saved list silently shrinks for no obvious reason.
+  if (typeFilter !== 'favorites') {
+    filtered = filterBySignals(filtered, activeSignals);
+  }
+  // V3 Feature 1: hide-visited toggle removes already-visited parks.
+  if (getHideVisited()) {
+    filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
+  }
+  // V3 Feature 2: drive-time filter. Only applies if we know the search origin.
+  var maxMin = getMaxDriveMinutes();
+  if (maxMin != null && lastLat != null && lastLng != null) {
+    filtered = filtered.filter(function (r) {
+      var mins = estimateDriveMinutes(r);
+      return mins == null || mins <= maxMin;
+    });
+  }
   var sorted = sortResults(filtered, sortBy);
-  renderResults(sorted);
+  // FIX A3: also pass the unfiltered count so renderResults can show a
+  // "No parks match these filters — clear filters?" empty state instead of
+  // a confusingly blank list when the user has filtered everything out.
+  renderResults(sorted, currentResults.length);
   updateMarkerVisibility(typeFilter, activeSignals);
+  // FIX A5: show/hide the "Clear filters" inline link based on whether any
+  // signal chips (or the hide-visited / drive-time filters) are active.
+  refreshClearFiltersBtn();
 }
 
 // ---- Helper: called once we have coordinates ----
@@ -1422,17 +1602,50 @@ sortSelect.addEventListener('change', function () {
   applyFilterAndSort();
 });
 
+// ---- V3 Feature 2: drive-time select restore + change handler ----
+(function () {
+  var sel = document.getElementById('naptime-select');
+  if (!sel) return;
+  // Restore previously-chosen cap from localStorage.
+  var saved = getMaxDriveMinutes();
+  if (saved != null) sel.value = String(saved);
+  sel.addEventListener('change', function () {
+    setMaxDriveMinutes(sel.value || null);
+    if (currentResults.length === 0 && getTypeFilter() !== 'favorites') return;
+    applyFilterAndSort();
+  });
+})();
+
 // ---- Event: signal filter chip click + hide-visited toggle ----
 (function () {
   var signalFilter = document.getElementById('signal-filter');
   if (!signalFilter) return;
-  // Restore active state from localStorage
+  // Restore active state from localStorage for signal chips...
   var active = getActiveSignalFilters();
   signalFilter.querySelectorAll('.signal-chip').forEach(function (chip) {
     var sig = chip.getAttribute('data-signal');
     if (sig && active.indexOf(sig) !== -1) chip.classList.add('active');
   });
+  // ...and for the V3 Feature 1 "Hide visited" toggle.
+  var hideBtn = signalFilter.querySelector('.hide-visited-chip');
+  if (hideBtn && getHideVisited()) {
+    hideBtn.classList.add('active');
+    hideBtn.setAttribute('aria-pressed', 'true');
+  }
   signalFilter.addEventListener('click', function (e) {
+    // V3 Feature 1: hide-visited toggle. Handled before signal chips so we
+    // can short-circuit (the button is also a .signal-chip for shared styling).
+    var hideToggle = e.target.closest('.hide-visited-chip');
+    if (hideToggle) {
+      var nowOn = !hideToggle.classList.contains('active');
+      hideToggle.classList.toggle('active', nowOn);
+      hideToggle.setAttribute('aria-pressed', nowOn ? 'true' : 'false');
+      setHideVisited(nowOn);
+      // Re-render even if there's no current search — applyFilterAndSort
+      // will be a no-op in that case but it's cheap.
+      if (currentResults.length > 0 || getTypeFilter() === 'favorites') applyFilterAndSort();
+      return;
+    }
     var chip = e.target.closest('.signal-chip');
     if (!chip) return;
     var sig = chip.getAttribute('data-signal');
@@ -1460,8 +1673,10 @@ typeFilterDiv.parentElement.addEventListener('click', function (e) {
   if (!btn) return;
   var type = btn.getAttribute('data-type');
   // Saved button toggles: clicking it again returns you to All
+  var leavingFavorites = false;
   if (type === 'favorites' && btn.classList.contains('active')) {
     type = 'all';
+    leavingFavorites = true;
     btn = document.querySelector('.type-btn[data-type="all"]');
     if (!btn) return;
   }
@@ -1471,6 +1686,25 @@ typeFilterDiv.parentElement.addEventListener('click', function (e) {
   btn.classList.add('active');
   savePref('playgroundFinder.typeFilter', type);
   refreshShareButtonLabel();
+  // FIX A1: visually grey-out the signal chip row while viewing Saved, since
+  // we don't apply signal filters to saved parks (they may have stale signals).
+  var signalRow = document.getElementById('signal-filter');
+  if (signalRow) signalRow.classList.toggle('signals-disabled-for-saved', type === 'favorites');
+  // FIX A6: leaving Saved with no current search → tear the UI back down to
+  // the landing state instead of leaving stale Saved cards on screen.
+  if (leavingFavorites && currentResults.length === 0) {
+    var resultsSection = document.getElementById('results-section');
+    var resultsList = document.getElementById('results-list');
+    var resultsToolbar = document.getElementById('results-toolbar');
+    var mapSection = document.getElementById('map-section');
+    var fiveThingsStrip = document.getElementById('five-things-strip');
+    if (resultsList) resultsList.innerHTML = '';
+    if (resultsSection) resultsSection.classList.add('hidden');
+    if (resultsToolbar) resultsToolbar.classList.add('hidden');
+    if (mapSection) mapSection.classList.add('hidden');
+    if (fiveThingsStrip) fiveThingsStrip.classList.remove('hidden');
+    return;
+  }
   // Saved tab can render with no current search (uses cross-search saved data)
   if (currentResults.length === 0 && type !== 'favorites') return;
   applyFilterAndSort();
@@ -1480,12 +1714,19 @@ typeFilterDiv.parentElement.addEventListener('click', function (e) {
 radiusSelect.addEventListener('change', function () {
   savePref('playgroundFinder.radius', radiusSelect.value);
   if (lastLat !== null && lastLng !== null) {
+    // FIX A2: no third arg → searchOrigin preserved so the Directions link still
+    // starts from the same typed address even after radius change.
     handleCoordinates(lastLat, lastLng);
   }
 });
 
 // ---- Card hover → highlight matching marker on the map ----
+// FIX C3: on touch devices, "hover" from a tap stays stuck until the user
+// taps elsewhere — Mobile Safari treats the first tap as hover, not click.
+// Skip the hover wiring entirely on touch so taps just open the popup.
 (function () {
+  var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  if (isTouch) return;
   var resultsList = document.getElementById('results-list');
   resultsList.addEventListener('mouseover', function (e) {
     var card = e.target.closest('.result-card');
@@ -1635,8 +1876,9 @@ function showRecentsInDropdown() {
   var recents = getRecents();
   if (recents.length === 0) return;
   var html = '<div class="suggestion-header">Recent searches</div>';
-  recents.forEach(function (r) {
-    html += '<div class="suggestion-item" role="option"'
+  recents.forEach(function (r, i) {
+    // FIX B1: ids match the keyboard-nav order (header row doesn't get one).
+    html += '<div class="suggestion-item" role="option" id="suggestion-' + i + '" aria-selected="false"'
       + ' data-lat="' + escapeHtml(r.lat) + '"'
       + ' data-lng="' + escapeHtml(r.lng) + '"'
       + ' data-label="' + escapeHtml(r.label) + '">'
@@ -1646,6 +1888,8 @@ function showRecentsInDropdown() {
   });
   addressSuggestions.innerHTML = html;
   addressSuggestions.classList.remove('hidden');
+  selectedSuggestionIdx = -1;
+  addressInput.removeAttribute('aria-activedescendant');
 }
 
 // ---- Home shortcut button ----
@@ -1719,7 +1963,9 @@ document.getElementById('home-btn').addEventListener('click', function () {
     if (status) status.textContent = 'Saving…';
     clearTimeout(noteSaveTimers[pid]);
     noteSaveTimers[pid] = setTimeout(function () {
-      setNote(pid, ta.value);
+      // FIX E3: setNote now returns boolean. Surface failures (storage full,
+      // private-browsing throwing QuotaExceeded) instead of pretending it saved.
+      var ok = setNote(pid, ta.value);
       // Update toggle label to reflect "has note" state
       var section = ta.closest('.note-section');
       if (section) {
@@ -1731,8 +1977,12 @@ document.getElementById('home-btn').addEventListener('click', function () {
         }
       }
       if (status) {
-        status.textContent = 'Saved ✓';
-        setTimeout(function () { if (status) status.textContent = ''; }, 1200);
+        if (ok) {
+          status.textContent = 'Saved ✓';
+          setTimeout(function () { if (status) status.textContent = ''; }, 1200);
+        } else {
+          status.textContent = "Couldn't save (storage full)";
+        }
       }
     }, 600);
   });
@@ -1742,10 +1992,35 @@ document.getElementById('home-btn').addEventListener('click', function () {
 var addressSuggestions = document.getElementById('address-suggestions');
 var suggestionsDebounce = null;
 var suggestionsRequestId = 0;
+// FIX B1: track currently-highlighted suggestion for keyboard ArrowUp/Down.
+var selectedSuggestionIdx = -1;
+// FIX B2: flag set while a finger/mouse is pressed on a suggestion, so the
+// blur handler doesn't fire hideSuggestions() before the tap registers (iOS).
+var suggestionMouseDown = false;
 
 function hideSuggestions() {
   addressSuggestions.classList.add('hidden');
   addressSuggestions.innerHTML = '';
+  selectedSuggestionIdx = -1;
+  addressInput.removeAttribute('aria-activedescendant');
+}
+
+// FIX B1: visually mark which suggestion is currently keyboard-highlighted,
+// and update aria-activedescendant on the input for screen readers.
+function updateSuggestionHighlight() {
+  var items = addressSuggestions.querySelectorAll('.suggestion-item');
+  items.forEach(function (el, i) {
+    var sel = i === selectedSuggestionIdx;
+    el.classList.toggle('selected', sel);
+    el.setAttribute('aria-selected', sel ? 'true' : 'false');
+  });
+  if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
+    addressInput.setAttribute('aria-activedescendant', 'suggestion-' + selectedSuggestionIdx);
+    // Keep the highlighted item in view if the list is scrollable.
+    try { items[selectedSuggestionIdx].scrollIntoView({ block: 'nearest' }); } catch (e) { /* ignore */ }
+  } else {
+    addressInput.removeAttribute('aria-activedescendant');
+  }
 }
 
 function fetchSuggestions(query) {
@@ -1771,9 +2046,10 @@ function renderSuggestions(items) {
     return;
   }
   var html = '';
-  items.forEach(function (item) {
+  items.forEach(function (item, i) {
     var label = item.display_name || '';
-    html += '<div class="suggestion-item" role="option"'
+    // FIX B1: ids + aria-selected let screen readers announce which option is active.
+    html += '<div class="suggestion-item" role="option" id="suggestion-' + i + '" aria-selected="false"'
       + ' data-lat="' + escapeHtml(item.lat) + '"'
       + ' data-lng="' + escapeHtml(item.lon) + '"'
       + ' data-label="' + escapeHtml(label) + '">'
@@ -1782,6 +2058,8 @@ function renderSuggestions(items) {
   });
   addressSuggestions.innerHTML = html;
   addressSuggestions.classList.remove('hidden');
+  selectedSuggestionIdx = -1; // reset highlight every time the list re-renders
+  addressInput.removeAttribute('aria-activedescendant');
 }
 
 // Input typing \u2192 debounced fetch
@@ -1818,14 +2096,47 @@ document.addEventListener('click', function (e) {
   }
 });
 
-// Hide when input loses focus (delay so a suggestion click registers first)
+// FIX B2: track when the user is mid-tap on a suggestion so the blur
+// handler doesn't hide the list out from under them. mousedown/pointerdown
+// fire BEFORE blur, mouseup/pointerup fire AFTER click — the flag stays true
+// long enough to bridge the gap on flaky iOS Safari.
+addressSuggestions.addEventListener('mousedown', function () { suggestionMouseDown = true; });
+addressSuggestions.addEventListener('pointerdown', function () { suggestionMouseDown = true; });
+addressSuggestions.addEventListener('mouseup', function () { suggestionMouseDown = false; });
+addressSuggestions.addEventListener('pointerup', function () { suggestionMouseDown = false; });
+
+// Hide when input loses focus — but only if the user isn't actively tapping a
+// suggestion. The 250ms timeout is a safety net for browsers that don't fire
+// the mousedown/pointerdown events reliably.
 addressInput.addEventListener('blur', function () {
-  setTimeout(hideSuggestions, 150);
+  setTimeout(function () {
+    if (!suggestionMouseDown) hideSuggestions();
+  }, 250);
 });
 
-// Escape key closes the dropdown
+// FIX B1: keyboard navigation for suggestions (Arrow keys + Enter + Escape).
 addressInput.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') hideSuggestions();
+  if (e.key === 'Escape') { hideSuggestions(); return; }
+  var visible = !addressSuggestions.classList.contains('hidden');
+  var items = visible ? addressSuggestions.querySelectorAll('.suggestion-item') : [];
+  if (e.key === 'ArrowDown') {
+    if (items.length === 0) return;
+    e.preventDefault();
+    selectedSuggestionIdx = (selectedSuggestionIdx + 1) % items.length;
+    updateSuggestionHighlight();
+  } else if (e.key === 'ArrowUp') {
+    if (items.length === 0) return;
+    e.preventDefault();
+    selectedSuggestionIdx = (selectedSuggestionIdx - 1 + items.length) % items.length;
+    updateSuggestionHighlight();
+  } else if (e.key === 'Enter') {
+    if (selectedSuggestionIdx >= 0 && items[selectedSuggestionIdx]) {
+      // Simulate click on the highlighted suggestion (lets the existing handler do its job).
+      e.preventDefault();
+      items[selectedSuggestionIdx].click();
+    }
+    // Otherwise let the form submit naturally.
+  }
 });
 
 // ---- "Search this area" \u2192 re-run search at the current map center ----
@@ -1989,13 +2300,23 @@ function copyToClipboard(text) {
 }
 
 function shareUrl(url, label) {
-  // Try the native share sheet first (mobile), fall back to copy-to-clipboard
-  if (navigator.share) {
-    navigator.share({ title: 'Playground Finder', url: url }).catch(function () { /* user cancelled */ });
-  } else {
+  // FIX D2: split user-cancelled (AbortError, silent) from real failures
+  // (need to fall back to clipboard so the user still gets the link somehow).
+  function clipboardFallback() {
     copyToClipboard(url).then(function () {
       showMessage((label || 'Link') + ' copied to clipboard!', 'success');
+    }).catch(function () {
+      showMessage("Couldn't copy link — long-press the address bar to share.", 'info');
     });
+  }
+  if (navigator.share) {
+    navigator.share({ title: 'Playground Finder', url: url }).catch(function (err) {
+      // AbortError = user dismissed the share sheet on purpose; stay silent.
+      if (err && err.name === 'AbortError') return;
+      clipboardFallback();
+    });
+  } else {
+    clipboardFallback();
   }
 }
 
@@ -2104,6 +2425,16 @@ function refreshShareButtonLabel() {
 // ---- Initial: handle URL share params on page load + refresh button labels ----
 handleSharedUrl();
 refreshShareButtonLabel();
+
+// ---- FIX D3: offline / online toast ----
+// Without this, the SW happily serves stale cached results when offline and
+// the user has no idea they're seeing yesterday's data.
+window.addEventListener('offline', function () {
+  showMessage("You're offline — showing last cached results.", 'info');
+});
+window.addEventListener('online', function () {
+  showMessage("Back online!", 'success');
+});
 
 // ---- PWA: register the service worker (offline support + add to home screen) ----
 if ('serviceWorker' in navigator) {

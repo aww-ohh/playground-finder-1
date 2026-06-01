@@ -17,6 +17,19 @@
   padding: 0;
 }
 
+/* FIX E4: respect the OS-level "Reduce motion" preference. Without this,
+   users with vestibular sensitivities get hit with the title bob, splatter
+   spin, marker pulse, etc. Standard a11y recipe — collapse all animations
+   and transitions to ~0ms so the UI still works but doesn't move on its own. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Give <html> the same cream fallback as <body> so if body ever underdraws
    (iOS Safari + overflow-x:hidden quirk, especially in PWA standalone mode),
    the exposed edge doesn't render as white. Without this, the fixed
@@ -628,6 +641,46 @@ main {
   transform: translate(-1px, -1px);
 }
 
+/* FIX A1: when viewing the Saved tab, signal chips don't apply (saved parks
+   may have stale signal data), so we visually grey out the whole row and
+   disable clicks instead of silently ignoring them. */
+.signal-filter-row.signals-disabled-for-saved {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* V3 Feature 1: "Hide visited" toggle uses a purplish active color so it
+   reads as a separate concept from the gold review-driven signal chips. */
+.hide-visited-chip.active {
+  background: #c8a8d8;
+  color: #1a1410;
+  border-color: #1a1410;
+  box-shadow: 2px 2px 0 #1a1410;
+  transform: translate(-1px, -1px);
+}
+
+/* FIX A5: inline "Clear" button in the signal-filter row when any filters
+   are active. Looks like a hyperlink so it's clearly a quick-action. */
+.clear-filters-btn {
+  margin-left: auto;            /* push to the right edge of the filter row */
+  background: transparent;
+  border: none;
+  color: #c0202c;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+}
+.clear-filters-btn:hover { color: #8a1620; }
+
+/* FIX B1: keyboard-highlighted suggestion in the autocomplete dropdown.
+   Uses the same cream/gold color as the hover state for consistency. */
+.suggestion-item.selected {
+  background: #fff3cf;
+}
+
 /* Mobile-specific tweaks */
 @media (max-width: 767px) {
   /* "PLAYGROUND" was bleeding past the right edge on iPhones because the original
@@ -1177,12 +1230,16 @@ main {
   gap: 0.3rem;
 }
 
-/* Hero photo on cards */
+/* Hero photo on cards.
+   FIX D1: cream background + fixed aspect ratio means a broken/missing photo
+   becomes a clean cream box instead of collapsing the layout. We can't use
+   an inline onerror handler (CSP blocks it), so this is the graceful fallback. */
 .card-hero-image {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   display: block;
+  background: #f3eadb;
   border-bottom: 3px solid #1a1410;
 }
 .card-hero-attribution {
@@ -1562,6 +1619,7 @@ main {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   display: block;
+  background: #f3eadb;   /* FIX D1: cream fallback if the photo 404s */
 }
 .popup-body { padding: 0; }
 .popup-body strong {
@@ -1648,6 +1706,10 @@ main {
     /* Bottom padding (2rem) keeps the Radius/Sort row clear of the divider line.
        Previously this was 0 here, which silently overrode the base rule's bottom padding. */
     padding: 2rem 2rem;
+    /* FIX C2: keep the sticky toolbar's z-index below Leaflet's popup pane (700),
+       otherwise tall popups for parks at the top of the map render UNDER the
+       toolbar. 600 is safely below the popup pane but above ordinary content. */
+    z-index: 600;
   }
 
   .strip {
