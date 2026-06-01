@@ -368,18 +368,24 @@ function typeBadgeLabel(type) {
   return type === 'playground' ? '\uD83D\uDEDD playground' : '\uD83C\uDF33 park';
 }
 
-// Google Maps directions URL — opens turn-by-turn navigation to that park,
-// and also shows the destination park's info card on the way.
-// If `searchOrigin` is set (search was by typed address / map area / home /
-// shared link), include &origin so the trip starts from there. Otherwise
-// omit it and Google Maps uses live "Your location".
-function googleDirectionsUrl(placeId, lat, lng) {
-  // place_id makes the destination unambiguous; lat/lng is a fallback
+// Google Maps directions URL — opens turn-by-turn navigation to that park.
+//
+// IMPORTANT: pass the park's NAME (not lat/lng) as `destination`, with
+// `destination_place_id` as a disambiguator. The iOS Google Maps app
+// otherwise renders raw coordinates as an unnamed "Dropped Pin" and ignores
+// the place_id. Same idea for origin: when we have the address the user
+// typed, pass that text so Google Maps shows e.g. "Brookline, MA" instead
+// of "Dropped Pin". Falls back to coords if we only have coords.
+function googleDirectionsUrl(placeId, name, lat, lng) {
   var url = 'https://www.google.com/maps/dir/?api=1'
-    + '&destination=' + lat + ',' + lng
+    + '&destination=' + encodeURIComponent(name || (lat + ',' + lng))
     + '&destination_place_id=' + encodeURIComponent(placeId);
   if (searchOrigin) {
-    url += '&origin=' + searchOrigin.lat + ',' + searchOrigin.lng;
+    if (searchOrigin.label) {
+      url += '&origin=' + encodeURIComponent(searchOrigin.label);
+    } else {
+      url += '&origin=' + searchOrigin.lat + ',' + searchOrigin.lng;
+    }
   }
   return url;
 }
@@ -884,7 +890,7 @@ function buildPopupContent(r) {
     + '<strong>' + escapeHtml(r.name) + '</strong><br>'
     + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
     + renderPopupSignals(r.signals)
-    + '<a class="popup-link-google" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">🚗 Directions in Google Maps</a><br>'
+    + '<a class="popup-link-google" href="' + googleDirectionsUrl(r.placeId, r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">🚗 Directions in Google Maps</a><br>'
     + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
     + '</div>'
     + '</div>';
@@ -1206,7 +1212,7 @@ function renderResults(results) {
       + renderReviews(r)
       + renderNoteSection(r)
       + '<div class="result-links">'
-      + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions in Google Maps</a>'
+      + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions in Google Maps</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
       + '<button type="button" class="result-link-share" data-place-id="' + r.placeId + '" title="Share this park">\ud83d\udd17 Share</button>'
       + '</div>'
@@ -1231,19 +1237,23 @@ function applyFilterAndSort() {
 
 // ---- Helper: called once we have coordinates ----
 // originMode controls the Directions-link origin:
-//   'address'  \u2014 search came from a typed address / autocomplete / saved home /
-//                "Search this area" / shared link. Lock searchOrigin to {lat,lng}.
-//   'gps'      \u2014 search came from device geolocation. Clear searchOrigin so
-//                Google Maps Directions uses live "Your location".
-//   undefined  \u2014 radius change / re-trigger. Preserve whatever was last set.
+//   {lat, lng, label?} \u2014 search came from a typed address / autocomplete /
+//                        saved home / "Search this area" / shared link.
+//                        `label` (when present) is the human-readable address
+//                        text we'll feed to Google Maps so it shows e.g.
+//                        "Brookline, MA" instead of "Dropped Pin".
+//   'gps'              \u2014 search came from device geolocation. Clear so
+//                        Google Maps Directions uses live "Your location".
+//   undefined          \u2014 radius change / re-trigger. Preserve previous origin.
 function handleCoordinates(lat, lng, originMode) {
   lastLat = lat;
   lastLng = lng;
-  if (originMode === 'address') {
-    searchOrigin = { lat: lat, lng: lng };
-  } else if (originMode === 'gps') {
+  if (originMode === 'gps') {
     searchOrigin = null;
+  } else if (originMode && typeof originMode === 'object') {
+    searchOrigin = originMode;
   }
+  // else: preserve
 
   showMessage('Searching for playgrounds and parks\u2026', 'info');
   showLoadingSkeletons();
@@ -1690,7 +1700,7 @@ document.getElementById('home-btn').addEventListener('click', function () {
     var home = getHome();
     if (!home) return;
     addressInput.value = home.label || 'Home';
-    handleCoordinates(home.lat, home.lng, 'address');
+    handleCoordinates(home.lat, home.lng, { lat: home.lat, lng: home.lng, label: home.label });
   }
 });
 
@@ -1794,7 +1804,7 @@ addressSuggestions.addEventListener('click', function (e) {
   addressInput.value = label;
   hideSuggestions();
   pushRecent(label, lat, lng);
-  handleCoordinates(lat, lng, 'address');
+  handleCoordinates(lat, lng, { lat: lat, lng: lng, label: label });
 });
 
 // Hide the dropdown when clicking outside the search area
@@ -1819,7 +1829,8 @@ searchHereBtn.addEventListener('click', function () {
   if (!map) return;
   var center = map.getCenter();
   addressInput.value = MAP_AREA_LABEL;
-  handleCoordinates(center.lat, center.lng, 'address');
+  // No human label here (user clicked a map area, not a named place) — coords only
+  handleCoordinates(center.lat, center.lng, { lat: center.lat, lng: center.lng });
 });
 
 // ---- Address form submission ----
@@ -1869,7 +1880,7 @@ addressForm.addEventListener('submit', function (e) {
       var resolvedLat = parseFloat(data[0].lat);
       var resolvedLng = parseFloat(data[0].lon);
       pushRecent(address, resolvedLat, resolvedLng);
-      handleCoordinates(resolvedLat, resolvedLng, 'address');
+      handleCoordinates(resolvedLat, resolvedLng, { lat: resolvedLat, lng: resolvedLng, label: address });
     })
     .catch(function () {
       showMessage(
@@ -2032,7 +2043,8 @@ function handleSharedUrl() {
       }
     }
     addressInput.value = park ? 'Shared park' : 'Shared location';
-    handleCoordinates(lat, lng, 'address');
+    // Shared link — no human address text; coords only (will show as a pin)
+    handleCoordinates(lat, lng, { lat: lat, lng: lng });
     if (park) {
       // Once results render, scroll to the shared park's card
       var attempts = 0;
