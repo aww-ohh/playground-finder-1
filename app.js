@@ -790,8 +790,12 @@ function updateCardSignals(placeId, signals) {
 function renderSignalRow(icon, label, valueHtml, summary) {
   var tappable = summary ? ' signal-tappable' : '';
   var arrow = summary ? '<span class="signal-arrow">\u25B6</span>' : '';
+  // SECURITY: summary comes from Gemini, which reads attacker-controlled
+  // Google review text. Server-side `sanitizeSummary` in api/signals.js
+  // strips control chars + angle brackets + caps length, and we ALSO
+  // escapeHtml here as defense-in-depth.
   var summaryHtml = summary
-    ? '<div class="signal-summary">' + summary + '</div>'
+    ? '<div class="signal-summary">' + escapeHtml(summary) + '</div>'
     : '';
   return '<div class="signal-row' + tappable + '">'
     + '<div class="signal-row-header">'

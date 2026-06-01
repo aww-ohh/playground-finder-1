@@ -93,13 +93,14 @@ module.exports = async function handler(req, res) {
       })
     });
     if (!geminiRes.ok) {
-      // Capture the Gemini error so we can see it in the browser response.
-      var errBody = '';
-      try { errBody = await geminiRes.text(); } catch (e) {}
-      return res.status(200).json({
-        signals: {},
-        _debug: { geminiStatus: geminiRes.status, geminiError: errBody.substring(0, 400) }
-      });
+      // Log server-side for our own debugging; do NOT leak Gemini error
+      // body or status to the client (it can echo prompt fragments and
+      // help attackers fingerprint the backend).
+      try {
+        var errBody = await geminiRes.text();
+        console.error('Gemini error', geminiRes.status, errBody.substring(0, 400));
+      } catch (e) {}
+      return res.status(200).json({ signals: {} });
     }
     var geminiData = await geminiRes.json();
     var text = geminiData.candidates
@@ -109,9 +110,9 @@ module.exports = async function handler(req, res) {
       && geminiData.candidates[0].content.parts[0]
       && geminiData.candidates[0].content.parts[0].text;
     if (!text) {
+      console.error('Gemini: no text in response', JSON.stringify(geminiData).substring(0, 300));
       return res.status(200).json({
-        signals: {},
-        _debug: { reason: 'no text in Gemini response', sample: JSON.stringify(geminiData).substring(0, 300) }
+        signals: {}
       });
     }
     var cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -133,6 +134,25 @@ module.exports = async function handler(req, res) {
 
 // ---- Helper: validate and normalize Gemini's response ----
 // Each signal is tagged with source: 'gemini' when value is real (not 'not_mentioned').
+//
+// SECURITY: The `summary` text is the only free-form field we accept from
+// Gemini. Reviews fed to Gemini are attacker-controlled (anyone can post a
+// Google review). A prompt-injection attack could try to make Gemini emit
+// HTML/JS in summary, which would then be rendered into innerHTML on the
+// client. Defense in depth:
+//   1) sanitizeSummary() on the server strips control chars + any '<' or '>',
+//      and hard-caps at 200 chars (Gemini summaries are 1 sentence; never need more).
+//   2) Client renders summary via escapeHtml() (see app.js renderSignalRow).
+function sanitizeSummary(s) {
+  if (typeof s !== 'string') return null;
+  // Strip control characters (incl. NULs and direction-override codepoints)
+  // and any '<' or '>' so even a CSP bypass would have nothing to chew on.
+  var cleaned = s.replace(/[\u0000-\u001F\u007F-\u009F<>]/g, '').trim();
+  if (!cleaned) return null;
+  if (cleaned.length > 200) cleaned = cleaned.slice(0, 200);
+  return cleaned;
+}
+
 function validateSignals(parsed) {
   var booleanDimensions = ['fenced', 'shade', 'bathrooms'];
   var booleanAllowed = ['yes', 'no', 'not_mentioned'];
@@ -146,7 +166,7 @@ function validateSignals(parsed) {
       var v = parsed[dim].value;
       result[dim] = {
         value: v,
-        summary: v === 'not_mentioned' ? null : (parsed[dim].summary || null),
+        summary: v === 'not_mentioned' ? null : sanitizeSummary(parsed[dim].summary),
         source: v === 'not_mentioned' ? null : 'gemini'
       };
     } else {
@@ -158,7 +178,7 @@ function validateSignals(parsed) {
     var av = parsed.ageSuitability.value;
     result.ageSuitability = {
       value: av,
-      summary: av === 'not_mentioned' ? null : (parsed.ageSuitability.summary || null),
+      summary: av === 'not_mentioned' ? null : sanitizeSummary(parsed.ageSuitability.summary),
       source: av === 'not_mentioned' ? null : 'gemini'
     };
   } else {
@@ -169,7 +189,7 @@ function validateSignals(parsed) {
     var pv = parsed.parking.value;
     result.parking = {
       value: pv,
-      summary: pv === 'not_mentioned' ? null : (parsed.parking.summary || null),
+      summary: pv === 'not_mentioned' ? null : sanitizeSummary(parsed.parking.summary),
       source: pv === 'not_mentioned' ? null : 'gemini'
     };
   } else {
