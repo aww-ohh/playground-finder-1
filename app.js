@@ -44,6 +44,12 @@ var leafletLoadPromise = null;    // memoized Promise so we only load Leaflet on
 var currentResults = [];
 var lastLat = null;
 var lastLng = null;
+// Origin for the "Directions" link. When the user searched by typed address,
+// autocomplete pick, saved home, "Search this area" map-center, or a shared
+// link, this is set to {lat, lng} so directions start from where they're
+// *planning* to be, not their live GPS. When they used "Show parks near me"
+// (geolocation), this is null so Google Maps falls back to live "Your location".
+var searchOrigin = null;
 var requestId = 0; // for ignoring stale responses
 var CURRENT_LOCATION_LABEL = 'Current location';
 var MAP_AREA_LABEL = 'Map area';
@@ -364,11 +370,18 @@ function typeBadgeLabel(type) {
 
 // Google Maps directions URL — opens turn-by-turn navigation to that park,
 // and also shows the destination park's info card on the way.
+// If `searchOrigin` is set (search was by typed address / map area / home /
+// shared link), include &origin so the trip starts from there. Otherwise
+// omit it and Google Maps uses live "Your location".
 function googleDirectionsUrl(placeId, lat, lng) {
   // place_id makes the destination unambiguous; lat/lng is a fallback
-  return 'https://www.google.com/maps/dir/?api=1'
+  var url = 'https://www.google.com/maps/dir/?api=1'
     + '&destination=' + lat + ',' + lng
     + '&destination_place_id=' + encodeURIComponent(placeId);
+  if (searchOrigin) {
+    url += '&origin=' + searchOrigin.lat + ',' + searchOrigin.lng;
+  }
+  return url;
 }
 
 // ---- Yelp search URL ----
@@ -1217,9 +1230,20 @@ function applyFilterAndSort() {
 }
 
 // ---- Helper: called once we have coordinates ----
-function handleCoordinates(lat, lng) {
+// originMode controls the Directions-link origin:
+//   'address'  \u2014 search came from a typed address / autocomplete / saved home /
+//                "Search this area" / shared link. Lock searchOrigin to {lat,lng}.
+//   'gps'      \u2014 search came from device geolocation. Clear searchOrigin so
+//                Google Maps Directions uses live "Your location".
+//   undefined  \u2014 radius change / re-trigger. Preserve whatever was last set.
+function handleCoordinates(lat, lng, originMode) {
   lastLat = lat;
   lastLng = lng;
+  if (originMode === 'address') {
+    searchOrigin = { lat: lat, lng: lng };
+  } else if (originMode === 'gps') {
+    searchOrigin = null;
+  }
 
   showMessage('Searching for playgrounds and parks\u2026', 'info');
   showLoadingSkeletons();
@@ -1562,7 +1586,7 @@ geolocateBtn.addEventListener('click', function () {
   navigator.geolocation.getCurrentPosition(
     function (position) {
       addressInput.value = CURRENT_LOCATION_LABEL;
-      handleCoordinates(position.coords.latitude, position.coords.longitude);
+      handleCoordinates(position.coords.latitude, position.coords.longitude, 'gps');
     },
     function (err) {
       // Tailor the message to the error so users know what to do next
@@ -1666,7 +1690,7 @@ document.getElementById('home-btn').addEventListener('click', function () {
     var home = getHome();
     if (!home) return;
     addressInput.value = home.label || 'Home';
-    handleCoordinates(home.lat, home.lng);
+    handleCoordinates(home.lat, home.lng, 'address');
   }
 });
 
@@ -1770,7 +1794,7 @@ addressSuggestions.addEventListener('click', function (e) {
   addressInput.value = label;
   hideSuggestions();
   pushRecent(label, lat, lng);
-  handleCoordinates(lat, lng);
+  handleCoordinates(lat, lng, 'address');
 });
 
 // Hide the dropdown when clicking outside the search area
@@ -1795,7 +1819,7 @@ searchHereBtn.addEventListener('click', function () {
   if (!map) return;
   var center = map.getCenter();
   addressInput.value = MAP_AREA_LABEL;
-  handleCoordinates(center.lat, center.lng);
+  handleCoordinates(center.lat, center.lng, 'address');
 });
 
 // ---- Address form submission ----
@@ -1845,7 +1869,7 @@ addressForm.addEventListener('submit', function (e) {
       var resolvedLat = parseFloat(data[0].lat);
       var resolvedLng = parseFloat(data[0].lon);
       pushRecent(address, resolvedLat, resolvedLng);
-      handleCoordinates(resolvedLat, resolvedLng);
+      handleCoordinates(resolvedLat, resolvedLng, 'address');
     })
     .catch(function () {
       showMessage(
@@ -2008,7 +2032,7 @@ function handleSharedUrl() {
       }
     }
     addressInput.value = park ? 'Shared park' : 'Shared location';
-    handleCoordinates(lat, lng);
+    handleCoordinates(lat, lng, 'address');
     if (park) {
       // Once results render, scroll to the shared park's card
       var attempts = 0;
