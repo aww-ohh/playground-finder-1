@@ -2041,12 +2041,40 @@ function updateSuggestionHighlight() {
   }
 }
 
+// Build a "viewbox" query-string fragment for Nominatim that BIASES results
+// toward the user's known region without excluding the rest of the world.
+// We use lastLat/lastLng if we have it (most recent search center), else the
+// saved Home location. The box is ~4 degrees in each direction — roughly a
+// 280-mile radius — wide enough to comfortably cover a US state or a Brazilian
+// metro region. `bounded=0` keeps it a SOFT bias: faraway matches still appear
+// in the dropdown, they just rank below nearby ones for ambiguous queries.
+// Returns '' (empty string) when we have no anchor location yet, so first-time
+// users get unfiltered global results.
+function getRegionBias() {
+  var anchorLat = (typeof lastLat === 'number') ? lastLat : null;
+  var anchorLng = (typeof lastLng === 'number') ? lastLng : null;
+  if (anchorLat == null || anchorLng == null) {
+    var home = getHome();
+    if (home && typeof home.lat === 'number' && typeof home.lng === 'number') {
+      anchorLat = home.lat;
+      anchorLng = home.lng;
+    }
+  }
+  if (anchorLat == null || anchorLng == null) return '';
+  var d = 4; // degrees
+  var left   = anchorLng - d;
+  var right  = anchorLng + d;
+  var top    = anchorLat + d;
+  var bottom = anchorLat - d;
+  return '&viewbox=' + left + ',' + top + ',' + right + ',' + bottom + '&bounded=0';
+}
+
 function fetchSuggestions(query) {
   var thisRequest = ++suggestionsRequestId;
   var url = 'https://nominatim.openstreetmap.org/search'
     + '?q=' + encodeURIComponent(query)
     + '&format=json'
-    + '&countrycodes=us,ca'
+    + getRegionBias()
     + '&limit=5'
     + '&addressdetails=0';
   fetch(url, { headers: { 'Accept': 'application/json' } })
@@ -2195,7 +2223,7 @@ addressForm.addEventListener('submit', function (e) {
   var url = 'https://nominatim.openstreetmap.org/search'
     + '?q=' + encodeURIComponent(address)
     + '&format=json'
-    + '&countrycodes=us,ca'
+    + getRegionBias()
     + '&limit=1';
 
   fetch(url, {
