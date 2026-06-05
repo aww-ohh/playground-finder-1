@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Playground Finder — by AWW</title>
+  <title>Playground and Park Finder — by AWW</title>
 
   <!-- PWA: install to home screen + offline support -->
   <link rel="manifest" href="/manifest.json">
@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="PG/Park Finder">
+  <meta name="apple-mobile-web-app-title" content="Park Finder">
 
   <!-- Google Fonts: Bungee (block title), Modak (signature), Permanent Marker (handwritten), Nunito (body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,9 +74,13 @@
         <circle cx="84" cy="78" r="3" fill="#ffb800"/>
       </svg>
 
-      <!-- Big graffiti piece title with "by AWW" tag inline -->
+      <!-- Big graffiti piece title with "by AWW" tag inline.
+           V5: three-line layout — "PLAYGROUND" / "& PARK" / "FINDER".
+           The middle "& PARK" line uses a smaller, crimson-on-gold accent
+           treatment so it reads as a poster-style middle tag instead of
+           cramming a third long word at the same scale. -->
       <div class="tag-title-wrap">
-        <h1 class="tag-title">PLAYGROUND<br>FINDER<span class="signature-inline">by&nbsp;AWW</span></h1>
+        <h1 class="tag-title">PLAYGROUND<br><span class="title-mid">&amp; PARK</span><br>FINDER<span class="signature-inline">by&nbsp;AWW</span></h1>
         <div class="drips">
           <span class="drip d1"></span>
           <span class="drip d2"></span>
@@ -129,7 +133,7 @@
     <!-- ===== "Five things that matter" educational strip (shown until first search) ===== -->
     <section id="five-things-strip" class="strip">
       <div class="strip-inner">
-        <h2>FIVE THINGS<br>THAT MATTER</h2>
+        <h2>SIX THINGS<br>THAT MATTER</h2>
         <p class="strip-sub">we pull these from real reviews — no guessing.</p>
         <div class="stickers">
           <div class="sticker">🔒 FENCED?</div>
@@ -137,6 +141,7 @@
           <div class="sticker">🚻 BATHROOM?</div>
           <div class="sticker">👶 TODDLER OK?</div>
           <div class="sticker">🅿️ PARKING?</div>
+          <div class="sticker">🎾 TENNIS?</div>
         </div>
       </div>
     </section>
@@ -167,6 +172,7 @@
         <button class="signal-chip" data-signal="bathrooms">🚻 Bathrooms</button>
         <button class="signal-chip" data-signal="toddler">👶 Toddler</button>
         <button class="signal-chip" data-signal="parking">🅿️ Parking</button>
+        <button class="signal-chip" data-signal="tennis">🎾 Tennis</button>
         <!-- V3 Feature 1: tap to hide parks the user has already marked ✓ visited. -->
         <button class="signal-chip hide-visited-chip" data-toggle="hide-visited" aria-pressed="false">👻 Hide visited</button>
       </div>

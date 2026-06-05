@@ -29,6 +29,11 @@ module.exports = async function handler(req, res) {
     +   'relation[leisure~"park|playground"](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
     +   'node[amenity=toilets](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
     +   'node[amenity=parking](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    // V5: tennis courts. OSM tags these with leisure=pitch + sport=tennis.
+    // We grab them as ways AND nodes within the same area, then below we
+    // mark a park as having tennis if any pitch sits within 80m of its center.
+    +   'way[leisure=pitch][sport~"tennis"](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    +   'node[leisure=pitch][sport~"tennis"](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
     + ');'
     + 'out tags center;';
 
@@ -51,10 +56,11 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ parks: [] });
     }
 
-    // Split elements into parks and supporting amenities (toilets, parking)
+    // Split elements into parks and supporting amenities (toilets, parking, tennis)
     var parks = [];
     var toilets = [];
     var parkings = [];
+    var tennisCourts = [];
     data.elements.forEach(function (el) {
       var pos = elementCenter(el);
       if (!pos) return;
@@ -65,6 +71,8 @@ module.exports = async function handler(req, res) {
         toilets.push({ lat: pos.lat, lng: pos.lng });
       } else if (tags.amenity === 'parking') {
         parkings.push({ lat: pos.lat, lng: pos.lng });
+      } else if (tags.leisure === 'pitch' && tags.sport && tags.sport.indexOf('tennis') !== -1) {
+        tennisCourts.push({ lat: pos.lat, lng: pos.lng });
       }
     });
 
@@ -74,7 +82,7 @@ module.exports = async function handler(req, res) {
         lat: p.lat,
         lng: p.lng,
         name: p.name,
-        signals: extractOsmSignals(p, toilets, parkings)
+        signals: extractOsmSignals(p, toilets, parkings, tennisCourts)
       };
     });
 
@@ -95,10 +103,10 @@ function elementCenter(el) {
   return null;
 }
 
-// Map OSM tags + nearby amenities to our 5-dimension signal schema.
+// Map OSM tags + nearby amenities to our 6-dimension signal schema.
 // Only returns 'yes' / 'toddler' / 'lot' values — OSM rarely encodes negatives.
 // Each returned signal has source: 'osm' so the frontend knows it's verified.
-function extractOsmSignals(park, toilets, parkings) {
+function extractOsmSignals(park, toilets, parkings, tennisCourts) {
   var t = park.tags;
   var out = {};
 
@@ -129,6 +137,14 @@ function extractOsmSignals(park, toilets, parkings) {
   // Shade — rarely tagged, but check the obvious ones
   if (t.shade === 'yes' || t['playground:shade'] === 'yes') {
     out.shade = { value: 'yes', source: 'osm', summary: null };
+  }
+
+  // V5: Tennis courts. A tennis pitch counts if it sits within 80m of the
+  // park center — close enough to credit the park, far enough that we don't
+  // pick up the city tennis club across the street. OSM has near-complete
+  // tennis tagging in North America, so this signal will be mostly green-verified.
+  if (tennisCourts && anyWithinMeters(park.lat, park.lng, tennisCourts, 80)) {
+    out.tennisCourts = { value: 'yes', source: 'osm', summary: null };
   }
 
   return out;

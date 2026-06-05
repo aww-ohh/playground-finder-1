@@ -1,6 +1,6 @@
 {
-  "name": "PG/Park Finder",
-  "short_name": "PG/Park Finder",
+  "name": "Playground and Park Finder",
+  "short_name": "Park Finder",
   "description": "Find playgrounds and parks with the features that you want.",
   "start_url": "/",
   "scope": "/",

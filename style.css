@@ -118,6 +118,26 @@ main {
   padding: 0 0.25em;
 }
 
+/* V5: middle accent line for the renamed title — "& PARK" between PLAYGROUND
+   and FINDER. Smaller scale + crimson + opposite tilt so it reads as an
+   intentional poster-style middle tag (like a graffiti "ft."), not as a
+   third equally-weighted word that crowds the layout on mobile. */
+.title-mid {
+  display: inline-block;
+  font-size: 0.55em;                /* 55% of base — keeps within viewport */
+  color: #c0202c;                   /* crimson accent */
+  -webkit-text-stroke: 3px #1a1410; /* thinner stroke vs main 4px */
+  text-stroke: 3px #1a1410;
+  letter-spacing: 0.02em;
+  transform: rotate(2deg);          /* opposite tilt from the main -3deg */
+  text-shadow:
+    4px 4px 0 #ffb800,
+    5px 5px 0 #1a1410;
+  padding: 0 0.1em;
+  line-height: 1;
+  margin: 0.05em 0;                 /* small vertical breathing room */
+}
+
 /* Inline "by AWW" tag in Modak font, sits at the baseline of FINDER's R */
 .signature-inline {
   display: inline-block;

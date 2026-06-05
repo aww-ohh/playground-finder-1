@@ -341,7 +341,7 @@ function setActiveSignalFilters(arr) {
 }
 
 // AND filter: a park must satisfy EVERY active signal chip to pass.
-// "fenced", "shade", "bathrooms" require value === 'yes'.
+// "fenced", "shade", "bathrooms", "tennis" require value === 'yes'.
 // "toddler" requires ageSuitability === 'toddler' or 'both'.
 // "parking" requires parking === 'lot', 'street', or 'both'.
 function filterBySignals(results, activeSignals) {
@@ -352,6 +352,7 @@ function filterBySignals(results, activeSignals) {
       if (sig === 'fenced')    return r.signals.fenced && r.signals.fenced.value === 'yes';
       if (sig === 'shade')     return r.signals.shade && r.signals.shade.value === 'yes';
       if (sig === 'bathrooms') return r.signals.bathrooms && r.signals.bathrooms.value === 'yes';
+      if (sig === 'tennis')    return r.signals.tennisCourts && r.signals.tennisCourts.value === 'yes';
       if (sig === 'toddler')   {
         var v = r.signals.ageSuitability && r.signals.ageSuitability.value;
         return v === 'toddler' || v === 'both';
@@ -396,10 +397,10 @@ function isPerfectPark(signals) {
   return true;
 }
 
-// Count how many of the 5 signal dimensions are populated (non-N/A and non-loading)
+// Count how many of the 6 signal dimensions are populated (non-N/A and non-loading)
 function signalRichness(signals) {
   if (!signals) return 0;
-  var dims = ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking'];
+  var dims = ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'];
   var count = 0;
   dims.forEach(function (d) {
     var v = signals[d] && signals[d].value;
@@ -632,7 +633,7 @@ function mergeOsmSignals(placeId, osmSignals) {
   }
   if (!park || !park.signals) return;
   var changed = false;
-  ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking'].forEach(function (dim) {
+  ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'].forEach(function (dim) {
     if (osmSignals[dim] && osmSignals[dim].value) {
       park.signals[dim] = {
         value: osmSignals[dim].value,
@@ -789,7 +790,8 @@ function loadingSignals() {
     shade: { value: 'loading', summary: null, source: null },
     bathrooms: { value: 'loading', summary: null, source: null },
     ageSuitability: { value: 'loading', summary: null, source: null },
-    parking: { value: 'loading', summary: null, source: null }
+    parking: { value: 'loading', summary: null, source: null },
+    tennisCourts: { value: 'loading', summary: null, source: null }
   };
 }
 
@@ -800,7 +802,8 @@ function defaultSignalsClient() {
     shade: { value: 'not_mentioned', summary: null, source: null },
     bathrooms: { value: 'not_mentioned', summary: null, source: null },
     ageSuitability: { value: 'not_mentioned', summary: null, source: null },
-    parking: { value: 'not_mentioned', summary: null, source: null }
+    parking: { value: 'not_mentioned', summary: null, source: null },
+    tennisCourts: { value: 'not_mentioned', summary: null, source: null }
   };
 }
 
@@ -878,13 +881,14 @@ function renderSignals(signals) {
   function get(dim) {
     return signals[dim] || { value: 'not_mentioned', summary: null, source: null };
   }
-  var f = get('fenced'), s = get('shade'), b = get('bathrooms'), a = get('ageSuitability'), p = get('parking');
+  var f = get('fenced'), s = get('shade'), b = get('bathrooms'), a = get('ageSuitability'), p = get('parking'), tc = get('tennisCourts');
   var html = '<div class="signals-list">';
   html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(f.value, f.source), f.summary);
   html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(s.value, s.source), s.summary);
   html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(b.value, b.source), b.summary);
   html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(a.value), a.source), a.summary);
   html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(p.value), p.source), p.summary);
+  html += renderSignalRow('\uD83C\uDFBE', 'Tennis', booleanValueHtml(tc.value, tc.source), tc.summary);
   html += '</div>';
   return html;
 }
@@ -907,6 +911,10 @@ function renderPopupSignals(signals) {
   html += renderPopupSignalRow('\uD83D\uDEBB', booleanValueHtml(signals.bathrooms.value, signals.bathrooms.source));
   html += renderPopupSignalRow('\uD83D\uDC76', categoryValueHtml(ageSuitabilityLabel(signals.ageSuitability.value), signals.ageSuitability.source));
   html += renderPopupSignalRow('\uD83C\uDD7F\uFE0F', categoryValueHtml(parkingLabel(signals.parking.value), signals.parking.source));
+  // V5: tennis. Defensive read in case an old cached signal blob omits the field.
+  if (signals.tennisCourts) {
+    html += renderPopupSignalRow('\uD83C\uDFBE', booleanValueHtml(signals.tennisCourts.value, signals.tennisCourts.source));
+  }
   html += '</div>';
   return html;
 }
@@ -1477,7 +1485,7 @@ function handleCoordinates(lat, lng, originMode) {
             // Apply any cached OSM signals immediately (they win over Gemini)
             var cachedOsm = loadCachedOsm(r.placeId);
             if (cachedOsm && Object.keys(cachedOsm).length > 0) {
-              ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking'].forEach(function (dim) {
+              ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'].forEach(function (dim) {
                 if (cachedOsm[dim] && cachedOsm[dim].value) {
                   r.signals[dim] = {
                     value: cachedOsm[dim].value,
