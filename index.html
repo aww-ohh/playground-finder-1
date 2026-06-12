@@ -94,8 +94,10 @@
         Find playgrounds and parks with features that you want. <span class="arrow">↗</span>
       </div>
 
-      <!-- Quick CTA: trigger geolocation in one click -->
-      <button type="button" id="near-me-cta" class="near-me-cta">📍 Show parks near me</button>
+      <!-- Quick CTA: trigger geolocation in one click. No 📍 emoji here —
+           the search-bar pin button is the one pin glyph on the page, so the
+           same action isn't advertised three different ways at once. -->
+      <button type="button" id="near-me-cta" class="near-me-cta">Show parks near me</button>
 
       <!-- Real search bar with address autocomplete -->
       <div class="search-section">
@@ -112,7 +114,7 @@
               type="text"
               id="address-input"
               class="search-input"
-              placeholder="Enter an address, city, or zip — or tap the pin"
+              placeholder="Enter an address, city, or zip"
               autocomplete="off"
             />
             <button type="submit" class="search-submit-btn">SEARCH</button>
