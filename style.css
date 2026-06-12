@@ -1313,6 +1313,87 @@ main {
 }
 .card-hero-attribution a:hover { color: var(--text-muted); }
 
+/* V7 F8: photo carousel controls live INSIDE the hero, positioned over the
+   photo — so the hero needs to be the positioning anchor. */
+.card-hero {
+  position: relative;
+}
+
+/* "📷 +N" badge — small gold sticker in the photo's bottom-right corner.
+   Tapping it loads the park's extra photos and opens the carousel. */
+.photo-more-badge {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 5;
+  min-height: 2rem;          /* comfy touch target on phones */
+  padding: 0.25rem 0.65rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.photo-more-badge:hover {
+  transform: scale(1.06);
+}
+
+/* ‹ › arrows — round buttons floating at the photo's left/right edges. */
+.photo-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 0.15rem;      /* nudge the ‹ › glyph to optical center */
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease;
+}
+.photo-nav:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+.photo-nav-prev { left: 0.5rem; }
+.photo-nav-next { right: 0.5rem; }
+
+/* Dots row — one dot per slide, the current slide's dot turns gold. */
+.photo-dots {
+  position: absolute;
+  bottom: 0.45rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.1rem 0.5rem;
+  background: rgba(0, 0, 0, 0.35);  /* readable over any photo */
+  border-radius: 1rem;
+  pointer-events: none;             /* purely an indicator, not a button */
+}
+.photo-dots span {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+.photo-dots span.active {
+  color: var(--gold);
+}
+
 /* Card header: name + type badge */
 .result-card-header {
   display: flex;
@@ -1978,7 +2059,8 @@ main {
   .empty-cta,
   .result-link.result-link-directions,
   .result-card.is-perfect::before,
-  .sticker:nth-child(1) {
+  .sticker:nth-child(1),
+  .photo-more-badge {
     color: #1a1410;
   }
 

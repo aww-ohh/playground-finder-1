@@ -158,6 +158,13 @@ module.exports = async function handler(req, res) {
         placeId: place.id,
         photoUrl: photo ? photo.photoUrl : null,
         photoAttribution: photo ? photo.photoAttribution : null,
+        // V7 F8: photo NAMES are free metadata — only resolving a name into a
+        // real image URL is billed. So we ship up to 2 extra names here, and
+        // the frontend resolves them lazily via /api/photo only when the user
+        // taps the "more photos" badge. Zero added cost per search.
+        extraPhotoNames: Array.isArray(place.photos)
+          ? place.photos.slice(1, 3).map(function (p) { return p.name; }).filter(Boolean)
+          : [],
         reviews: reviewTexts,
         openNow: openNow,
         todayHours: todayHours,

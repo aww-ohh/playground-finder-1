@@ -522,6 +522,18 @@ function renderHeroPhoto(result) {
     }
   }
 
+  // V7 F8: if this park has extra photos available (we only have their free
+  // "names" so far — the actual images cost money to fetch), show a small
+  // "📷 +N" badge. Tapping it loads the extras and turns the hero into a
+  // mini carousel. Shared-link parks have no extraPhotoNames, so the
+  // Array.isArray check quietly skips the badge for them.
+  var badgeHtml = '';
+  if (Array.isArray(result.extraPhotoNames) && result.extraPhotoNames.length > 0) {
+    badgeHtml = '<button type="button" class="photo-more-badge" '
+      + 'data-place-id="' + escapeHtml(result.placeId) + '" '
+      + 'aria-label="See more photos">📷 +' + result.extraPhotoNames.length + '</button>';
+  }
+
   // FIX D1: no inline onerror (CSP blocks it anyway). Instead the .card-hero-image
   // container has a fixed 16/9 aspect-ratio + cream background, so if the photo
   // 404s the layout doesn't shift — you just see a clean cream box.
@@ -529,8 +541,41 @@ function renderHeroPhoto(result) {
     + '<img class="card-hero-image" src="' + escapeHtml(result.photoUrl)
     + '" alt="Photo of ' + escapeHtml(result.name)
     + '" loading="lazy">'
+    + badgeHtml
     + attributionHtml
     + '</div>';
+}
+
+// ---- Helper: switch a card's hero photo into carousel mode ----
+// Called once the extra photo URLs are loaded (park._extraPhotoUrls).
+// Adds ‹ › arrow buttons and a row of dots over the photo; flipping through
+// slides just swaps the img src, so it's instant and costs nothing.
+// Note: applyFilterAndSort re-renders cards from scratch, which resets a card
+// back to the plain hero + badge — but _extraPhotoUrls stays on the result
+// object, so re-opening the carousel is instant and doesn't re-bill us.
+function enterCarouselMode(card, park) {
+  var hero = card.querySelector('.card-hero');
+  var img = hero && hero.querySelector('.card-hero-image');
+  if (!hero || !img || !Array.isArray(park._extraPhotoUrls)) return;
+  if (hero.querySelector('.photo-nav')) return; // already in carousel mode
+
+  // The "+N" badge has done its job — remove it.
+  var badge = hero.querySelector('.photo-more-badge');
+  if (badge) badge.remove();
+
+  // Start on slide 0 (the photo the card was already showing).
+  hero.setAttribute('data-photo-index', '0');
+  img.src = park._extraPhotoUrls[0];
+
+  // One dot per slide; the current slide's dot gets .active.
+  var dotsHtml = '';
+  for (var i = 0; i < park._extraPhotoUrls.length; i++) {
+    dotsHtml += '<span' + (i === 0 ? ' class="active"' : '') + '>•</span>';
+  }
+  hero.insertAdjacentHTML('beforeend',
+    '<button type="button" class="photo-nav photo-nav-prev" data-dir="-1" aria-label="Previous photo">‹</button>'
+    + '<button type="button" class="photo-nav photo-nav-next" data-dir="1" aria-label="Next photo">›</button>'
+    + '<div class="photo-dots">' + dotsHtml + '</div>');
 }
 
 // ---- Helper: build hero photo HTML for a popup ----
@@ -1993,8 +2038,90 @@ radiusSelect.addEventListener('change', function () {
   });
 })();
 
+// ---- Event: photo carousel (V7 F8) — "+N" badge and ‹ › arrows ----
+// Kept separate from the card-click→pan handler below; that handler has its
+// own check to ignore taps on these controls so the map doesn't also pan.
+document.getElementById('results-list').addEventListener('click', function (e) {
+  // --- "📷 +N" badge tap → load the extra photos, then open the carousel ---
+  var badge = e.target.closest('.photo-more-badge');
+  if (badge) {
+    var pid = badge.getAttribute('data-place-id');
+    var park = currentResults.find(function (r) { return r.placeId === pid; });
+    var card = badge.closest('.result-card');
+    if (!park || !card) return;
+
+    // Already loaded on a previous tap? (e.g. card got re-rendered by a
+    // filter change) — skip straight to the carousel, no new fetches.
+    if (Array.isArray(park._extraPhotoUrls) && park._extraPhotoUrls.length > 0) {
+      enterCarouselMode(card, park);
+      return;
+    }
+
+    // First tap: resolve the free photo NAMES into real image URLs.
+    // This is the only moment the extra photos cost us anything, so the
+    // bill scales with taps, not with searches.
+    var names = Array.isArray(park.extraPhotoNames) ? park.extraPhotoNames : [];
+    badge.textContent = '…';
+    badge.disabled = true;
+    Promise.all(names.map(function (name) {
+      return fetch('/api/photo?name=' + encodeURIComponent(name))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { return d && d.url ? d.url : null; })
+        .catch(function () { return null; });
+    })).then(function (urls) {
+      var loaded = urls.filter(function (u) { return u; });
+      if (loaded.length === 0) {
+        // Every extra photo failed to load — show a brief "nope", then
+        // restore the badge so the user can try again later.
+        badge.textContent = '📷 ✕';
+        setTimeout(function () {
+          badge.textContent = '📷 +' + names.length;
+          badge.disabled = false;
+        }, 1500);
+        return;
+      }
+      // Slide 0 is the hero photo the card already shows; extras follow.
+      park._extraPhotoUrls = [park.photoUrl].concat(loaded);
+      enterCarouselMode(card, park);
+    });
+    return;
+  }
+
+  // --- ‹ › arrow tap → show the previous/next slide ---
+  var navBtn = e.target.closest('.photo-nav');
+  if (navBtn) {
+    var hero = navBtn.closest('.card-hero');
+    var navCard = navBtn.closest('.result-card');
+    if (!hero || !navCard) return;
+    var navPid = navCard.getAttribute('data-place-id');
+    var navPark = currentResults.find(function (r) { return r.placeId === navPid; });
+    if (!navPark || !Array.isArray(navPark._extraPhotoUrls)) return;
+    var count = navPark._extraPhotoUrls.length;
+    var dir = parseInt(navBtn.getAttribute('data-dir'), 10) || 1;
+    var idx = parseInt(hero.getAttribute('data-photo-index'), 10) || 0;
+    idx = (idx + dir + count) % count; // wraps around at both ends
+    hero.setAttribute('data-photo-index', String(idx));
+    var img = hero.querySelector('.card-hero-image');
+    if (img) img.src = navPark._extraPhotoUrls[idx];
+    // Light up the dot for the slide we're now on.
+    var dots = hero.querySelectorAll('.photo-dots span');
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].classList.toggle('active', i === idx);
+    }
+    return;
+  }
+});
+
 // ---- Event: card click → pan map to marker ----
 document.getElementById('results-list').addEventListener('click', function (e) {
+  // V7 F8: taps on the photo carousel controls are handled by the listener
+  // above — bail out here so they don't ALSO pan the map.
+  if (e.target.closest('.photo-more-badge')
+    || e.target.closest('.photo-nav')
+    || e.target.closest('.photo-dots')) {
+    return;
+  }
+
   // Favorite button toggle
   var favBtn = e.target.closest('.favorite-btn');
   if (favBtn) {
