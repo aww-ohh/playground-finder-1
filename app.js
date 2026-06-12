@@ -68,6 +68,10 @@ function escapeHtml(s) {
 }
 
 // ---- Helper: show a status message ----
+// U8: success toasts ("Found 12 parks", "Link copied!") auto-dismiss after a
+// few seconds — they've done their job and just become clutter. Info and error
+// messages stick around until replaced, since the user may need to act on them.
+var messageDismissTimer = null;
 function showMessage(text, type) {
   var msg = document.getElementById('status-message');
   if (!msg) {
@@ -77,6 +81,19 @@ function showMessage(text, type) {
   }
   msg.textContent = text;
   msg.className = 'status-message ' + type;
+  // Cancel any pending auto-dismiss so a new message doesn't vanish early
+  if (messageDismissTimer) {
+    clearTimeout(messageDismissTimer);
+    messageDismissTimer = null;
+  }
+  if (type === 'success') {
+    messageDismissTimer = setTimeout(function () {
+      msg.textContent = '';
+      msg.classList.add('hidden');
+    }, 4000);
+  } else {
+    msg.classList.remove('hidden');
+  }
 }
 
 // ---- Helper: get current UI state ----
@@ -328,15 +345,21 @@ function filterByType(results, typeFilter) {
 // ---- Signal filters (multi-select with AND logic) ----
 var SIGNAL_FILTERS_KEY = 'playgroundFinder.signalFilters';
 
+// U4: these use sessionStorage (NOT localStorage) on purpose. Chips you tapped
+// last month silently filtering a fresh search is an ambush — "why are there
+// only 2 parks?!" — so signal chips reset on every new visit. sessionStorage
+// still keeps them alive across same-tab navigation (e.g. following a link
+// and coming back). Hide-visited and drive-time stay in localStorage because
+// those are deliberate standing preferences, not quick one-off filters.
 function getActiveSignalFilters() {
   try {
-    var raw = localStorage.getItem(SIGNAL_FILTERS_KEY);
+    var raw = sessionStorage.getItem(SIGNAL_FILTERS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch (e) { return []; }
 }
 
 function setActiveSignalFilters(arr) {
-  try { localStorage.setItem(SIGNAL_FILTERS_KEY, JSON.stringify(arr)); }
+  try { sessionStorage.setItem(SIGNAL_FILTERS_KEY, JSON.stringify(arr)); }
   catch (e) { /* ignore */ }
 }
 
@@ -353,6 +376,10 @@ function filterBySignals(results, activeSignals) {
       if (sig === 'shade')     return r.signals.shade && r.signals.shade.value === 'yes';
       if (sig === 'bathrooms') return r.signals.bathrooms && r.signals.bathrooms.value === 'yes';
       if (sig === 'tennis')    return r.signals.tennisCourts && r.signals.tennisCourts.value === 'yes';
+      // V6 F1: "Open now" comes straight from Google's hours data on the
+      // result itself (not from the signals object). null = unknown → hide,
+      // because the user explicitly asked for parks that are open.
+      if (sig === 'open')      return r.openNow === true;
       if (sig === 'toddler')   {
         var v = r.signals.ageSuitability && r.signals.ageSuitability.value;
         return v === 'toddler' || v === 'both';
@@ -535,7 +562,10 @@ function truncateReview(text, maxLen) {
 function renderReviews(result) {
   if (!result.reviews || result.reviews.length === 0) return '';
   var count = result.reviews.length;
-  var items = result.reviews.map(function (text) {
+  // V6 F5: reviews are now {text, publishTime} objects from the API, but
+  // older saved/shared parks may still carry plain strings — handle both.
+  var items = result.reviews.map(function (rv) {
+    var text = typeof rv === 'string' ? rv : (rv && rv.text) || '';
     return '<div class="review-snippet">"' + escapeHtml(truncateReview(text, 220)) + '"</div>';
   }).join('');
   return '<div class="reviews-section">'
@@ -579,6 +609,12 @@ function fetchOsmAndMerge(lat, lng, radius, thisRequest) {
       if (!data || !Array.isArray(data.parks)) return;
       currentResults.forEach(function (gp) {
         var match = findClosestOsmPark(gp.lat, gp.lng, data.parks);
+        // V6 F4: copy OSM's amenity flags (splash pad etc.) onto the Google
+        // result and refresh just that card's badge row.
+        if (match && match.amenities) {
+          gp.amenities = match.amenities;
+          updateCardAmenities(gp.placeId, gp.amenities);
+        }
         if (match && Object.keys(match.signals).length > 0) {
           mergeOsmSignals(gp.placeId, match.signals);
         } else {
@@ -621,7 +657,10 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Merge OSM signals into a park's existing signals. OSM wins per dimension.
+// Merge OSM signals into a park's existing signals. OSM wins per dimension —
+// EXCEPT over source:'google'. Both are verified, but Google's structured
+// answer is first-party data about the exact place, so it outranks OSM's
+// nearby-tag inference.
 function mergeOsmSignals(placeId, osmSignals) {
   saveCachedOsm(placeId, osmSignals);
   var park = null;
@@ -634,6 +673,7 @@ function mergeOsmSignals(placeId, osmSignals) {
   if (!park || !park.signals) return;
   var changed = false;
   ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'].forEach(function (dim) {
+    if (park.signals[dim] && park.signals[dim].source === 'google') return;
     if (osmSignals[dim] && osmSignals[dim].value) {
       park.signals[dim] = {
         value: osmSignals[dim].value,
@@ -670,7 +710,10 @@ function fetchWeather(lat, lng, thisRequest) {
     + '?latitude=' + lat
     + '&longitude=' + lng
     + '&current=temperature_2m,weather_code'
-    + '&temperature_unit=fahrenheit';
+    + '&temperature_unit=fahrenheit'
+    // V6 F6: today's hour-by-hour rain chances, in the search location's
+    // own timezone, so we can warn "rain ~2 PM" before you leave the house.
+    + '&hourly=precipitation_probability&forecast_days=1&timezone=auto';
   fetch(url)
     .then(function (response) { return response.ok ? response.json() : null; })
     .then(function (data) {
@@ -685,10 +728,72 @@ function fetchWeather(lat, lng, thisRequest) {
       var ec = weatherCodeToEmoji(data.current.weather_code);
       banner.innerHTML = '<span class="weather-emoji">' + ec[0] + '</span>'
         + '<span class="weather-temp">' + temp + '°F</span>'
-        + (ec[1] ? '<span class="weather-label">· ' + ec[1] + '</span>' : '');
+        + (ec[1] ? '<span class="weather-label">· ' + ec[1] + '</span>' : '')
+        // V6 F6: one short rain heads-up ("rain ~2 PM" / "clearing by 3 PM" /
+        // "rain likely all day"), or nothing if the rest of today looks dry.
+        + buildRainOutlook(data.hourly);
       banner.classList.remove('hidden');
     })
     .catch(function () { /* silent — weather is a nice-to-have */ });
+}
+
+// V6 F6: turn Open-Meteo's hourly rain probabilities into one short phrase.
+// Defensive on purpose: if the hourly block is missing or oddly shaped we
+// return '' and the banner just shows current conditions like before.
+function buildRainOutlook(hourly) {
+  try {
+    if (!hourly || !Array.isArray(hourly.time) || !Array.isArray(hourly.precipitation_probability)) return '';
+    var RAIN_THRESHOLD = 40; // % chance — below this we don't bother the user
+    var now = new Date();
+    // Keep only the hours from "now-ish" through the end of today.
+    // With timezone=auto the times come back in the SEARCH location's local
+    // clock (e.g. "2026-06-11T14:00"); parsing without a zone reads them as
+    // device-local time, which is right for the usual "parks near me" case.
+    var remaining = [];
+    for (var i = 0; i < hourly.time.length; i++) {
+      var t = new Date(hourly.time[i]);
+      var p = hourly.precipitation_probability[i];
+      if (isNaN(t.getTime()) || typeof p !== 'number') continue;
+      // Include the in-progress hour (the "2:00" entry still matters at 2:40)
+      if (t.getTime() >= now.getTime() - 60 * 60 * 1000) remaining.push({ time: t, prob: p });
+    }
+    if (remaining.length === 0) return '';
+    // Find the first rainy hour left today
+    var firstRainy = -1;
+    for (var j = 0; j < remaining.length; j++) {
+      if (remaining[j].prob >= RAIN_THRESHOLD) { firstRainy = j; break; }
+    }
+    if (firstRainy === -1) return ''; // dry rest of day — good news needs no extra text
+    var allRainy = remaining.every(function (h) { return h.prob >= RAIN_THRESHOLD; });
+    if (allRainy) {
+      return '<span class="weather-rain">· 🌧 rain likely all day</span>';
+    }
+    if (firstRainy === 0) {
+      // Rainy now (or within the hour) — tell them when it clears
+      for (var k = 0; k < remaining.length; k++) {
+        if (remaining[k].prob < RAIN_THRESHOLD) {
+          return '<span class="weather-rain">· 🌧 clearing by ' + formatHour12(remaining[k].time) + '</span>';
+        }
+      }
+      return '<span class="weather-rain">· 🌧 rain likely all day</span>';
+    }
+    // Rain arrives later — only worth flagging if it's more than an hour out
+    if (remaining[firstRainy].time.getTime() - now.getTime() > 60 * 60 * 1000) {
+      return '<span class="weather-rain">· 🌧 rain ~' + formatHour12(remaining[firstRainy].time) + '</span>';
+    }
+    return '<span class="weather-rain">· 🌧 rain soon</span>';
+  } catch (e) {
+    return ''; // any surprise in the data → just skip the outlook
+  }
+}
+
+// "14:00" → "2 PM" — small helper for the rain outlook above
+function formatHour12(date) {
+  var h = date.getHours();
+  var suffix = h >= 12 ? 'PM' : 'AM';
+  var h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+  return h12 + ' ' + suffix;
 }
 
 // ---- Personal notes section per card ----
@@ -701,11 +806,13 @@ function renderNoteSection(result) {
     + label + ' <span class="note-arrow">▶</span>'
     + '</button>'
     + '<div class="note-content"' + (hasExisting ? '' : ' style="display:none"') + '>'
-    + '<textarea class="note-input" data-place-id="' + result.placeId + '" '
+    // SECURITY: escapeHtml on placeId — defense in depth in case a bad ID
+    // ever sneaks past the share-link validation in decodeSharedParks.
+    + '<textarea class="note-input" data-place-id="' + escapeHtml(result.placeId) + '" '
     + 'placeholder="e.g. fence on south side has a gap, swings squeak in the rain..." '
     // FIX E3: cap at 2000 chars in the UI to match setNote()'s cap.
     + 'maxlength="2000" rows="3">' + escapeHtml(existing) + '</textarea>'
-    + '<div class="note-status" data-place-id="' + result.placeId + '"></div>'
+    + '<div class="note-status" data-place-id="' + escapeHtml(result.placeId) + '"></div>'
     + '</div></div>';
 }
 
@@ -764,10 +871,10 @@ function parkingLabel(value) {
 }
 
 // Builds the value indicator HTML for a boolean dimension (fenced, shade, bathrooms)
-// `source` is 'osm' (verified, green) or 'gemini' (review-extracted, gold) or null
+// `source` is 'osm' or 'google' (verified, green) or 'gemini' (review-extracted, gold) or null
 function booleanValueHtml(value, source) {
   if (value === 'yes') {
-    var cls = 'signal-yes' + (source === 'osm' ? ' signal-verified' : '');
+    var cls = 'signal-yes' + ((source === 'osm' || source === 'google') ? ' signal-verified' : '');
     return '<span class="' + cls + '">\u2705 Yes</span>';
   }
   if (value === 'no') return '<span class="signal-no">\u274C No</span>';
@@ -779,7 +886,7 @@ function booleanValueHtml(value, source) {
 function categoryValueHtml(label, source) {
   if (label === '...') return '<span class="signal-loading">\u23F3 \u2026</span>';
   if (label === 'N/A') return '<span class="signal-na">\u2796 N/A</span>';
-  var cls = 'signal-category' + (source === 'osm' ? ' signal-verified' : '');
+  var cls = 'signal-category' + ((source === 'osm' || source === 'google') ? ' signal-verified' : '');
   return '<span class="' + cls + '">' + label + '</span>';
 }
 
@@ -893,6 +1000,47 @@ function renderSignals(signals) {
   return html;
 }
 
+// ---- V6 F4: amenity badges (display-only stickers, NOT filters) ----
+// `amenities` comes from OpenStreetMap via /api/osm — booleans for
+// splash pad / picnic tables / drinking water near the park.
+function renderAmenityBadges(amenities) {
+  if (!amenities) return '';
+  var badges = '';
+  if (amenities.splashPad) badges += '<span class="amenity-badge">💦 Splash pad</span>';
+  if (amenities.picnicTables) badges += '<span class="amenity-badge">🧺 Picnic tables</span>';
+  if (amenities.drinkingWater) badges += '<span class="amenity-badge">🚰 Water fountain</span>';
+  if (!badges) return '';
+  return '<div class="amenity-badges">' + badges + '</div>';
+}
+
+// V6 F4: swap in (or add) the amenity badge row on ONE card without
+// re-rendering the whole list — a full re-render would collapse open
+// review sections and steal focus from a note the user is typing.
+function updateCardAmenities(placeId, amenities) {
+  var card = document.querySelector('.result-card[data-place-id="' + placeId + '"]');
+  if (!card) return;
+  var html = renderAmenityBadges(amenities);
+  var existing = card.querySelector('.amenity-badges');
+  var temp;
+  if (existing) {
+    if (html) {
+      temp = document.createElement('div');
+      temp.innerHTML = html;
+      existing.replaceWith(temp.firstChild);
+    } else {
+      existing.remove();
+    }
+  } else if (html) {
+    // Badges live right after the signals list on the card
+    var list = card.querySelector('.signals-list');
+    if (list) {
+      temp = document.createElement('div');
+      temp.innerHTML = html;
+      list.insertAdjacentElement('afterend', temp.firstChild);
+    }
+  }
+}
+
 // Builds one signal row for a popup (compact, no expand)
 function renderPopupSignalRow(icon, valueHtml) {
   return '<span class="popup-signal">'
@@ -964,6 +1112,8 @@ function buildPopupContent(r) {
     + '<div class="popup-body">'
     + '<strong>' + escapeHtml(r.name) + '</strong><br>'
     + '<span class="result-type result-type-compact ' + popupTypeClass + '">' + typeBadgeLabel(r.type) + '</span> ' + popupRating + '<br>'
+    // V6 F3: small address line (skipped for shared-link parks with no address)
+    + (r.address ? '<span class="popup-address">📍 ' + escapeHtml(r.address) + '</span><br>' : '')
     + renderPopupSignals(r.signals)
     + '<a class="popup-link-google" href="' + googleDirectionsUrl(r.placeId, r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">🚗 Directions in Google Maps</a><br>'
     + '<a class="popup-link-yelp" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
@@ -1192,20 +1342,22 @@ function updateMarkerVisibility(typeFilter, activeSignals) {
   var visibleIds = {};
   var filtered = filterByType(currentResults, typeFilter);
   // Mirror applyFilterAndSort: skip signal filters on Saved view (FIX A1).
+  // U5: hide-visited and drive-time skip Saved too — saved markers should
+  // never silently disappear from the map.
   if (typeFilter !== 'favorites') {
     filtered = filterBySignals(filtered, activeSignals || []);
-  }
-  // V3 Feature 1: hide visited markers too when the toggle is on.
-  if (getHideVisited()) {
-    filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
-  }
-  // V3 Feature 2: respect drive-time cap for markers.
-  var maxMin = getMaxDriveMinutes();
-  if (maxMin != null && lastLat != null && lastLng != null) {
-    filtered = filtered.filter(function (r) {
-      var mins = estimateDriveMinutes(r);
-      return mins == null || mins <= maxMin;
-    });
+    // V3 Feature 1: hide visited markers too when the toggle is on.
+    if (getHideVisited()) {
+      filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
+    }
+    // V3 Feature 2: respect drive-time cap for markers.
+    var maxMin = getMaxDriveMinutes();
+    if (maxMin != null && lastLat != null && lastLng != null) {
+      filtered = filtered.filter(function (r) {
+        var mins = estimateDriveMinutes(r);
+        return mins == null || mins <= maxMin;
+      });
+    }
   }
   filtered.forEach(function (r) { visibleIds[r.placeId] = true; });
 
@@ -1362,12 +1514,30 @@ function renderResults(results, unfilteredCount) {
       ratingHtml = 'No ratings yet';
     }
 
+    // V6 F5: if the NEWEST review is 2+ years old, append a small amber
+    // "reviews from YEAR" warning — old reviews may describe a park that's
+    // since changed. Recent reviews are the normal case, so we say nothing then.
+    if (Array.isArray(r.reviews) && r.reviews.length > 0) {
+      var newestYear = null;
+      r.reviews.forEach(function (rv) {
+        if (!rv || typeof rv !== 'object' || !rv.publishTime) return;
+        var y = new Date(rv.publishTime).getFullYear();
+        if (!isNaN(y) && (newestYear === null || y > newestYear)) newestYear = y;
+      });
+      if (newestYear !== null && new Date().getFullYear() - newestYear >= 2) {
+        ratingHtml += ' <span class="review-age">reviews from ' + newestYear + '</span>';
+      }
+    }
+
     var favClass = isFavorite(r.placeId) ? ' is-favorite' : '';
     var visitedClass = isVisited(r.placeId) ? ' is-visited' : '';
     var perfectClass = isPerfectPark(r.signals) ? ' is-perfect' : '';
-    html += '<li class="result-card' + visitedClass + perfectClass + '" data-place-id="' + r.placeId + '">'
-      + '<button class="favorite-btn' + favClass + '" data-place-id="' + r.placeId + '" aria-label="Save to favorites" title="Save to favorites">★</button>'
-      + '<button class="visited-btn' + visitedClass + '" data-place-id="' + r.placeId + '" aria-label="Mark as visited" title="Mark as visited">✓</button>'
+    // SECURITY: placeId is escapeHtml'd everywhere it lands in an HTML
+    // attribute — shared-link parks carry placeIds from a URL, and escaping
+    // here means a malicious one can't break out of the attribute.
+    html += '<li class="result-card' + visitedClass + perfectClass + '" data-place-id="' + escapeHtml(r.placeId) + '">'
+      + '<button class="favorite-btn' + favClass + '" data-place-id="' + escapeHtml(r.placeId) + '" aria-label="Save to favorites" title="Save to favorites">★</button>'
+      + '<button class="visited-btn' + visitedClass + '" data-place-id="' + escapeHtml(r.placeId) + '" aria-label="Mark as visited" title="Mark as visited">✓</button>'
       + renderHeroPhoto(r)
       + '<div class="result-card-body">'
       + '<div class="result-card-header">'
@@ -1376,18 +1546,29 @@ function renderResults(results, unfilteredCount) {
       + '</div>'
       + '<span class="result-meta result-distance">' + renderTravelTime(r.distance) + '</span>'
       + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
+      // V6 F3: street address (shared-link parks don't have one — skip then)
+      + (r.address ? '<span class="result-meta result-address">📍 ' + escapeHtml(r.address) + '</span>' : '')
       + renderHours(r)
       + renderSignals(r.signals)
+      // V6 F4: sticker-style amenity badges (splash pad / picnic / fountain)
+      + renderAmenityBadges(r.amenities)
       + renderReviews(r)
       + renderNoteSection(r)
       + '<div class="result-links">'
       + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions in Google Maps</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
-      + '<button type="button" class="result-link-share" data-place-id="' + r.placeId + '" title="Share this park">\ud83d\udd17 Share</button>'
+      + '<button type="button" class="result-link-share" data-place-id="' + escapeHtml(r.placeId) + '" title="Share this park">\ud83d\udd17 Share</button>'
       + '</div>'
       + '</div>'
       + '</li>';
   });
+
+  // V6 F7: on the Saved tab, remind the user that the share link doubles as
+  // a backup of their collection (saved parks live only in this browser's
+  // localStorage — a new phone starts from zero without that link).
+  if (typeFilterNow === 'favorites' && results.length > 0) {
+    html += '<li class="backup-tip">💡 Tip: tap "🔗 Share saved" up top and save that link somewhere — it\'s also your backup if you ever switch phones.</li>';
+  }
 
   resultsList.innerHTML = html;
 }
@@ -1403,18 +1584,22 @@ function applyFilterAndSort() {
   // otherwise the user's saved list silently shrinks for no obvious reason.
   if (typeFilter !== 'favorites') {
     filtered = filterBySignals(filtered, activeSignals);
-  }
-  // V3 Feature 1: hide-visited toggle removes already-visited parks.
-  if (getHideVisited()) {
-    filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
-  }
-  // V3 Feature 2: drive-time filter. Only applies if we know the search origin.
-  var maxMin = getMaxDriveMinutes();
-  if (maxMin != null && lastLat != null && lastLng != null) {
-    filtered = filtered.filter(function (r) {
-      var mins = estimateDriveMinutes(r);
-      return mins == null || mins <= maxMin;
-    });
+    // U5: hide-visited and drive-time are also skipped on the Saved tab —
+    // your own saved collection should never silently shrink. (Saved parks
+    // are often ones you've visited, and drive-time depends on a search
+    // origin that may be miles from where you saved them.)
+    // V3 Feature 1: hide-visited toggle removes already-visited parks.
+    if (getHideVisited()) {
+      filtered = filtered.filter(function (r) { return !isVisited(r.placeId); });
+    }
+    // V3 Feature 2: drive-time filter. Only applies if we know the search origin.
+    var maxMin = getMaxDriveMinutes();
+    if (maxMin != null && lastLat != null && lastLng != null) {
+      filtered = filtered.filter(function (r) {
+        var mins = estimateDriveMinutes(r);
+        return mins == null || mins <= maxMin;
+      });
+    }
   }
   var sorted = sortResults(filtered, sortBy);
   // FIX A3: also pass the unfiltered count so renderResults can show a
@@ -1454,7 +1639,10 @@ function handleCoordinates(lat, lng, originMode) {
   var radius = getRadius();
   var thisRequest = ++requestId;
 
-  fetch('/api/places?lat=' + lat + '&lng=' + lng + '&radius=' + radius)
+  // U3: tell the server what weekday it is HERE (0=Sunday..6=Saturday).
+  // The serverless function runs in UTC, so in the evening its "today" is
+  // already tomorrow — without this, "Today's hours" showed the wrong day.
+  fetch('/api/places?lat=' + lat + '&lng=' + lng + '&radius=' + radius + '&day=' + new Date().getDay())
     .then(function (response) {
       // Ignore stale responses
       if (thisRequest !== requestId) return;
@@ -1480,12 +1668,36 @@ function handleCoordinates(lat, lng, originMode) {
               r.signals = defaultSignalsClient();
             } else {
               r.signals = loadingSignals();
-              needsSignals.push({ placeId: r.placeId, name: r.name, reviews: r.reviews });
+              // V6 F5: reviews are now {text, publishTime} objects, but
+              // /api/signals expects plain text strings — unwrap them here.
+              needsSignals.push({
+                placeId: r.placeId,
+                name: r.name,
+                reviews: r.reviews.map(function (rv) {
+                  return typeof rv === 'string' ? rv : (rv && rv.text) || '';
+                })
+              });
             }
-            // Apply any cached OSM signals immediately (they win over Gemini)
+            // V6 F2: Google's own structured answers ("has restroom?",
+            // "good for children?") are first-party facts, fetched fresh on
+            // every search — so they go on top of whatever the signal cache
+            // had, and nothing below is allowed to overwrite source:'google'.
+            if (r.restroom === true) {
+              r.signals.bathrooms = { value: 'yes', source: 'google', summary: null };
+            } else if (r.restroom === false) {
+              r.signals.bathrooms = { value: 'no', source: 'google', summary: null };
+            }
+            if (r.goodForChildren === true) {
+              // Google says "good for children" — that's not toddler-specific,
+              // so 'both' (all ages) is the honest mapping.
+              r.signals.ageSuitability = { value: 'both', source: 'google', summary: null };
+            }
+            // Apply any cached OSM signals immediately (they win over Gemini,
+            // but NOT over fresh first-party Google facts applied just above)
             var cachedOsm = loadCachedOsm(r.placeId);
             if (cachedOsm && Object.keys(cachedOsm).length > 0) {
               ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'].forEach(function (dim) {
+                if (r.signals[dim] && r.signals[dim].source === 'google') return;
                 if (cachedOsm[dim] && cachedOsm[dim].value) {
                   r.signals[dim] = {
                     value: cachedOsm[dim].value,
@@ -1501,6 +1713,17 @@ function handleCoordinates(lat, lng, originMode) {
           currentResults = data.results;
           showMap(lat, lng, data.results);
           applyFilterAndSort();
+
+          // U1: on phones the hero section is taller than the viewport, so
+          // after tapping "Show parks near me" the results render off-screen
+          // and it looks like nothing happened. Scroll the results toolbar
+          // into view — but only on touch devices (desktop already shows
+          // results beside the hero, and auto-scrolling there feels jumpy).
+          try {
+            if (window.matchMedia('(pointer: coarse)').matches) {
+              document.getElementById('results-toolbar').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          } catch (e) { /* old browsers without matchMedia/scrollIntoView options */ }
 
           // Phase 2: fetch signals for parks not in cache.
           // Chunk into 2 parallel requests (chunk size 10) — keeps within Gemini's
@@ -1582,13 +1805,29 @@ function updateAndCacheSignals(placeId, signals, shouldCache) {
   var record = null;
   for (var i = 0; i < currentResults.length; i++) {
     if (currentResults[i].placeId === placeId) {
-      currentResults[i].signals = signals;
       record = currentResults[i];
       break;
     }
   }
+  // Cache the raw Gemini signals (not the merged view below) so the cache
+  // stays a pure "what the reviews told us" layer — google/osm facts are
+  // re-applied fresh on every search anyway.
   if (shouldCache) saveCachedSignals(placeId, signals);
-  updateCardSignals(placeId, signals);
+  // PRECEDENCE: 'google' (first-party structured fact) and 'osm' (verified
+  // map data) beat Gemini's review-reading guesses. Merge dimension by
+  // dimension and skip any dim that's already verified, instead of letting
+  // the Gemini response clobber the whole signals object.
+  var merged = signals;
+  if (record) {
+    merged = record.signals || {};
+    Object.keys(signals).forEach(function (dim) {
+      var existing = merged[dim];
+      if (existing && (existing.source === 'google' || existing.source === 'osm')) return;
+      merged[dim] = signals[dim];
+    });
+    record.signals = merged;
+  }
+  updateCardSignals(placeId, merged);
   // Refresh the map popup so loading "…" gets replaced with real values
   if (record) {
     var marker = markersByPlaceId[placeId];
@@ -1698,6 +1937,10 @@ typeFilterDiv.parentElement.addEventListener('click', function (e) {
   // we don't apply signal filters to saved parks (they may have stale signals).
   var signalRow = document.getElementById('signal-filter');
   if (signalRow) signalRow.classList.toggle('signals-disabled-for-saved', type === 'favorites');
+  // U5: drive-time doesn't apply on Saved either (your collection never
+  // shrinks), so grey out its dropdown too while viewing Saved.
+  var naptimeSelect = document.getElementById('naptime-select');
+  if (naptimeSelect) naptimeSelect.disabled = (type === 'favorites');
   // FIX A6: leaving Saved with no current search → tear the UI back down to
   // the landing state instead of leaving stale Saved cards on screen.
   if (leavingFavorites && currentResults.length === 0) {
@@ -1867,6 +2110,10 @@ geolocateBtn.addEventListener('click', function () {
   navigator.geolocation.getCurrentPosition(
     function (position) {
       addressInput.value = CURRENT_LOCATION_LABEL;
+      // U9: geolocation worked — NOW it's safe to retire the landing CTA.
+      // (On failure it stays visible so the user can simply tap it again.)
+      var nearMeCta = document.getElementById('near-me-cta');
+      if (nearMeCta) nearMeCta.classList.add('hidden');
       handleCoordinates(position.coords.latitude, position.coords.longitude, 'gps');
     },
     function (err) {
@@ -2198,6 +2445,28 @@ searchHereBtn.addEventListener('click', function () {
   if (!map) return;
   var center = map.getCenter();
   addressInput.value = MAP_AREA_LABEL;
+
+  // U6: match the search radius to what the user is actually looking at.
+  // If they zoomed out to see the whole city and tap "Search this area",
+  // searching a half-mile dot at the center ignores most of their screen.
+  // Measure the visible map in meters, take the smaller side, halve it
+  // (radius, not diameter), convert to miles...
+  try {
+    var b = map.getBounds();
+    var widthM = map.distance(b.getNorthWest(), b.getNorthEast());
+    var heightM = map.distance(b.getNorthWest(), b.getSouthWest());
+    var visibleMiles = Math.min(widthM, heightM) / 2 / 1609.344;
+    // ...then pick the LARGEST allowed radius that still fits on screen
+    // (or the smallest, half a mile, if they're zoomed way in).
+    var allowedRadii = ['0.5', '1', '2', '5'];
+    var best = '0.5';
+    for (var i = 0; i < allowedRadii.length; i++) {
+      if (parseFloat(allowedRadii[i]) <= visibleMiles) best = allowedRadii[i];
+    }
+    radiusSelect.value = best;
+    savePref('playgroundFinder.radius', best);
+  } catch (e) { /* keep current radius if anything goes sideways */ }
+
   // No human label here (user clicked a map area, not a named place) — coords only
   handleCoordinates(center.lat, center.lng, { lat: center.lat, lng: center.lng });
 });
@@ -2266,8 +2535,10 @@ addressForm.addEventListener('submit', function (e) {
   if (!nearMeCta) return;
   nearMeCta.addEventListener('click', function () {
     geolocateBtn.click();
-    // Hide the CTA after clicking; landing CTA only useful when no search has happened
-    nearMeCta.classList.add('hidden');
+    // U9: do NOT hide the CTA here. If geolocation fails (permission denied,
+    // timeout), hiding it would leave the user with no obvious way to retry.
+    // The geolocation SUCCESS callback hides it instead — by then a real
+    // search is underway and the landing CTA has done its job.
   });
 })();
 
@@ -2319,7 +2590,13 @@ function decodeSharedParks(encoded) {
     if (compact.length > 100) compact = compact.slice(0, 100);
     return compact.map(function (p) {
       return {
-        placeId: typeof p.i === 'string' ? p.i.substring(0, 200) : '',
+        // SECURITY: the placeId ends up inside HTML attributes when cards
+        // render (data-place-id="..."), so a crafted share link could sneak
+        // in a `">` and break out of the attribute to inject its own HTML.
+        // Real Google place IDs only ever contain letters, numbers,
+        // underscores and hyphens — anything else gets rejected to '' here,
+        // which makes the .filter() below drop the whole entry.
+        placeId: typeof p.i === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(p.i) ? p.i : '',
         name: typeof p.n === 'string' ? p.n.substring(0, 200) : '',
         lat: typeof p.a === 'number' ? p.a : 0,
         lng: typeof p.o === 'number' ? p.o : 0,
@@ -2374,6 +2651,69 @@ function shareUrl(url, label) {
   }
 }
 
+// U10: build the "Someone shared N parks with you!" banner. Built with DOM
+// APIs (createElement + addEventListener) instead of innerHTML with inline
+// onclick attributes, because our Content-Security-Policy blocks inline
+// event handlers. The park names come from a URL someone else crafted, so
+// nothing user-controlled is ever inserted as HTML here anyway.
+function showSharedImportBanner(sharedParks) {
+  var n = sharedParks.length;
+
+  var banner = document.createElement('div');
+  banner.className = 'shared-import-banner';
+
+  var text = document.createElement('p');
+  text.className = 'shared-import-text';
+  text.textContent = '🎁 Someone shared ' + n + ' park' + (n > 1 ? 's' : '') + ' with you!';
+  banner.appendChild(text);
+
+  var actions = document.createElement('div');
+  actions.className = 'shared-import-actions';
+
+  var addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'shared-import-btn shared-import-accept';
+  addBtn.textContent = '➕ Add to my saved';
+  addBtn.addEventListener('click', function () {
+    var favs = getFavorites();
+    var map = getSavedParksMap();
+    var added = 0;
+    sharedParks.forEach(function (p) {
+      if (favs.indexOf(p.placeId) === -1) {
+        favs.push(p.placeId);
+        added++;
+      }
+      // Always update the map (in case the snapshot has fresher info)
+      map[p.placeId] = sanitizeParkForStorage(p);
+    });
+    setFavorites(favs);
+    setSavedParksMap(map);
+    banner.remove();
+    showMessage(added + ' new park' + (added !== 1 ? 's' : '') + ' added to your saved collection.', 'success');
+    // Switch to Saved tab to show them
+    var savedBtn = document.querySelector('.type-btn[data-type="favorites"]');
+    if (savedBtn) savedBtn.click();
+  });
+
+  var noBtn = document.createElement('button');
+  noBtn.type = 'button';
+  noBtn.className = 'shared-import-btn shared-import-decline';
+  noBtn.textContent = '👀 No thanks';
+  noBtn.addEventListener('click', function () {
+    banner.remove();
+    showMessage('No problem — nothing was saved.', 'info');
+  });
+
+  actions.appendChild(addBtn);
+  actions.appendChild(noBtn);
+  banner.appendChild(actions);
+
+  // Insert at the very top of <main>, above the hero, so it's the first
+  // thing the recipient sees when they open the link.
+  var main = document.querySelector('main');
+  if (main) main.insertBefore(banner, main.firstChild);
+}
+
 // On page load, parse the URL and trigger the right action
 function handleSharedUrl() {
   var params = new URLSearchParams(window.location.search);
@@ -2384,31 +2724,15 @@ function handleSharedUrl() {
   var address = params.get('address');
   var shared = params.get('shared');
 
-  // Shared collection: someone sent you their saved parks
+  // Shared collection: someone sent you their saved parks.
+  // U10: this used to be a window.confirm() popup — jarring, system-styled,
+  // and it blocks the page before you've even seen the app. Now it's a
+  // friendly sticker-style banner at the top of the page that the user can
+  // act on (or ignore) in their own time.
   if (shared) {
     var sharedParks = decodeSharedParks(shared);
     if (sharedParks && sharedParks.length > 0) {
-      var n = sharedParks.length;
-      var ok = window.confirm('Someone shared ' + n + ' park' + (n > 1 ? 's' : '') + ' with you. Add to your saved collection?');
-      if (ok) {
-        var favs = getFavorites();
-        var map = getSavedParksMap();
-        var added = 0;
-        sharedParks.forEach(function (p) {
-          if (favs.indexOf(p.placeId) === -1) {
-            favs.push(p.placeId);
-            added++;
-          }
-          // Always update the map (in case the snapshot has fresher info)
-          map[p.placeId] = sanitizeParkForStorage(p);
-        });
-        setFavorites(favs);
-        setSavedParksMap(map);
-        showMessage(added + ' new park' + (added !== 1 ? 's' : '') + ' added to your saved collection.', 'success');
-        // Switch to Saved tab to show them
-        var savedBtn = document.querySelector('.type-btn[data-type="favorites"]');
-        if (savedBtn) savedBtn.click();
-      }
+      showSharedImportBanner(sharedParks);
       return;
     }
   }
@@ -2433,6 +2757,10 @@ function handleSharedUrl() {
           scrollToCard(park);
         } else if (attempts++ < 20) {
           setTimeout(trySelect, 300);
+        } else {
+          // U7: don't give up silently — the shared park may sit outside the
+          // current radius, and a dead-end with zero explanation is confusing.
+          showMessage('We couldn’t find the shared park in this search — try widening the radius.', 'info');
         }
       };
       setTimeout(trySelect, 1500);
@@ -2475,6 +2803,41 @@ function refreshShareButtonLabel() {
   if (!btn) return;
   btn.textContent = getTypeFilter() === 'favorites' ? '🔗 Share saved' : '🔗 Share search';
 }
+
+// ---- L4: mobile "⬆️ Filters" pill ----
+// On phones the filter toolbar scrolls away with the page (a deliberate
+// choice — sticky toolbars eat too much of a small screen). The trade-off:
+// once you're 10 cards deep, changing a filter means a long scroll back up.
+// This floating pill appears only while the toolbar is off-screen and taps
+// you straight back to it. Desktop never shows it (CSS hides it ≥768px).
+(function () {
+  var pill = document.getElementById('filters-pill');
+  var toolbar = document.getElementById('results-toolbar');
+  if (!pill || !toolbar) return;
+  // IntersectionObserver tells us when the toolbar enters/leaves the viewport.
+  // Very old browsers don't have it — they just never get the pill. Fine.
+  if (!('IntersectionObserver' in window)) return;
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      // Only show the pill when the toolbar is scrolled out of view AND the
+      // toolbar is actually in use (before any search it has class 'hidden',
+      // and display:none elements also report as not-intersecting — without
+      // this check the pill would float over the landing page).
+      var toolbarInUse = !toolbar.classList.contains('hidden');
+      if (!entry.isIntersecting && toolbarInUse) {
+        pill.classList.remove('hidden');
+      } else {
+        pill.classList.add('hidden');
+      }
+    });
+  });
+  observer.observe(toolbar);
+
+  pill.addEventListener('click', function () {
+    toolbar.scrollIntoView({ behavior: 'smooth' });
+  });
+})();
 
 // ---- Initial: handle URL share params on page load + refresh button labels ----
 handleSharedUrl();

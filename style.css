@@ -10,6 +10,29 @@
    Near-black    #1a1410  (outlines / borders)
    ============================================================ */
 
+/* L1: the palette lives in CSS variables now. Change a color here and it
+   changes everywhere — and the dark-mode block at the bottom of this file
+   works by remapping just these few variables.
+   L7: the three box-shadow sizes are variables too, so every sticker pops
+   off the page by a consistent amount. */
+:root {
+  --gold: #ffb800;
+  --burnt: #e07a2a;
+  --emerald: #0d9b62;
+  --sky: #3aa9e8;
+  --crimson: #c0202c;
+  --cream: #f3eadb;
+  --ink: #1a1410;
+  --cream-soft: #fff3cf;
+  --surface: #ffffff;
+  --text-muted: #666;
+  --gold-text: #8a6a0f;      /* darkened gold for TEXT (WCAG contrast) — fills stay --gold */
+  --emerald-text: #0a7a4d;   /* darkened emerald for small text */
+  --shadow-sm: 3px 3px 0 var(--ink);
+  --shadow-md: 6px 6px 0 var(--ink);
+  --shadow-lg: 7px 7px 0 var(--ink);
+}
+
 /* ===== Reset & base ===== */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -42,7 +65,7 @@ html {
 
 body {
   font-family: 'Nunito', sans-serif;
-  color: #1a1410;
+  color: var(--ink);
   background:
     radial-gradient(at 18% 10%, rgba(224,122,42,0.12), transparent 55%),
     radial-gradient(at 80% 50%, rgba(58,169,232,0.10), transparent 55%),
@@ -106,12 +129,12 @@ main {
   font-size: clamp(3rem, 13vw, 9rem);
   line-height: 0.9;
   letter-spacing: -0.01em;
-  color: #ffb800;
-  -webkit-text-stroke: 4px #1a1410;
-  text-stroke: 4px #1a1410;
+  color: var(--gold);
+  -webkit-text-stroke: 4px var(--ink);
+  text-stroke: 4px var(--ink);
   text-shadow:
-    7px 7px 0 #e07a2a,
-    8px 8px 0 #1a1410;
+    7px 7px 0 var(--burnt),
+    8px 8px 0 var(--ink);
   display: inline-block;
   transform: rotate(-3deg);
   position: relative;
@@ -125,14 +148,14 @@ main {
 .title-mid {
   display: inline-block;
   font-size: 0.55em;                /* 55% of base — keeps within viewport */
-  color: #c0202c;                   /* crimson accent */
-  -webkit-text-stroke: 3px #1a1410; /* thinner stroke vs main 4px */
-  text-stroke: 3px #1a1410;
+  color: var(--crimson);                   /* crimson accent */
+  -webkit-text-stroke: 3px var(--ink); /* thinner stroke vs main 4px */
+  text-stroke: 3px var(--ink);
   letter-spacing: 0.02em;
   transform: rotate(2deg);          /* opposite tilt from the main -3deg */
   text-shadow:
-    4px 4px 0 #ffb800,
-    5px 5px 0 #1a1410;
+    4px 4px 0 var(--gold),
+    5px 5px 0 var(--ink);
   padding: 0 0.1em;
   line-height: 1;
   margin: 0.05em 0;                 /* small vertical breathing room */
@@ -149,10 +172,10 @@ main {
   font-family: 'Modak', cursive;
   font-weight: 400;
   font-size: 0.34em;
-  color: #0d9b62;
+  color: var(--emerald);
   text-shadow:
-    3px 3px 0 #c0202c,
-    4px 4px 0 #1a1410;
+    3px 3px 0 var(--crimson),
+    4px 4px 0 var(--ink);
   letter-spacing: 0.04em;
   line-height: 0.9;
   padding: 0;
@@ -171,9 +194,9 @@ main {
 }
 .drip {
   width: 7px;
-  background: #ffb800;
+  background: var(--gold);
   border-radius: 0 0 50% 50%;
-  box-shadow: 1px 0 0 #1a1410, -1px 0 0 #1a1410;
+  box-shadow: 1px 0 0 var(--ink), -1px 0 0 var(--ink);
 }
 .drip.d1 { height: 32px; }
 .drip.d2 { height: 56px; transform: translateY(8px); }
@@ -183,11 +206,11 @@ main {
 /* Tagline (POV) under the title */
 .pov {
   font-family: 'Permanent Marker', cursive;
-  color: #c0202c;
+  color: var(--crimson);
   font-size: clamp(1.2rem, 2.5vw, 1.7rem);
   transform: rotate(-1deg);
   display: inline-block;
-  text-shadow: 3px 3px 0 #ffb800;
+  text-shadow: 3px 3px 0 var(--gold);
   margin: 1rem auto 0;
   max-width: 38rem;
   line-height: 1.3;
@@ -195,7 +218,7 @@ main {
   z-index: 2;
   padding: 0 0.5rem;
 }
-.pov .arrow { color: #0d9b62; }
+.pov .arrow { color: var(--emerald); }
 
 /* "Show parks near me" CTA on the landing page */
 .near-me-cta {
@@ -204,13 +227,13 @@ main {
   font-family: 'Bungee', cursive;
   font-size: 0.95rem;
   letter-spacing: 0.03em;
-  color: #1a1410;
-  background: #ffb800;
-  border: 3px solid #1a1410;
+  color: var(--ink);
+  background: var(--gold);
+  border: 3px solid var(--ink);
   border-radius: 2rem;
   padding: 0.65rem 1.4rem;
   cursor: pointer;
-  box-shadow: 5px 5px 0 #1a1410;
+  box-shadow: var(--shadow-md);
   transform: rotate(-1deg);
   transition: transform 0.15s, box-shadow 0.15s;
   position: relative;
@@ -218,7 +241,7 @@ main {
 }
 .near-me-cta:hover {
   transform: rotate(-1deg) translateY(-1px);
-  box-shadow: 6px 6px 0 #1a1410;
+  box-shadow: var(--shadow-lg);
 }
 
 /* ===== Search section (real, functional) ===== */
@@ -243,18 +266,18 @@ main {
   display: flex;
   align-items: center;
   width: 100%;
-  background: #fff;
-  border: 4px solid #1a1410;
+  background: var(--surface);
+  border: 4px solid var(--ink);
   border-radius: 2rem;
   padding: 0.4rem 0.4rem 0.4rem 0.55rem;
-  box-shadow: 7px 7px 0 #1a1410;
+  box-shadow: var(--shadow-lg);
   gap: 0.5rem;
   transform: rotate(-0.5deg);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .search-bar:focus-within {
   transform: rotate(-0.5deg) translateY(-1px);
-  box-shadow: 8px 8px 0 #1a1410;
+  box-shadow: 8px 8px 0 var(--ink);
 }
 
 /* Home shortcut button (sits below the search bar, right-aligned) */
@@ -267,19 +290,19 @@ main {
   font-family: 'Bungee', cursive;
   font-size: 0.78rem;
   letter-spacing: 0.03em;
-  color: #1a1410;
-  background: #fff;
-  border: 2px solid #1a1410;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
   border-radius: 1.25rem;
   padding: 0.35rem 0.85rem;
-  box-shadow: 3px 3px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .home-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 4px 4px 0 #1a1410;
-  background: #fff3cf;
+  box-shadow: 4px 4px 0 var(--ink); /* one notch above --shadow-sm for the hover pop */
+  background: var(--cream-soft);
 }
 
 /* Autocomplete dropdown */
@@ -288,10 +311,10 @@ main {
   top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  background: #fff;
-  border: 3px solid #1a1410;
+  background: var(--surface);
+  border: 3px solid var(--ink);
   border-radius: 1rem;
-  box-shadow: 5px 5px 0 #1a1410;
+  box-shadow: var(--shadow-md);
   z-index: 100;
   max-height: 20rem;
   overflow-y: auto;
@@ -302,7 +325,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.92rem;
   font-weight: 600;
-  color: #1a1410;
+  color: var(--ink);
   cursor: pointer;
   border-bottom: 1px dashed #ddd;
   line-height: 1.3;
@@ -312,7 +335,7 @@ main {
 }
 .suggestion-item:hover,
 .suggestion-item.highlighted {
-  background: #fff3cf;
+  background: var(--cream-soft);
 }
 .suggestion-header {
   padding: 0.4rem 1rem;
@@ -320,7 +343,7 @@ main {
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   color: #888;
-  background: #f3eadb;
+  background: var(--cream);
   border-bottom: 1px dashed #ddd;
 }
 .suggestion-recent-icon {
@@ -333,8 +356,8 @@ main {
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 50%;
-  border: 3px solid #1a1410;
-  background: #3aa9e8;
+  border: 3px solid var(--ink);
+  background: var(--sky);
   font-size: 1.2rem;
   cursor: pointer;
   display: flex;
@@ -354,7 +377,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
   background: transparent;
   padding: 0.5rem 0.25rem;
 }
@@ -368,8 +391,8 @@ main {
   font-family: 'Bungee', cursive;
   font-size: 0.9rem;
   color: #fff;
-  background: #c0202c;
-  border: 3px solid #1a1410;
+  background: var(--crimson);
+  border: 3px solid var(--ink);
   border-radius: 1.5rem;
   padding: 0.55rem 1.1rem;
   cursor: pointer;
@@ -378,7 +401,7 @@ main {
 }
 .search-submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 0 #1a1410;
+  box-shadow: 0 3px 0 var(--ink);
 }
 
 /* ===== Status message ===== */
@@ -387,26 +410,26 @@ main {
   font-size: 0.95rem;
   font-weight: 700;
   padding: 0.55rem 1.1rem;
-  border: 3px solid #1a1410;
+  border: 3px solid var(--ink);
   border-radius: 1.5rem;
   max-width: 30rem;
   text-align: center;
   margin-top: 1.25rem;
-  background: #fff;
-  color: #1a1410;
-  box-shadow: 4px 4px 0 #1a1410;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
 }
-.status-message.info { background: #f3eadb; }
-.status-message.success { background: #0d9b62; color: #fff; }
+.status-message.info { background: var(--cream); }
+.status-message.success { background: var(--emerald); color: #fff; }
 
 /* ===== Five-things strip (educational banner) ===== */
 .strip {
-  background: #e07a2a;
+  background: var(--burnt);
   color: #fff;
   padding: 3.5rem 1.5rem;
   text-align: center;
-  border-top: 4px solid #1a1410;
-  border-bottom: 4px solid #1a1410;
+  border-top: 4px solid var(--ink);
+  border-bottom: 4px solid var(--ink);
   transform: rotate(-1deg);
   margin: 4rem -2rem;
   position: relative;
@@ -429,9 +452,9 @@ main {
 .strip h2 {
   font-family: 'Bungee', cursive;
   font-size: clamp(2rem, 6vw, 3.2rem);
-  color: #ffb800;
-  -webkit-text-stroke: 3px #1a1410;
-  text-shadow: 4px 4px 0 #0d9b62, 5px 5px 0 #1a1410;
+  color: var(--gold);
+  -webkit-text-stroke: 3px var(--ink);
+  text-shadow: 4px 4px 0 var(--emerald), 5px 5px 0 var(--ink);
   letter-spacing: -0.01em;
   line-height: 1;
 }
@@ -439,8 +462,8 @@ main {
   font-family: 'Permanent Marker', cursive;
   font-size: 1.15rem;
   margin-top: 1rem;
-  color: #f3eadb;
-  text-shadow: 2px 2px 0 #1a1410;
+  color: var(--cream);
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 /* Stickers row in the strip */
@@ -452,21 +475,21 @@ main {
   margin-top: 2rem;
 }
 .sticker {
-  background: #fff;
-  color: #1a1410;
-  border: 3px solid #1a1410;
+  background: var(--surface);
+  color: var(--ink);
+  border: 3px solid var(--ink);
   border-radius: 0.85rem;
   padding: 0.6rem 1rem;
   font-family: 'Bungee', cursive;
   font-size: 0.95rem;
-  box-shadow: 4px 4px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   letter-spacing: 0.02em;
 }
-.sticker:nth-child(1) { background: #ffb800;               transform: rotate(-3deg); }
-.sticker:nth-child(2) { background: #3aa9e8; color: #fff;  transform: rotate(2deg); }
-.sticker:nth-child(3) { background: #0d9b62; color: #fff;  transform: rotate(-1deg); }
-.sticker:nth-child(4) { background: #c0202c; color: #fff;  transform: rotate(2.5deg); }
-.sticker:nth-child(5) { background: #f3eadb;               transform: rotate(-2deg); }
+.sticker:nth-child(1) { background: var(--gold);               transform: rotate(-3deg); }
+.sticker:nth-child(2) { background: var(--sky); color: #fff;  transform: rotate(2deg); }
+.sticker:nth-child(3) { background: var(--emerald); color: #fff;  transform: rotate(-1deg); }
+.sticker:nth-child(4) { background: var(--crimson); color: #fff;  transform: rotate(2.5deg); }
+.sticker:nth-child(5) { background: var(--cream);               transform: rotate(-2deg); }
 
 /* ===== Results toolbar (filters + sort) ===== */
 .results-toolbar {
@@ -482,7 +505,7 @@ main {
   background: rgba(243, 234, 219, 0.92);  /* cream wall, slightly translucent */
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border-bottom: 3px solid #1a1410;
+  border-bottom: 3px solid var(--ink);
   margin-bottom: 0.5rem;
   /* No CSS transition — JS sets transform directly per scroll frame so movement is 1:1 with scroll */
 }
@@ -495,9 +518,9 @@ main {
 .results-heading {
   font-family: 'Bungee', cursive;
   font-size: clamp(1.5rem, 4vw, 2.2rem);
-  color: #ffb800;
-  -webkit-text-stroke: 2px #1a1410;
-  text-shadow: 4px 4px 0 #e07a2a;
+  color: var(--gold);
+  -webkit-text-stroke: 2px var(--ink);
+  text-shadow: 4px 4px 0 var(--burnt);
   display: inline-block;
   transform: rotate(-1deg);
   letter-spacing: 0;
@@ -510,14 +533,14 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  background: #f3eadb;
-  border: 2px solid #1a1410;
+  background: var(--cream);
+  border: 2px solid var(--ink);
   border-radius: 1rem;
   padding: 0.25rem 0.7rem;
   font-family: 'Nunito', sans-serif;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
   animation: osmPulse 1.4s ease-in-out infinite;
 }
 @keyframes osmPulse {
@@ -533,7 +556,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #555;
+  color: var(--text-muted);
   margin-top: 0.15rem;
 }
 .legend-item {
@@ -553,26 +576,28 @@ main {
   color: #fff;
 }
 .legend-swatch-gold  { background: #c89a17; }
-.legend-swatch-green { background: #0d9b62; }
+.legend-swatch-green { background: var(--emerald); }
 
 .weather-banner {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: #fff;
-  border: 3px solid #1a1410;
+  background: var(--surface);
+  border: 3px solid var(--ink);
   border-radius: 1.5rem;
   padding: 0.4rem 0.85rem;
-  box-shadow: 4px 4px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   font-family: 'Nunito', sans-serif;
   font-weight: 700;
   font-size: 0.95rem;
-  color: #1a1410;
+  color: var(--ink);
   transform: rotate(1deg);
 }
 .weather-emoji { font-size: 1.1rem; }
 .weather-temp { font-weight: 800; }
-.weather-label { color: #555; font-weight: 600; font-size: 0.88rem; }
+.weather-label { color: var(--text-muted); font-weight: 600; font-size: 0.88rem; }
+/* V6 F6: hourly rain heads-up ("rain ~2 PM") — same quiet style as the label */
+.weather-rain  { color: var(--text-muted); font-weight: 600; font-size: 0.88rem; }
 
 .filter-row {
   display: flex;
@@ -587,8 +612,8 @@ main {
   gap: 0;
   border-radius: 1.5rem;
   overflow: hidden;
-  border: 3px solid #1a1410;
-  box-shadow: 4px 4px 0 #1a1410;
+  border: 3px solid var(--ink);
+  box-shadow: var(--shadow-sm);
 }
 .type-btn {
   font-family: 'Nunito', sans-serif;
@@ -597,40 +622,40 @@ main {
   padding: 0.4rem 0.85rem;
   border: none;
   cursor: pointer;
-  background: #fff;
-  color: #1a1410;
+  background: var(--surface);
+  color: var(--ink);
   transition: background 0.15s, color 0.15s;
 }
 .type-btn:not(:last-child) {
-  border-right: 2px solid #1a1410;
+  border-right: 2px solid var(--ink);
 }
 .type-btn.active {
-  background: #ffb800;
-  color: #1a1410;
+  background: var(--gold);
+  color: var(--ink);
 }
 .type-btn:hover:not(.active) {
-  background: #f3eadb;
+  background: var(--cream);
 }
 
 /* "Saved" button is visually separate from the type-filter pill — it's a different concept
    (a view of your collection, not a way to slice the current search). */
 .saved-btn {
   margin-left: 0.5rem;     /* gap separates it from the pill */
-  border: 3px solid #1a1410;
+  border: 3px solid var(--ink);
   border-radius: 1.5rem;
-  box-shadow: 4px 4px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   padding: 0.4rem 0.85rem;
 }
 .saved-btn.active {
-  background: #ffb800;     /* same active treatment as type-filter buttons */
-  color: #1a1410;
+  background: var(--gold);     /* same active treatment as type-filter buttons */
+  color: var(--ink);
 }
 
 .filter-message {
   font-family: 'Nunito', sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
   padding: 0.5rem 0;
 }
 
@@ -643,21 +668,21 @@ main {
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.35rem 0.7rem;
-  border: 2px solid #1a1410;
-  background: #fff;
-  color: #1a1410;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
   cursor: pointer;
   border-radius: 1.25rem;
   letter-spacing: 0.01em;
   transition: background 0.15s, color 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 .signal-chip:hover {
-  background: #f3eadb;
+  background: var(--cream);
 }
 .signal-chip.active {
-  background: #ffb800;
-  color: #1a1410;
-  box-shadow: 2px 2px 0 #1a1410;
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
   transform: translate(-1px, -1px);
 }
 
@@ -669,13 +694,14 @@ main {
   pointer-events: none;
 }
 
-/* V3 Feature 1: "Hide visited" toggle uses a purplish active color so it
-   reads as a separate concept from the gold review-driven signal chips. */
+/* V3 Feature 1 + L6: "Hide visited" is a different concept from the gold
+   review-driven signal chips, so its active state goes sky blue — still
+   clearly "on", but on-palette (the old purple was a one-off color). */
 .hide-visited-chip.active {
-  background: #c8a8d8;
-  color: #1a1410;
-  border-color: #1a1410;
-  box-shadow: 2px 2px 0 #1a1410;
+  background: var(--sky);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
   transform: translate(-1px, -1px);
 }
 
@@ -685,7 +711,7 @@ main {
   margin-left: auto;            /* push to the right edge of the filter row */
   background: transparent;
   border: none;
-  color: #c0202c;
+  color: var(--crimson);
   font-family: 'Nunito', sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
@@ -698,7 +724,7 @@ main {
 /* FIX B1: keyboard-highlighted suggestion in the autocomplete dropdown.
    Uses the same cream/gold color as the hover state for consistency. */
 .suggestion-item.selected {
-  background: #fff3cf;
+  background: var(--cream-soft);
 }
 
 /* Mobile-specific tweaks */
@@ -714,8 +740,8 @@ main {
   .tag-title {
     font-size: clamp(2.6rem, 11.5vw, 3.6rem);  /* ~43px on 375px instead of 49px */
     text-shadow:
-      6px 6px 0 #e07a2a,
-      7px 7px 0 #1a1410;
+      6px 6px 0 var(--burnt),
+      7px 7px 0 var(--ink);
     padding: 0 0.2em;
   }
 
@@ -739,7 +765,7 @@ main {
   }
   .results-heading {
     font-size: clamp(1.3rem, 6.5vw, 1.8rem);
-    text-shadow: 3px 3px 0 #e07a2a;  /* slightly smaller shadow to fit */
+    text-shadow: 3px 3px 0 var(--burnt);  /* slightly smaller shadow to fit */
   }
 
   /* Type filter pill: tighter padding + smaller text so it fits without wrapping mid-pill */
@@ -757,7 +783,7 @@ main {
   .home-btn,
   .share-view-btn,
   .sort-select {
-    box-shadow: 2px 2px 0 #1a1410;
+    box-shadow: 2px 2px 0 var(--ink);
   }
 
   /* Sort + Radius selects: allow shrinking on narrow screens */
@@ -807,6 +833,18 @@ main {
     aspect-ratio: auto;
     height: 130px;
   }
+  /* L5: make the loading skeletons the same shape as the real mobile cards
+     (130px photo + compact signal rows). When the skeletons match, real
+     results swap in with barely any reflow instead of the page jumping. */
+  .skeleton-photo {
+    aspect-ratio: auto;
+    height: 130px;
+  }
+  .skeleton-line {
+    height: 0.75rem;
+    margin: 0.3rem 0;
+  }
+  .skeleton-line-title { height: 1.1rem; margin-bottom: 0.5rem; }
   /* Tighter card padding */
   .result-card-body {
     padding: 0.7rem 0.9rem 0.8rem;
@@ -874,12 +912,10 @@ main {
     padding: 0.25rem 0;
     font-size: 0.82rem;
   }
-  /* On mobile, hide the "Add a note" placeholder when no note exists yet
-     (saved notes still show — they have the .has-note class). Adding new notes
-     remains available on desktop. */
-  .note-section:not(.has-note) {
-    display: none;
-  }
+  /* U2: notes stay visible on mobile. We used to hide the "Add a note"
+     toggle here to save space, but phone-in-the-park is exactly when notes
+     get written ("gate by the big slide is broken"). It's a collapsed
+     one-line toggle, so the density cost is a single slim row. */
   /* Result links row tighter */
   .result-links {
     gap: 0.7rem;
@@ -910,7 +946,7 @@ main {
 .sort-label {
   font-family: 'Bungee', cursive;
   font-size: 0.75rem;
-  color: #1a1410;
+  color: var(--ink);
   letter-spacing: 0.04em;
 }
 .sort-select {
@@ -918,16 +954,16 @@ main {
   font-size: 0.85rem;
   font-weight: 700;
   padding: 0.35rem 0.75rem;
-  border: 3px solid #1a1410;
+  border: 3px solid var(--ink);
   border-radius: 1rem;
-  background: #fff;
-  color: #1a1410;
+  background: var(--surface);
+  color: var(--ink);
   outline: none;
   cursor: pointer;
-  box-shadow: 3px 3px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
 }
 .sort-select:focus {
-  background: #f3eadb;
+  background: var(--cream);
 }
 
 /* ===== Map ===== */
@@ -943,9 +979,9 @@ main {
   width: 100%;
   height: 35vh;
   min-height: 240px;
-  border: 4px solid #1a1410;
+  border: 4px solid var(--ink);
   border-radius: 1rem;
-  box-shadow: 7px 7px 0 #0d9b62;  /* emerald drop shadow */
+  box-shadow: 7px 7px 0 var(--emerald);  /* emerald drop shadow */
 }
 
 /* "Search this area" sticker button floating over the map */
@@ -957,12 +993,12 @@ main {
   z-index: 1001;
   font-family: 'Bungee', cursive;
   font-size: 0.85rem;
-  color: #1a1410;
-  background: #ffb800;
-  border: 3px solid #1a1410;
+  color: var(--ink);
+  background: var(--gold);
+  border: 3px solid var(--ink);
   border-radius: 2rem;
   padding: 0.5rem 1rem;
-  box-shadow: 4px 4px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
@@ -970,25 +1006,25 @@ main {
 }
 .search-here-btn:hover {
   transform: translateX(-50%) translateY(-1px) rotate(-1deg);
-  box-shadow: 5px 5px 0 #1a1410;
+  box-shadow: 4px 4px 0 var(--ink); /* one notch above --shadow-sm for the hover pop */
 }
 
 /* Visitor marker (the pulsing dot showing "you are here") */
 .visitor-marker {
   width: 28px;
   height: 28px;
-  background: #3aa9e8;
+  background: var(--sky);
   border: 4px solid #fff;
   border-radius: 50%;
   box-shadow:
-    0 0 0 3px #1a1410,
+    0 0 0 3px var(--ink),
     0 0 0 9px rgba(58, 169, 232, 0.45),
     0 0 16px rgba(58, 169, 232, 0.3);
   animation: pulse 1.8s ease-in-out infinite;
 }
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 3px #1a1410, 0 0 0 9px rgba(58,169,232,0.45), 0 0 16px rgba(58,169,232,0.3); }
-  50%      { box-shadow: 0 0 0 3px #1a1410, 0 0 0 18px rgba(58,169,232,0.15), 0 0 26px rgba(58,169,232,0.1); }
+  0%, 100% { box-shadow: 0 0 0 3px var(--ink), 0 0 0 9px rgba(58,169,232,0.45), 0 0 16px rgba(58,169,232,0.3); }
+  50%      { box-shadow: 0 0 0 3px var(--ink), 0 0 0 18px rgba(58,169,232,0.15), 0 0 26px rgba(58,169,232,0.1); }
 }
 
 /* ===== Results list ===== */
@@ -1005,10 +1041,10 @@ main {
 /* ===== Result card (sticker style) ===== */
 .result-card {
   position: relative;
-  background: #fff;
-  border: 3px solid #1a1410;
+  background: var(--surface);
+  border: 3px solid var(--ink);
   border-radius: 1rem;
-  box-shadow: 6px 6px 0 #0d9b62;
+  box-shadow: 6px 6px 0 var(--emerald);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1025,12 +1061,12 @@ main {
   width: 2.4rem;
   height: 2.4rem;
   border-radius: 50%;
-  border: 3px solid #1a1410;
-  background: #fff;
+  border: 3px solid var(--ink);
+  background: var(--surface);
   font-size: 1.2rem;
   color: #aaa;
   cursor: pointer;
-  box-shadow: 3px 3px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1040,11 +1076,11 @@ main {
 }
 .favorite-btn:hover {
   transform: scale(1.06);
-  color: #ffb800;
+  color: var(--gold);
 }
 .favorite-btn.is-favorite {
-  color: #ffb800;
-  background: #fff3cf;
+  color: var(--gold);
+  background: var(--cream-soft);
 }
 
 /* Visited button — sits below the favorite star */
@@ -1056,13 +1092,13 @@ main {
   width: 2.4rem;
   height: 2.4rem;
   border-radius: 50%;
-  border: 3px solid #1a1410;
-  background: #fff;
+  border: 3px solid var(--ink);
+  background: var(--surface);
   font-size: 1rem;
   font-weight: 800;
   color: #aaa;
   cursor: pointer;
-  box-shadow: 3px 3px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1072,20 +1108,20 @@ main {
 }
 .visited-btn:hover {
   transform: scale(1.06);
-  color: #0d9b62;
+  color: var(--emerald);
 }
 .visited-btn.is-visited {
   color: #fff;
-  background: #0d9b62;
+  background: var(--emerald);
 }
 
 /* "Perfect park" treatment — fenced + bathrooms + toddler-friendly = gold border + sparkle badge */
 .result-card.is-perfect {
-  border-color: #ffb800;
-  box-shadow: 6px 6px 0 #ffb800, inset 0 0 0 2px #1a1410;
+  border-color: var(--gold);
+  box-shadow: 6px 6px 0 var(--gold), inset 0 0 0 2px var(--ink);
 }
 .result-card.is-perfect:hover {
-  box-shadow: 8px 8px 0 #ffb800, inset 0 0 0 2px #1a1410;
+  box-shadow: 8px 8px 0 var(--gold), inset 0 0 0 2px var(--ink);
 }
 .result-card.is-perfect::before {
   content: '✨ PERFECT';
@@ -1093,15 +1129,15 @@ main {
   top: 0.6rem;
   right: 3.4rem;  /* sit to the left of the favorite star */
   z-index: 10;
-  background: #ffb800;
-  color: #1a1410;
+  background: var(--gold);
+  color: var(--ink);
   font-family: 'Bungee', cursive;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   padding: 0.25rem 0.55rem;
-  border: 2px solid #1a1410;
+  border: 2px solid var(--ink);
   border-radius: 0.6rem;
-  box-shadow: 2px 2px 0 #1a1410;
+  box-shadow: 2px 2px 0 var(--ink);
   transform: rotate(4deg);
 }
 
@@ -1115,36 +1151,39 @@ main {
   top: 0.6rem;
   left: 0.6rem;
   z-index: 10;
-  background: #0d9b62;
+  background: var(--emerald);
   color: #fff;
   font-family: 'Bungee', cursive;
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   padding: 0.25rem 0.6rem;
-  border: 2px solid #1a1410;
+  border: 2px solid var(--ink);
   border-radius: 0.6rem;
-  box-shadow: 2px 2px 0 #1a1410;
+  box-shadow: 2px 2px 0 var(--ink);
   transform: rotate(-4deg);
 }
 .result-card:hover {
   transform: translateY(-2px);
-  box-shadow: 8px 8px 0 #0d9b62;
+  box-shadow: 8px 8px 0 var(--emerald);
 }
 
-/* Alternate the shadow color across cards for visual variety */
-.result-card:nth-child(3n+2) { box-shadow: 6px 6px 0 #3aa9e8; }
-.result-card:nth-child(3n+2):hover { box-shadow: 8px 8px 0 #3aa9e8; }
-.result-card:nth-child(3n+3) { box-shadow: 6px 6px 0 #e07a2a; }
-.result-card:nth-child(3n+3):hover { box-shadow: 8px 8px 0 #e07a2a; }
+/* Alternate the shadow color across cards for visual variety.
+   L3: :not(.is-perfect) keeps these rotation rules from clobbering the gold
+   "perfect park" shadow — these come later in the file so they'd win on any
+   perfect park sitting in a 2nd/3rd list position. */
+.result-card:nth-child(3n+2):not(.is-perfect) { box-shadow: 6px 6px 0 var(--sky); }
+.result-card:nth-child(3n+2):not(.is-perfect):hover { box-shadow: 8px 8px 0 var(--sky); }
+.result-card:nth-child(3n+3):not(.is-perfect) { box-shadow: 6px 6px 0 var(--burnt); }
+.result-card:nth-child(3n+3):not(.is-perfect):hover { box-shadow: 8px 8px 0 var(--burnt); }
 
 /* ===== Empty state (no results) ===== */
 .empty-state {
-  background: #fff;
-  border: 3px solid #1a1410;
+  background: var(--surface);
+  border: 3px solid var(--ink);
   border-radius: 1rem;
   padding: 2rem 1.5rem;
   text-align: center;
-  box-shadow: 6px 6px 0 #c0202c;
+  box-shadow: 6px 6px 0 var(--crimson);
   transform: rotate(-0.5deg);
 }
 .empty-emoji {
@@ -1154,13 +1193,13 @@ main {
 .empty-title {
   font-family: 'Bungee', cursive;
   font-size: 1.25rem;
-  color: #1a1410;
+  color: var(--ink);
   letter-spacing: 0.01em;
   margin-bottom: 0.4rem;
 }
 .empty-sub {
   font-family: 'Permanent Marker', cursive;
-  color: #c0202c;
+  color: var(--crimson);
   font-size: 1rem;
   margin-bottom: 1.25rem;
 }
@@ -1173,22 +1212,22 @@ main {
 .empty-cta {
   font-family: 'Bungee', cursive;
   font-size: 0.9rem;
-  color: #1a1410;
-  background: #ffb800;
-  border: 3px solid #1a1410;
+  color: var(--ink);
+  background: var(--gold);
+  border: 3px solid var(--ink);
   border-radius: 1.5rem;
   padding: 0.6rem 1.2rem;
   cursor: pointer;
-  box-shadow: 4px 4px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s, box-shadow 0.15s;
   letter-spacing: 0.02em;
 }
 .empty-cta:hover {
   transform: translateY(-1px);
-  box-shadow: 5px 5px 0 #1a1410;
+  box-shadow: 4px 4px 0 var(--ink); /* one notch above --shadow-sm for the hover pop */
 }
 .empty-cta:nth-child(2) {
-  background: #3aa9e8;
+  background: var(--sky);
   color: #fff;
 }
 
@@ -1226,14 +1265,14 @@ main {
   animation: cardFlash 1.4s ease;
 }
 @keyframes cardFlash {
-  0%   { background: #fff; }
-  20%  { background: #fff3cf; }
-  100% { background: #fff; }
+  0%   { background: var(--surface); }
+  20%  { background: var(--cream-soft); }
+  100% { background: var(--surface); }
 }
 
 /* When the user hovers a card, highlight the corresponding map marker */
 .leaflet-marker-icon.marker-highlight {
-  filter: drop-shadow(0 0 6px #ffb800) drop-shadow(0 0 3px #1a1410);
+  filter: drop-shadow(0 0 6px var(--gold)) drop-shadow(0 0 3px var(--ink));
   transform-origin: bottom center;
   animation: markerBounce 0.6s ease-in-out infinite;
   z-index: 1000 !important;
@@ -1259,8 +1298,8 @@ main {
   aspect-ratio: 16 / 9;
   object-fit: cover;
   display: block;
-  background: #f3eadb;
-  border-bottom: 3px solid #1a1410;
+  background: var(--cream);
+  border-bottom: 3px solid var(--ink);
 }
 .card-hero-attribution {
   font-family: 'Nunito', sans-serif;
@@ -1272,7 +1311,7 @@ main {
   color: #888;
   text-decoration: underline;
 }
-.card-hero-attribution a:hover { color: #555; }
+.card-hero-attribution a:hover { color: var(--text-muted); }
 
 /* Card header: name + type badge */
 .result-card-header {
@@ -1285,7 +1324,7 @@ main {
   font-family: 'Bungee', cursive;
   font-weight: 400;
   font-size: 1.05rem;
-  color: #1a1410;
+  color: var(--ink);
   letter-spacing: 0.01em;
   line-height: 1.1;
 }
@@ -1297,25 +1336,25 @@ main {
   font-size: 0.65rem;
   letter-spacing: 0.05em;
   padding: 0.2rem 0.55rem;
-  border: 2px solid #1a1410;
+  border: 2px solid var(--ink);
   border-radius: 0.6rem;
-  box-shadow: 2px 2px 0 #1a1410;
+  box-shadow: 2px 2px 0 var(--ink);
   color: #fff;
 }
-.result-type.playground { background: #3aa9e8; }
-.result-type.park       { background: #0d9b62; }
+.result-type.playground { background: var(--sky); }
+.result-type.park       { background: var(--emerald); }
 
 .result-meta {
   font-family: 'Nunito', sans-serif;
   font-size: 0.9rem;
-  color: #555;
+  color: var(--text-muted);
   font-weight: 700;
 }
 
 /* Distance / travel time line — bigger, more emphasized */
 .result-distance {
   font-size: 0.95rem;
-  color: #1a1410;
+  color: var(--ink);
 }
 .result-distance .distance-mi {
   color: #888;
@@ -1330,10 +1369,60 @@ main {
   gap: 0.4rem;
   font-size: 0.85rem;
 }
-.hours-open   { color: #0d9b62; font-weight: 700; }
-.hours-closed { color: #c0202c; font-weight: 700; }
-.hours-today  { color: #555;    font-weight: 600; }
+.hours-open   { color: var(--emerald); font-weight: 700; }
+.hours-closed { color: var(--crimson); font-weight: 700; }
+.hours-today  { color: var(--text-muted);    font-weight: 600; }
 .hours-sep    { color: #bbb; }
+
+/* V6 F3: street address line — quieter than the other meta lines */
+.result-address {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+/* V6 F3: same idea inside map popups */
+.popup-address {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* V6 F5: amber "reviews from 2021" warning next to the star rating */
+.review-age {
+  font-size: 0.72rem;
+  color: var(--gold-text);
+}
+
+/* V6 F4: amenity badge row — mini stickers under the signals list */
+.amenity-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.amenity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: var(--cream-soft);            /* soft cream, like a faded sticker */
+  border: 2px solid var(--ink);      /* same ink outline as the big stickers */
+  border-radius: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* V6 F7: gentle backup reminder at the bottom of the Saved list */
+.backup-tip {
+  list-style: none;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-align: center;
+  color: var(--text-muted);
+  max-width: 30rem;
+  margin: 0.75rem auto 0;
+}
 
 .result-rating {
   display: flex;
@@ -1349,12 +1438,12 @@ main {
   line-height: 1;
 }
 .star { font-size: 1rem; }
-.star.full { color: #ffb800; }
+.star.full { color: var(--gold); }
 .star.half {
-  color: #ffb800;
+  color: var(--gold);
   position: relative;
   -webkit-text-fill-color: transparent;
-  background: linear-gradient(90deg, #ffb800 50%, #d5d5d5 50%);
+  background: linear-gradient(90deg, var(--gold) 50%, #d5d5d5 50%);
   -webkit-background-clip: text;
   background-clip: text;
 }
@@ -1362,7 +1451,7 @@ main {
 .stars-compact .star { font-size: 0.8rem; }
 .rating-number {
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
 }
 
 /* ===== Signals list ===== */
@@ -1404,7 +1493,7 @@ main {
 }
 .signal-label {
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
   min-width: 5rem;
 }
 
@@ -1412,13 +1501,15 @@ main {
 /* Signal value styling.
    Default "yes" / "category" colors are amber/gold — these come from AI extraction of reviews.
    When OSM verifies a signal, the .signal-verified class kicks in (deep green) for higher confidence. */
-.signal-yes      { color: #c89a17; font-weight: 700; font-size: 0.88rem; }
-.signal-no       { color: #c0202c; font-weight: 700; font-size: 0.88rem; }
+/* L2: --gold-text / --emerald-text are darkened versions of the palette
+   colors — pure gold on white fails WCAG contrast for small text. */
+.signal-yes      { color: var(--gold-text); font-weight: 700; font-size: 0.88rem; }
+.signal-no       { color: var(--crimson); font-weight: 700; font-size: 0.88rem; }
 .signal-na       { color: #888;    font-weight: 700; font-size: 0.88rem; }
-.signal-category { color: #c89a17; font-weight: 700; font-size: 0.88rem; }
+.signal-category { color: var(--gold-text); font-weight: 700; font-size: 0.88rem; }
 .signal-loading  { color: #aaa;    font-weight: 700; font-size: 0.88rem; font-style: italic; }
 /* OSM-verified signals win the green "high confidence" color */
-.signal-verified { color: #0d9b62 !important; }
+.signal-verified { color: var(--emerald-text) !important; }
 
 .signal-arrow {
   margin-left: auto;
@@ -1433,7 +1524,7 @@ main {
   display: none;
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
-  color: #555;
+  color: var(--text-muted);
   padding: 0.15rem 0 0.5rem 1.8rem;
   line-height: 1.45;
 }
@@ -1449,7 +1540,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
   background: transparent;
   border: none;
   padding: 0.35rem 0;
@@ -1459,7 +1550,7 @@ main {
   gap: 0.4rem;
 }
 .reviews-toggle:hover {
-  color: #c0202c;
+  color: var(--crimson);
 }
 .reviews-arrow {
   font-size: 0.55rem;
@@ -1483,7 +1574,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.85rem;
   font-style: italic;
-  color: #555;
+  color: var(--text-muted);
   line-height: 1.4;
   padding: 0.4rem 0;
   border-bottom: 1px dashed #eee;
@@ -1502,7 +1593,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #1a1410;
+  color: var(--ink);
   background: transparent;
   border: none;
   padding: 0.25rem 0;
@@ -1511,8 +1602,8 @@ main {
   align-items: center;
   gap: 0.4rem;
 }
-.note-section.has-note .note-toggle { color: #c0202c; }
-.note-toggle:hover { color: #c0202c; }
+.note-section.has-note .note-toggle { color: var(--crimson); }
+.note-toggle:hover { color: var(--crimson); }
 .note-arrow {
   font-size: 0.55rem;
   color: #bbb;
@@ -1525,16 +1616,16 @@ main {
   padding: 0.5rem 0.6rem;
   font-family: 'Nunito', sans-serif;
   font-size: 0.85rem;
-  color: #1a1410;
+  color: var(--ink);
   background: #fff8e0;
-  border: 2px dashed #c0202c;
+  border: 2px dashed var(--crimson);
   border-radius: 0.5rem;
   resize: vertical;
   min-height: 3rem;
   outline: none;
 }
 .note-input:focus {
-  background: #fff;
+  background: var(--surface);
   border-style: solid;
 }
 .note-input::placeholder { color: #999; font-style: italic; }
@@ -1558,7 +1649,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.88rem;
   font-weight: 700;
-  color: #3aa9e8;
+  color: var(--sky);
   text-decoration: none;
 }
 .result-link:hover {
@@ -1567,24 +1658,24 @@ main {
 
 /* Directions = primary action, styled as a small sticker button */
 .result-link.result-link-directions {
-  background: #ffb800;
-  color: #1a1410;
-  border: 2px solid #1a1410;
+  background: var(--gold);
+  color: var(--ink);
+  border: 2px solid var(--ink);
   border-radius: 1.25rem;
   padding: 0.3rem 0.75rem;
-  box-shadow: 2px 2px 0 #1a1410;
+  box-shadow: 2px 2px 0 var(--ink);
   display: inline-block;
 }
 .result-link.result-link-directions:hover {
   text-decoration: none;
   transform: translateY(-1px);
-  box-shadow: 3px 3px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
 }
 .result-link-secondary {
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #c0202c;
+  color: var(--crimson);
   text-decoration: none;
 }
 .result-link-secondary:hover {
@@ -1596,7 +1687,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #0d9b62;
+  color: var(--emerald);
   background: transparent;
   border: none;
   padding: 0;
@@ -1609,19 +1700,19 @@ main {
   font-family: 'Bungee', cursive;
   font-size: 0.78rem;
   letter-spacing: 0.03em;
-  color: #1a1410;
-  background: #fff;
-  border: 2px solid #1a1410;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
   border-radius: 1.25rem;
   padding: 0.35rem 0.85rem;
-  box-shadow: 3px 3px 0 #1a1410;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .share-view-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 4px 4px 0 #1a1410;
-  background: #fff3cf;
+  box-shadow: 4px 4px 0 var(--ink); /* one notch above --shadow-sm for the hover pop */
+  background: var(--cream-soft);
 }
 
 /* ===== Map popup ===== */
@@ -1632,21 +1723,21 @@ main {
 }
 .popup-hero {
   margin: -13px -20px 8px -20px;
-  border-bottom: 2px solid #1a1410;
+  border-bottom: 2px solid var(--ink);
 }
 .popup-hero-image {
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
   display: block;
-  background: #f3eadb;   /* FIX D1: cream fallback if the photo 404s */
+  background: var(--cream);   /* FIX D1: cream fallback if the photo 404s */
 }
 .popup-body { padding: 0; }
 .popup-body strong {
   font-family: 'Bungee', cursive;
   font-weight: 400;
   font-size: 0.95rem;
-  color: #1a1410;
+  color: var(--ink);
 }
 .popup-signals {
   display: flex;
@@ -1679,7 +1770,7 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #3aa9e8;
+  color: var(--sky);
   text-decoration: none;
 }
 .leaflet-popup-content .popup-link-google:hover { text-decoration: underline; }
@@ -1687,10 +1778,92 @@ main {
   font-family: 'Nunito', sans-serif;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #c0202c;
+  color: var(--crimson);
   text-decoration: none;
 }
 .leaflet-popup-content .popup-link-yelp:hover { text-decoration: underline; }
+
+/* ===== L4: mobile "back to filters" floating pill ===== */
+/* Appears (via app.js) only after the filter toolbar scrolls off-screen.
+   Mobile-only: on desktop the toolbar is sticky, so there's nothing to
+   scroll back to. display:none here wins over JS un-hiding it. */
+.filters-pill {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  display: none;                  /* desktop default — media query below turns it on */
+  font-family: 'Bungee', cursive;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  color: #1a1410;                 /* pinned ink-on-gold in both light and dark mode */
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-radius: 2rem;
+  padding: 0.5rem 1rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .filters-pill {
+    display: inline-block;
+  }
+  /* .hidden (display:none !important) still beats this when the toolbar is on screen */
+}
+
+/* ===== U10: "Someone shared parks with you" banner ===== */
+/* Replaces the old window.confirm() popup — same sticker look as the rest
+   of the app, and it doesn't block the page while the user decides. */
+.shared-import-banner {
+  background: var(--cream);
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-sm);
+  max-width: 34rem;
+  margin: 1rem auto;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+.shared-import-text {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+.shared-import-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.shared-import-btn {
+  font-family: 'Bungee', cursive;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  border: 3px solid var(--ink);
+  border-radius: 1.5rem;
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.shared-import-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+.shared-import-accept {
+  background: var(--gold);
+  color: #1a1410;                 /* pinned ink-on-gold in both light and dark mode */
+}
+.shared-import-decline {
+  background: var(--surface);
+  color: var(--ink);
+}
 
 /* ===== Utility ===== */
 .hidden {
@@ -1734,5 +1907,102 @@ main {
 
   .strip {
     padding: 4.5rem 2rem;
+  }
+}
+
+/* ============================================================
+   L8: Dark mode — follows the phone's system setting.
+   The whole theme runs on the CSS variables defined at the top
+   of this file, so dark mode is mostly "remap the variables":
+   cream surfaces go deep brown, and --ink (borders, shadows,
+   body text) inverts to cream. Goal is "not blinding during a
+   9pm doom-scroll for tomorrow's park", not pixel-perfection.
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cream: #221b13;
+    --surface: #2c241a;
+    --cream-soft: #3a2f20;
+    --ink: #f3eadb;            /* borders + shadows + body text invert to cream */
+    --text-muted: #b8a98e;
+    --gold-text: #ffd24c;      /* text accents lighten instead of darken on dark bg */
+    --emerald-text: #2fc98a;
+  }
+
+  html {
+    background: #1a1410;
+  }
+
+  /* Re-declare the full body background: same three radial color accents,
+     toned way down (≈0.06 alpha), over a dark vertical gradient. */
+  body {
+    background:
+      radial-gradient(at 18% 10%, rgba(224,122,42,0.06), transparent 55%),
+      radial-gradient(at 80% 50%, rgba(58,169,232,0.06), transparent 55%),
+      radial-gradient(at 50% 100%, rgba(255,184,0,0.06), transparent 60%),
+      linear-gradient(180deg, #241d14 0%, #1a1410 100%);
+    color: var(--ink);
+  }
+
+  /* The paper-noise overlay multiplies (darkens) in light mode; on a dark
+     page that just crushes to black, so switch it to screen (lightens)
+     at a whisper of opacity. */
+  body::before {
+    mix-blend-mode: screen;
+    opacity: 0.05;
+  }
+
+
+  /* Leaflet popups default to white — give them our dark card surface. */
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  /* Gently dim the map tiles. A full invert makes maps look radioactive;
+     a light brightness/contrast tweak keeps them readable but calm. */
+  .leaflet-tile {
+    filter: brightness(0.8) contrast(1.1);
+  }
+
+  /* Chips and buttons with GOLD or SKY fills keep their bright background
+     in dark mode, but their text uses var(--ink) — which is now cream.
+     Cream-on-gold is unreadable, so pin those labels to literal near-black. */
+  .near-me-cta,
+  .type-btn.active,
+  .saved-btn.active,
+  .signal-chip.active,
+  .hide-visited-chip.active,
+  .search-here-btn,
+  .empty-cta,
+  .result-link.result-link-directions,
+  .result-card.is-perfect::before,
+  .sticker:nth-child(1) {
+    color: #1a1410;
+  }
+
+  /* Loading skeletons: shimmer between surface tones instead of near-white. */
+  .skeleton {
+    background: linear-gradient(90deg, #2c241a 25%, #3a2f20 50%, #2c241a 75%);
+    background-size: 200% 100%;
+  }
+
+  /* Note textarea had a literal pale-yellow paper background. */
+  .note-input {
+    background: var(--cream-soft);
+    color: var(--ink);
+  }
+  .note-input:focus {
+    background: var(--surface);
+  }
+}
+
+/* L8: the DESKTOP sticky toolbar has a literal translucent-cream background
+   (rgba can't be remapped by the variables above). Scoped to min-width so it
+   doesn't override the mobile toolbar, which is deliberately transparent. */
+@media (prefers-color-scheme: dark) and (min-width: 768px) {
+  .results-toolbar {
+    background: rgba(34, 27, 19, 0.92);
   }
 }

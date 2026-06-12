@@ -19,6 +19,15 @@ module.exports = async function handler(req, res) {
     radiusMiles = 0.5; // default
   }
   var radiusMeters = radiusMiles * 1609.344;
+  // ---- 1c. Which weekday is it for the USER? ----
+  // U3: this serverless function runs in UTC. After ~4-5pm Pacific the
+  // server's "today" is already tomorrow, so "Today's hours" showed the
+  // wrong day. The client sends its own weekday (0=Sunday..6=Saturday);
+  // we trust it when it's a valid 0-6 integer, else fall back to server time.
+  var clientDay = parseInt(req.query.day, 10);
+  if (isNaN(clientDay) || clientDay < 0 || clientDay > 6) {
+    clientDay = new Date().getDay();
+  }
   // ---- 2. Check for API key ----
   var apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
@@ -46,7 +55,15 @@ module.exports = async function handler(req, res) {
     'places.photos',
     'places.reviews',
     'places.regularOpeningHours',
-    'places.currentOpeningHours'
+    'places.currentOpeningHours',
+    // V6 F3: street address shown on each card
+    'places.formattedAddress',
+    // V6 F2: Google's own yes/no answers for "has a restroom?" and
+    // "good for children?". These are Enterprise-tier fields — the same
+    // SKU we already pay for via places.reviews, so adding them costs
+    // nothing extra.
+    'places.restroom',
+    'places.goodForChildren'
   ].join(',');
   try {
     var response = await fetch(googleUrl, {
@@ -102,8 +119,15 @@ module.exports = async function handler(req, res) {
       var reviewTexts = [];
       if (Array.isArray(place.reviews)) {
         reviewTexts = place.reviews
-          .map(function (rv) { return rv && rv.text ? rv.text.text : ''; })
-          .filter(function (t) { return t && t.length > 0; });
+          .map(function (rv) {
+            return {
+              text: rv && rv.text ? rv.text.text : '',
+              // V6 F5: when the review was written, so the frontend can warn
+              // when ALL of a park's reviews are years old.
+              publishTime: (rv && rv.publishTime) || null
+            };
+          })
+          .filter(function (rv) { return rv.text && rv.text.length > 0; });
       }
       // Hours info: openNow + a short string for today's hours
       var openNow = null;
@@ -113,7 +137,9 @@ module.exports = async function handler(req, res) {
       var todayHours = null;
       if (place.regularOpeningHours && Array.isArray(place.regularOpeningHours.weekdayDescriptions)) {
         // weekdayDescriptions is Mon-Sun. JS getDay() is Sun=0..Sat=6 → convert.
-        var jsDay = new Date().getDay();
+        // U3: use the CLIENT's weekday (computed above), not the server's —
+        // this function runs in UTC, where "today" flips a day early for US users.
+        var jsDay = clientDay;
         var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
         var todayDesc = place.regularOpeningHours.weekdayDescriptions[dayIndex];
         if (todayDesc) {
@@ -134,7 +160,13 @@ module.exports = async function handler(req, res) {
         photoAttribution: photo ? photo.photoAttribution : null,
         reviews: reviewTexts,
         openNow: openNow,
-        todayHours: todayHours
+        todayHours: todayHours,
+        // V6 F3: human-readable street address for the card + map popup
+        address: place.formattedAddress || null,
+        // V6 F2: Google's structured facts. Only pass real booleans through —
+        // anything else becomes null so the frontend knows "Google didn't say".
+        restroom: typeof place.restroom === 'boolean' ? place.restroom : null,
+        goodForChildren: typeof place.goodForChildren === 'boolean' ? place.goodForChildren : null
       };
     });
     // ---- 6. Sort by distance, closest first ----

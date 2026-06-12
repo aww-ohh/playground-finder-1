@@ -156,7 +156,7 @@
       </div>
       <div class="signal-legend" aria-label="What signal colors mean">
         <span class="legend-item"><span class="legend-swatch legend-swatch-gold">✓</span> from reviews</span>
-        <span class="legend-item"><span class="legend-swatch legend-swatch-green">✓</span> verified by map data</span>
+        <span class="legend-item"><span class="legend-swatch legend-swatch-green">✓</span> verified by map/Google data</span>
       </div>
       <div class="filter-row">
         <div class="type-filter" id="type-filter">
@@ -173,6 +173,8 @@
         <button class="signal-chip" data-signal="toddler">👶 Toddler</button>
         <button class="signal-chip" data-signal="parking">🅿️ Parking</button>
         <button class="signal-chip" data-signal="tennis">🎾 Tennis</button>
+        <!-- V6 F1: only show parks Google says are open right now. -->
+        <button class="signal-chip" data-signal="open">🕐 Open now</button>
         <!-- V3 Feature 1: tap to hide parks the user has already marked ✓ visited. -->
         <button class="signal-chip hide-visited-chip" data-toggle="hide-visited" aria-pressed="false">👻 Hide visited</button>
       </div>
@@ -223,6 +225,11 @@
         <ul id="results-list" class="results-list"></ul>
       </section>
     </div>
+
+    <!-- L4: mobile-only floating pill — appears once you scroll past the
+         filter toolbar, taps you straight back up to it. Hidden on desktop
+         via CSS (the toolbar is sticky there, so no pill needed). -->
+    <button type="button" id="filters-pill" class="filters-pill hidden" aria-label="Back to filters">⬆️ Filters</button>
 
   </main>
 

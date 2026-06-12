@@ -34,6 +34,15 @@ module.exports = async function handler(req, res) {
     // mark a park as having tennis if any pitch sits within 80m of its center.
     +   'way[leisure=pitch][sport~"tennis"](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
     +   'node[leisure=pitch][sport~"tennis"](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    // V6 F4: fun-amenity badges. Mappers tag these a few different ways in
+    // the wild, so we ask for the common variants — a tag that doesn't exist
+    // anywhere simply returns no elements, which is harmless.
+    +   'node[playground=splash_pad](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    +   'way[playground=splash_pad](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    +   'node[amenity=drinking_water](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    +   'node[leisure=picnic_table](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    +   'way[leisure=picnic_table](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
+    +   'node[amenity=picnic_table](around:' + radiusMeters + ',' + lat + ',' + lng + ');'
     + ');'
     + 'out tags center;';
 
@@ -61,10 +70,20 @@ module.exports = async function handler(req, res) {
     var toilets = [];
     var parkings = [];
     var tennisCourts = [];
+    // V6 F4: amenity collections for the badge row
+    var splashPads = [];
+    var picnicTables = [];
+    var drinkingWater = [];
     data.elements.forEach(function (el) {
       var pos = elementCenter(el);
       if (!pos) return;
       var tags = el.tags || {};
+      // V6 F4: splash pads are checked OUTSIDE the else-if chain because an
+      // element can be both a playground AND a splash pad — it should count
+      // as both, not get swallowed by the park branch below.
+      if (tags.playground === 'splash_pad') {
+        splashPads.push({ lat: pos.lat, lng: pos.lng });
+      }
       if (tags.leisure === 'park' || tags.leisure === 'playground') {
         parks.push({ lat: pos.lat, lng: pos.lng, tags: tags, name: tags.name || '' });
       } else if (tags.amenity === 'toilets') {
@@ -73,6 +92,12 @@ module.exports = async function handler(req, res) {
         parkings.push({ lat: pos.lat, lng: pos.lng });
       } else if (tags.leisure === 'pitch' && tags.sport && tags.sport.indexOf('tennis') !== -1) {
         tennisCourts.push({ lat: pos.lat, lng: pos.lng });
+      } else if (tags.leisure === 'picnic_table' || tags.amenity === 'picnic_table') {
+        // V6 F4: note this can't collide with the tennis branch above —
+        // tennis pitches are leisure=pitch, picnic tables are leisure=picnic_table.
+        picnicTables.push({ lat: pos.lat, lng: pos.lng });
+      } else if (tags.amenity === 'drinking_water') {
+        drinkingWater.push({ lat: pos.lat, lng: pos.lng });
       }
     });
 
@@ -82,7 +107,16 @@ module.exports = async function handler(req, res) {
         lat: p.lat,
         lng: p.lng,
         name: p.name,
-        signals: extractOsmSignals(p, toilets, parkings, tennisCourts)
+        signals: extractOsmSignals(p, toilets, parkings, tennisCourts),
+        // V6 F4: display-only amenity badges (not filters). Splash pads get a
+        // wider 120m net because they're often mapped as a separate feature
+        // inside a bigger park; tables and fountains use the tighter 100m
+        // radius we already trust for toilets.
+        amenities: {
+          splashPad: anyWithinMeters(p.lat, p.lng, splashPads, 120),
+          picnicTables: anyWithinMeters(p.lat, p.lng, picnicTables, 100),
+          drinkingWater: anyWithinMeters(p.lat, p.lng, drinkingWater, 100)
+        }
       };
     });
 
