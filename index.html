@@ -3,7 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Playground and Park Finder — by AWW</title>
+  <!-- Product name only in the <title> — it shows in browser tabs, bookmarks,
+       and link previews, so we keep it clean. The "by AWW" signature still
+       lives in the hero graffiti where it belongs. -->
+  <title>Playground and Park Finder</title>
+
+  <!-- Description for search engines + the fallback for link unfurls. -->
+  <meta name="description" content="Find playgrounds and parks with the features that matter — fenced, shaded, bathrooms, parking, toddler-friendly, tennis courts — pulled from real reviews and verified against map data.">
+
+  <!-- Open Graph + Twitter cards: when the demo link is shared in Slack,
+       email, or iMessage, it unfurls as a titled preview card instead of a
+       bare URL. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Playground and Park Finder">
+  <meta property="og:description" content="Find playgrounds and parks with the features that matter — fenced, shaded, bathrooms, parking, toddler-friendly, tennis — from real reviews, verified against map data.">
+  <meta property="og:image" content="/icon.svg">
+  <meta property="og:url" content="https://playground-finder-1.vercel.app/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Playground and Park Finder">
+  <meta name="twitter:description" content="Playgrounds and parks, filtered by the features you actually care about.">
+  <meta name="twitter:image" content="/icon.svg">
 
   <!-- PWA: install to home screen + offline support -->
   <link rel="manifest" href="/manifest.json">
@@ -26,6 +45,21 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- If JavaScript is blocked (locked-down corporate network, an early
+       script error), the whole app below is inert. Explain that instead of
+       leaving a dead search bar. -->
+  <noscript>
+    <div class="noscript-banner">
+      This app needs JavaScript to search for parks. Please enable it, or open
+      the site in a standard browser.
+    </div>
+  </noscript>
+
+  <!-- Screen-reader live region: app.js writes "Found N parks nearby" here
+       after each search so assistive tech announces async results. Visually
+       hidden via .sr-only. -->
+  <div id="a11y-status" class="sr-only" aria-live="polite" role="status"></div>
 
   <main>
 
@@ -94,6 +128,14 @@
         Find playgrounds and parks with features that you want. <span class="arrow">↗</span>
       </div>
 
+      <!-- Value proposition: names WHO it's for and WHAT the magic is, so a
+           first-time visitor gets the point in one sentence. -->
+      <p class="value-prop">
+        We read real reviews with AI to tell you if a playground is fenced,
+        shaded, has bathrooms, and is toddler-safe — so you don’t drive across
+        town to a dud.
+      </p>
+
       <!-- Quick CTA: trigger geolocation in one click. No 📍 emoji here —
            the search-bar pin button is the one pin glyph on the page, so the
            same action isn't advertised three different ways at once. -->
@@ -136,7 +178,7 @@
     <section id="five-things-strip" class="strip">
       <div class="strip-inner">
         <h2>SIX THINGS<br>THAT MATTER</h2>
-        <p class="strip-sub">we pull these from real reviews — no guessing.</p>
+        <p class="strip-sub">we pull these from real reviews &amp; verified map data — no guessing.</p>
         <div class="stickers">
           <div class="sticker">🔒 FENCED?</div>
           <div class="sticker">🌳 SHADE?</div>

@@ -1616,6 +1616,20 @@ function renderResults(results, unfilteredCount) {
   }
 
   resultsList.innerHTML = html;
+
+  // FIX 10: setting innerHTML above rebuilt every card from scratch, which
+  // resets any photo carousel back to the single hero photo + "+N" badge. If
+  // the user was mid-browse and just toggled a filter, the carousel would
+  // silently collapse. The extra photo URLs are still cached on the result
+  // object (park._extraPhotoUrls), so we can re-enter carousel mode for free —
+  // no new photo fetch. Cards WITHOUT cached extra photos are skipped (they
+  // keep their plain badge), so this never disturbs a normal first render.
+  results.forEach(function (park) {
+    if (!Array.isArray(park._extraPhotoUrls) || park._extraPhotoUrls.length <= 1) return;
+    var card = resultsList.querySelector('.result-card[data-place-id="' + park.placeId + '"]');
+    if (!card) return; // card may be filtered out — skip rather than throw
+    enterCarouselMode(card, park);
+  });
 }
 
 // ---- Master render: filter → sort → render list + update markers ----
@@ -1697,6 +1711,11 @@ function handleCoordinates(lat, lng, originMode) {
           if (thisRequest !== requestId) return;
           if (data.results.length === 0) {
             showMessage('No playgrounds or parks found within ' + formatRadius(radius) + ' of this location.', 'info');
+            // ADDITION: announce the empty result to screen-reader users via
+            // the polite aria-live region (results arrive async, so without
+            // this a screen reader gives no feedback that the search finished).
+            var liveEmpty = document.getElementById('a11y-status');
+            if (liveEmpty) liveEmpty.textContent = 'No playgrounds or parks found here';
             showMap(lat, lng, []);
             currentResults = [];
             renderEmptyState(radius);
@@ -1755,6 +1774,12 @@ function handleCoordinates(lat, lng, originMode) {
           });
 
           showMessage('Found ' + data.results.length + ' playgrounds and parks nearby.', 'success');
+          // ADDITION: also announce the count in the polite aria-live region so
+          // screen-reader users hear how many results arrived. Done here on a
+          // FRESH search only (not on filter re-renders, which would spam the
+          // announcement). Defensive — the element may not exist on older HTML.
+          var live = document.getElementById('a11y-status');
+          if (live) live.textContent = 'Found ' + data.results.length + ' playgrounds and parks nearby';
           currentResults = data.results;
           showMap(lat, lng, data.results);
           applyFilterAndSort();
@@ -2256,6 +2281,10 @@ geolocateBtn.addEventListener('click', function () {
       showMessage(msg, 'info');
       // Move focus to the address input to nudge the user toward the fallback
       addressInput.focus();
+      // FIX 9: geolocation failed, but a returning user may still have a saved
+      // home — surface the "🏠 Take me home" button so they have a one-tap way
+      // back even though this search never started.
+      refreshHomeButton();
     },
     { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
   );
@@ -2360,7 +2389,11 @@ document.getElementById('home-btn').addEventListener('click', function () {
     if (!ta) return;
     var pid = ta.getAttribute('data-place-id');
     var status = document.querySelector('.note-status[data-place-id="' + pid + '"]');
-    if (status) status.textContent = 'Saving…';
+    if (status) {
+      status.textContent = 'Saving…';
+      // FIX 11: clear any prior failure styling so a retry starts looking clean.
+      status.classList.remove('save-failed');
+    }
     clearTimeout(noteSaveTimers[pid]);
     noteSaveTimers[pid] = setTimeout(function () {
       // FIX E3: setNote now returns boolean. Surface failures (storage full,
@@ -2378,10 +2411,18 @@ document.getElementById('home-btn').addEventListener('click', function () {
       }
       if (status) {
         if (ok) {
+          // FIX 11: clear the warning styling — a successful save should wipe
+          // any earlier "not saved" state so it doesn't linger misleadingly.
+          status.classList.remove('save-failed');
           status.textContent = 'Saved ✓';
           setTimeout(function () { if (status) status.textContent = ''; }, 1200);
         } else {
-          status.textContent = "Couldn't save (storage full)";
+          // FIX 11: make failure unmistakable. The old "Couldn't save (storage
+          // full)" looked the same weight as "Saved ✓", so users assumed it
+          // saved. Now it gets a warning glyph + a CSS class for emphasis, and
+          // we DON'T auto-clear it — the warning stays until the next save.
+          status.textContent = '⚠ Not saved — storage full';
+          status.classList.add('save-failed');
         }
       }
     }, 600);
@@ -2876,18 +2917,45 @@ function handleSharedUrl() {
     // Shared link — no human address text; coords only (will show as a pin)
     handleCoordinates(lat, lng, { lat: lat, lng: lng });
     if (park) {
-      // Once results render, scroll to the shared park's card
+      // FIX 8: once results render, scroll to the shared park's card. If the
+      // card never shows up, the park is most likely just outside the current
+      // radius — so instead of dead-ending, we auto-widen the radius one step
+      // and search again (0.5 → 1 → 2 → 5 miles). The widenSteps counter plus
+      // the '5'-mile ceiling guarantee this can't loop forever.
+      var widenRadii = ['0.5', '1', '2', '5'];
       var attempts = 0;
       var trySelect = function () {
         var card = document.querySelector('.result-card[data-place-id="' + park + '"]');
         if (card) {
           scrollToCard(park);
+          // WHY: the card can render BEFORE Leaflet finishes loading, so the
+          // map's fitBounds happened without this pin in view. Pan the map to
+          // the shared pin now (mirrors the card-click handler). All guarded —
+          // if the marker isn't on the map yet, fitBounds already centered us.
+          var sharedMarker = markersByPlaceId[park];
+          if (sharedMarker && map) {
+            map.panTo(sharedMarker.getLatLng());
+          }
         } else if (attempts++ < 20) {
           setTimeout(trySelect, 300);
         } else {
-          // U7: don't give up silently — the shared park may sit outside the
-          // current radius, and a dead-end with zero explanation is confusing.
-          showMessage('We couldn’t find the shared park in this search — try widening the radius.', 'info');
+          // Gave up at this radius. Try one step wider if we're not already at 5 miles.
+          var current = radiusSelect.value;
+          var idx = widenRadii.indexOf(current);
+          if (idx !== -1 && idx < widenRadii.length - 1) {
+            var newRadius = widenRadii[idx + 1];
+            radiusSelect.value = newRadius;
+            savePref('playgroundFinder.radius', newRadius);
+            showMessage('Looking a little wider for the shared park…', 'info');
+            // Re-run the same shared search at the wider radius, then restart
+            // the poll from scratch (reset attempts) so it has a fresh 20 tries.
+            handleCoordinates(lat, lng, { lat: lat, lng: lng });
+            attempts = 0;
+            setTimeout(trySelect, 1500);
+          } else {
+            // Already at the widest radius and still nothing — truly not found.
+            showMessage("We couldn’t find the shared park nearby — it may have been removed from the map.", 'info');
+          }
         }
       };
       setTimeout(trySelect, 1500);
@@ -2969,6 +3037,12 @@ function refreshShareButtonLabel() {
 // ---- Initial: handle URL share params on page load + refresh button labels ----
 handleSharedUrl();
 refreshShareButtonLabel();
+// FIX 9: surface the home button on cold load. refreshHomeButton() only ran
+// after a search before, so a returning user with a saved home never saw the
+// "🏠 Take me home" button until they searched again. It self-guards (hides
+// itself when there's no home AND no current search), so this is safe to call
+// here even with an empty page.
+refreshHomeButton();
 
 // ---- FIX D3: offline / online toast ----
 // Without this, the SW happily serves stale cached results when offline and

@@ -220,6 +220,21 @@ main {
 }
 .pov .arrow { color: var(--emerald); }
 
+/* Value proposition under the tagline — plain, readable body copy (not the
+   graffiti display fonts) so the one-sentence "what is this" lands instantly. */
+.value-prop {
+  font-family: 'Nunito', sans-serif;
+  color: var(--ink);
+  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  font-weight: 600;
+  line-height: 1.5;
+  max-width: 34rem;
+  margin: 0.9rem auto 0;
+  padding: 0 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
 /* "Show parks near me" CTA on the landing page */
 .near-me-cta {
   margin: 1.5rem auto 0;
@@ -1717,6 +1732,14 @@ main {
   margin-top: 0.2rem;
   height: 1rem;
 }
+/* Persistent storage-full warning — louder than the grey "Saving…/Saved ✓"
+   so the user doesn't close the tab thinking their note saved. app.js adds
+   this class on a failed save and removes it on the next successful one. */
+.note-status.save-failed {
+  color: var(--crimson);
+  font-weight: 700;
+  height: auto;
+}
 
 /* Result links */
 .result-links {
@@ -1949,6 +1972,35 @@ main {
 /* ===== Utility ===== */
 .hidden {
   display: none !important;
+}
+
+/* Visually hidden but available to screen readers — used by #a11y-status,
+   the aria-live region that announces "Found N parks" after each search. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* No-JS fallback banner (the app is JS-driven; this only shows when scripts
+   are blocked or fail to load). */
+.noscript-banner {
+  margin: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--gold);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  text-align: center;
 }
 
 /* ===== Desktop layout ===== */
