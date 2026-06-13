@@ -1386,6 +1386,21 @@ main {
 .photo-nav-prev { left: 0.5rem; }
 .photo-nav-next { right: 0.5rem; }
 
+/* On touch devices, swiping replaces the ‹ › arrows — hide them so the photo
+   is unobstructed, and tell the browser we handle horizontal gestures (pan-y
+   keeps vertical scrolling of the results list working normally). The dots
+   stay as a position indicator. Desktop (fine pointer) keeps the arrows. */
+@media (pointer: coarse) {
+  .photo-nav { display: none; }
+}
+.card-hero[data-photo-index] {
+  touch-action: pan-y;
+}
+.card-hero[data-photo-index] .card-hero-image {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 /* Dots row — one dot per slide, the current slide's dot turns gold. */
 .photo-dots {
   position: absolute;

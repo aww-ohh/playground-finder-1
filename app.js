@@ -51,6 +51,10 @@ var lastLng = null;
 // (geolocation), this is null so Google Maps falls back to live "Your location".
 var searchOrigin = null;
 var requestId = 0; // for ignoring stale responses
+// Timestamp of the last photo-carousel swipe. Some touch browsers fire a
+// synthetic click right after a swipe; the card-click handler checks this to
+// avoid panning the map when the user only meant to flip a photo.
+var lastCarouselSwipeAt = 0;
 var CURRENT_LOCATION_LABEL = 'Current location';
 var MAP_AREA_LABEL = 'Map area';
 var searchHereBtn = document.getElementById('search-here-btn');
@@ -576,6 +580,25 @@ function enterCarouselMode(card, park) {
     '<button type="button" class="photo-nav photo-nav-prev" data-dir="-1" aria-label="Previous photo">‹</button>'
     + '<button type="button" class="photo-nav photo-nav-next" data-dir="1" aria-label="Next photo">›</button>'
     + '<div class="photo-dots">' + dotsHtml + '</div>');
+}
+
+// ---- Helper: advance a card's carousel by a direction (+1 next, -1 prev) ----
+// Shared by the ‹ › arrow buttons (desktop) and the swipe gesture (touch), so
+// the two input methods can never drift out of sync. Wraps around at both ends.
+function moveCarousel(hero, park, dir) {
+  if (!hero || !park || !Array.isArray(park._extraPhotoUrls)) return;
+  var count = park._extraPhotoUrls.length;
+  if (count < 2) return;
+  var idx = parseInt(hero.getAttribute('data-photo-index'), 10) || 0;
+  idx = (idx + dir + count) % count; // wraps around at both ends
+  hero.setAttribute('data-photo-index', String(idx));
+  var img = hero.querySelector('.card-hero-image');
+  if (img) img.src = park._extraPhotoUrls[idx];
+  // Light up the dot for the slide we're now on.
+  var dots = hero.querySelectorAll('.photo-dots span');
+  for (var i = 0; i < dots.length; i++) {
+    dots[i].classList.toggle('active', i === idx);
+  }
 }
 
 // ---- Helper: build hero photo HTML for a popup ----
@@ -2112,7 +2135,7 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     return;
   }
 
-  // --- ‹ › arrow tap → show the previous/next slide ---
+  // --- ‹ › arrow tap → show the previous/next slide (desktop input) ---
   var navBtn = e.target.closest('.photo-nav');
   if (navBtn) {
     var hero = navBtn.closest('.card-hero');
@@ -2120,22 +2143,52 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     if (!hero || !navCard) return;
     var navPid = navCard.getAttribute('data-place-id');
     var navPark = currentResults.find(function (r) { return r.placeId === navPid; });
-    if (!navPark || !Array.isArray(navPark._extraPhotoUrls)) return;
-    var count = navPark._extraPhotoUrls.length;
     var dir = parseInt(navBtn.getAttribute('data-dir'), 10) || 1;
-    var idx = parseInt(hero.getAttribute('data-photo-index'), 10) || 0;
-    idx = (idx + dir + count) % count; // wraps around at both ends
-    hero.setAttribute('data-photo-index', String(idx));
-    var img = hero.querySelector('.card-hero-image');
-    if (img) img.src = navPark._extraPhotoUrls[idx];
-    // Light up the dot for the slide we're now on.
-    var dots = hero.querySelectorAll('.photo-dots span');
-    for (var i = 0; i < dots.length; i++) {
-      dots[i].classList.toggle('active', i === idx);
-    }
+    moveCarousel(hero, navPark, dir);
     return;
   }
 });
+
+// ---- Swipe the photo carousel on touch devices ----
+// On phones, swiping a photo left/right is the natural gesture (the ‹ › arrows
+// are hidden via CSS on touch). We listen on the results list so it keeps
+// working after re-renders. We only act on a clearly HORIZONTAL swipe so we
+// never hijack the user's vertical scroll through the list.
+(function () {
+  var list = document.getElementById('results-list');
+  if (!list) return;
+  var startX = 0, startY = 0, swipeHero = null;
+
+  list.addEventListener('touchstart', function (e) {
+    // Only arm a swipe if the touch started on a carousel-active hero.
+    var hero = e.target.closest('.card-hero[data-photo-index]');
+    if (!hero) { swipeHero = null; return; }
+    var t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    swipeHero = hero;
+  }, { passive: true });
+
+  list.addEventListener('touchend', function (e) {
+    if (!swipeHero) return;
+    var t = e.changedTouches && e.changedTouches[0];
+    if (!t) { swipeHero = null; return; }
+    var dx = t.clientX - startX;
+    var dy = t.clientY - startY;
+    // Horizontal intent: moved far enough sideways, and more sideways than up/down.
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      var card = swipeHero.closest('.result-card');
+      var pid = card && card.getAttribute('data-place-id');
+      var park = currentResults.find(function (r) { return r.placeId === pid; });
+      // Swipe left → next photo; swipe right → previous photo.
+      moveCarousel(swipeHero, park, dx < 0 ? 1 : -1);
+      // Note the time so the card-click handler can ignore the synthetic click
+      // some browsers fire right after a swipe (which would pan the map).
+      lastCarouselSwipeAt = Date.now();
+    }
+    swipeHero = null;
+  }, { passive: true });
+})();
 
 // ---- Event: card click → pan map to marker ----
 document.getElementById('results-list').addEventListener('click', function (e) {
@@ -2146,6 +2199,9 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     || e.target.closest('.photo-dots')) {
     return;
   }
+  // A swipe just flipped a photo — ignore the synthetic click some touch
+  // browsers fire afterward, so the map doesn't pan when the user only swiped.
+  if (Date.now() - lastCarouselSwipeAt < 400) return;
 
   // Favorite button toggle
   var favBtn = e.target.closest('.favorite-btn');
