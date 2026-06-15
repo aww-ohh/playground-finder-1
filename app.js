@@ -1023,6 +1023,17 @@ function updateCardSignals(placeId, signals) {
     var newList = temp.firstChild;
     if (newList) oldList.replaceWith(newList);
   }
+  // V8 F1: the COLLAPSED card shows a compact icon strip instead of the full
+  // grid above. When signals resolve (Gemini, then OSM/Google), refresh that
+  // strip too — otherwise a collapsed card would keep showing the grey
+  // "loading" icons forever even after real data arrived.
+  var oldStrip = card.querySelector('.signal-strip');
+  if (oldStrip) {
+    var stripTemp = document.createElement('div');
+    stripTemp.innerHTML = renderSignalStrip(signals);
+    var newStrip = stripTemp.firstChild;
+    if (newStrip) oldStrip.replaceWith(newStrip);
+  }
   // Re-evaluate "perfect park" status now that signals have arrived
   card.classList.toggle('is-perfect', isPerfectPark(signals));
 }
@@ -1066,6 +1077,76 @@ function renderSignals(signals) {
   html += renderSignalRow('\uD83C\uDFBE', 'Tennis', booleanValueHtml(tc.value, tc.source), tc.summary);
   html += '</div>';
   return html;
+}
+
+// ---- Compact icon "signal strip" for COLLAPSED cards ----
+// A collapsed card can't show the full labeled signals grid, so we show a tiny
+// row of the 6 signal emojis instead \u2014 bright when the park HAS that thing,
+// dimmed when it doesn't. This lets a parent scan "fenced? shade? bathrooms?"
+// at a glance without tapping "Details". The full labeled grid (with the AI
+// summaries) still lives inside .result-card-detail for when they want more.
+function renderSignalStrip(signals) {
+  // Defensive: if signals haven't loaded yet (or are missing entirely), we
+  // still want to render the strip so the card layout doesn't jump when they
+  // arrive \u2014 fall back to a "loading" placeholder for every dimension.
+  function get(dim) {
+    if (!signals || !signals[dim]) return { value: 'loading', source: null };
+    return signals[dim];
+  }
+  // Decide the visual state for one dimension: 'on' (has it), 'off' (doesn't),
+  // or 'loading' (still waiting on the AI / OSM lookup).
+  function stateFor(dim, onValues) {
+    var s = get(dim);
+    if (s.value === 'loading') return 'loading';
+    // onValues is the list of values that count as a "yes" for this dimension.
+    return onValues.indexOf(s.value) !== -1 ? 'on' : 'off';
+  }
+  // One emoji chip. We add .is-verified for OSM/Google-sourced "yes" answers so
+  // the little \u2713 checkmark tints green (high confidence) vs gold (AI-read from
+  // reviews) \u2014 mirroring the color treatment of the full signals grid.
+  function chip(dim, emoji, label, humanValue, state) {
+    var s = get(dim);
+    var verified = (state === 'on' && (s.source === 'osm' || s.source === 'google'))
+      ? ' is-verified' : '';
+    var cls = 'signal-strip-item is-' + state + verified;
+    var title = label + ': ' + humanValue;
+    return '<span class="' + cls + '" title="' + escapeHtml(title)
+      + '" aria-label="' + escapeHtml(title) + '">' + emoji + '</span>';
+  }
+  // Human-readable value text for the tooltip / screen-reader label.
+  function boolText(dim) {
+    var v = get(dim).value;
+    if (v === 'yes') return 'Yes';
+    if (v === 'no') return 'No';
+    if (v === 'loading') return 'checking\u2026';
+    return 'not mentioned';
+  }
+  var fState = stateFor('fenced', ['yes']);
+  var sState = stateFor('shade', ['yes']);
+  var bState = stateFor('bathrooms', ['yes']);
+  var aState = stateFor('ageSuitability', ['toddler', 'both']);
+  var pState = stateFor('parking', ['lot', 'street', 'both']);
+  var tState = stateFor('tennisCourts', ['yes']);
+  return '<div class="signal-strip">'
+    + chip('fenced', '\uD83D\uDD12', 'Fenced', boolText('fenced'), fState)
+    + chip('shade', '\uD83C\uDF33', 'Shade', boolText('shade'), sState)
+    + chip('bathrooms', '\uD83D\uDEBB', 'Bathrooms', boolText('bathrooms'), bState)
+    + chip('ageSuitability', '\uD83D\uDC76', 'Toddler', ageSuitabilityLabel(get('ageSuitability').value), aState)
+    + chip('parking', '\uD83C\uDD7F\uFE0F', 'Parking', parkingLabel(get('parking').value), pState)
+    + chip('tennisCourts', '\uD83C\uDFBE', 'Tennis', boolText('tennisCourts'), tState)
+    + '</div>';
+}
+
+// ---- Compact "open now" pill for COLLAPSED cards ----
+// Only meaningful when Google actually told us the open/closed status. We omit
+// it entirely when openNow is null so we don't show a misleading grey pill for
+// parks we simply don't have hours for.
+function renderOpenNowPill(openNow) {
+  if (typeof openNow !== 'boolean') return '';
+  if (openNow) {
+    return '<span class="opennow-pill is-open">\uD83D\uDFE2 Open now</span>';
+  }
+  return '<span class="opennow-pill is-closed">\u26AA Closed</span>';
 }
 
 // ---- V6 F4: amenity badges (display-only stickers, NOT filters) ----
@@ -1614,6 +1695,20 @@ function renderResults(results, unfilteredCount) {
       + '</div>'
       + '<span class="result-meta result-distance">' + renderTravelTime(r.distance) + '</span>'
       + '<span class="result-meta result-rating">' + ratingHtml + '</span>'
+      // V8 F1: COLLAPSED-VISIBLE status row — a small "open now" pill (only when
+      // we actually know the status) plus the compact icon signal strip. This is
+      // the at-a-glance scan layer; everything heavier is hidden until "Details".
+      + '<div class="card-status-row">'
+      + renderOpenNowPill(r.openNow)
+      + renderSignalStrip(r.signals)
+      + '</div>'
+      // V8 F1: the "Details" toggle reveals .result-card-detail below. It's a
+      // dedicated button (NOT a whole-card tap) so it never collides with the
+      // existing card-tap-to-pan-the-map behavior.
+      + '<button type="button" class="card-expand-toggle" aria-expanded="false">Details <span class="expand-caret">⌄</span></button>'
+      // V8 F1: everything below is hidden by default (CSS) and only shows once
+      // the card gets .is-expanded — this is what keeps collapsed cards short.
+      + '<div class="result-card-detail">'
       // V6 F3: street address (shared-link parks don't have one — skip then)
       + (r.address ? '<span class="result-meta result-address">📍 ' + escapeHtml(r.address) + '</span>' : '')
       + renderHours(r)
@@ -1626,8 +1721,9 @@ function renderResults(results, unfilteredCount) {
       + '<a class="result-link result-link-directions" href="' + googleDirectionsUrl(r.placeId, r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">\ud83d\ude97 Directions in Google Maps</a>'
       + '<a class="result-link-secondary" href="' + yelpSearchUrl(r.name, r.lat, r.lng) + '" target="_blank" rel="noopener noreferrer">Search on Yelp</a>'
       + '<button type="button" class="result-link-share" data-place-id="' + escapeHtml(r.placeId) + '" title="Share this park">\ud83d\udd17 Share</button>'
-      + '</div>'
-      + '</div>'
+      + '</div>'      // closes .result-links
+      + '</div>'      // V8 F1: closes .result-card-detail (the collapsible region)
+      + '</div>'      // closes .result-card-body
       + '</li>';
   });
 
@@ -2190,13 +2286,36 @@ document.getElementById('results-list').addEventListener('click', function (e) {
   }, { passive: true });
 })();
 
+// ---- V8 F1: "Details" expand/collapse toggle ----
+// Cards render COLLAPSED by default (just photo + name + distance/rating +
+// the open-now pill + the icon strip). Tapping "Details" reveals the rest
+// (address, hours, full signals grid, amenities, reviews, notes, links).
+// We stopPropagation so this tap never bubbles to the card-click handler that
+// pans the map — the two interactions must stay separate.
+document.getElementById('results-list').addEventListener('click', function (e) {
+  var toggle = e.target.closest('.card-expand-toggle');
+  if (!toggle) return;
+  e.stopPropagation();
+  var card = toggle.closest('.result-card');
+  if (!card) return;
+  var nowExpanded = card.classList.toggle('is-expanded');
+  toggle.setAttribute('aria-expanded', nowExpanded ? 'true' : 'false');
+  // Swap the caret glyph (down = "expand me", up = "collapse me") while keeping
+  // the word "Details" in place. We only touch the caret span, not the label.
+  var caret = toggle.querySelector('.expand-caret');
+  if (caret) caret.textContent = nowExpanded ? '⌃' : '⌄';
+});
+
 // ---- Event: card click → pan map to marker ----
 document.getElementById('results-list').addEventListener('click', function (e) {
   // V7 F8: taps on the photo carousel controls are handled by the listener
   // above — bail out here so they don't ALSO pan the map.
+  // V8 F1: the "Details" toggle (and its caret) is handled by its own listener
+  // below — bail here too so expanding a card never also pans the map.
   if (e.target.closest('.photo-more-badge')
     || e.target.closest('.photo-nav')
-    || e.target.closest('.photo-dots')) {
+    || e.target.closest('.photo-dots')
+    || e.target.closest('.card-expand-toggle')) {
     return;
   }
   // A swipe just flipped a photo — ignore the synthetic click some touch
@@ -3117,3 +3236,105 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(function () { /* registration failed — silently OK */ });
   });
 }
+
+// ---- V8 F2: Pull-to-refresh on touch devices ----
+// On a phone, the natural way to say "check again" is to pull down from the top
+// of the page — the same gesture you'd use in a native app. We watch for a
+// downward drag that STARTS at the very top of the page (scrollY <= 0), show a
+// little "Release to refresh" sticker once it's pulled far enough, and on
+// release we simply re-run the current search.
+//
+// WHY no preventDefault: we register every listener as { passive: true }. That
+// keeps scrolling buttery-smooth (the browser never has to wait to see if we'll
+// cancel the scroll) and avoids the console warnings you get from calling
+// preventDefault inside a passive listener. The trade-off is we can't block the
+// browser's own overscroll bounce, but the gesture still reads fine.
+(function () {
+  // Build the floating indicator in JS so we don't have to touch index.html.
+  // It lives at the top-center of the screen, hidden (translated up) by default,
+  // and slides into view as the user pulls.
+  var indicator = document.createElement('div');
+  indicator.id = 'ptr-indicator';
+  indicator.textContent = '↻ Pull to refresh';
+  // Hidden from screen readers until it's actually doing something — it's a
+  // touch-only visual affordance, not core content.
+  indicator.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(indicator);
+
+  var THRESHOLD = 70;   // px of pull needed before a release will refresh
+  var MAX_PULL = 110;   // cap how far the sticker travels, so it can't fly off
+  var startY = 0;       // where the finger first touched (only set when armed)
+  var armed = false;    // did the gesture start at the top of the page?
+  var ready = false;    // has the pull passed THRESHOLD (so release = refresh)?
+
+  // Slide the sticker to a given pull distance (0 = hidden above the viewport).
+  function setPull(dy) {
+    // Map the raw pull distance onto how far the sticker shows, capped so it
+    // settles near the top edge instead of drifting down the whole screen.
+    var shown = Math.min(dy, MAX_PULL);
+    // -100% hides it fully above the top; as `shown` grows it eases into view.
+    var pct = -100 + (shown / MAX_PULL) * 100;
+    indicator.style.transform = 'translateX(-50%) translateY(' + pct + '%)';
+    indicator.style.opacity = String(Math.min(shown / THRESHOLD, 1));
+  }
+
+  // Animate the sticker back out of view and reset all gesture state.
+  function reset() {
+    armed = false;
+    ready = false;
+    indicator.style.transform = '';   // back to the CSS default (hidden)
+    indicator.style.opacity = '';
+    indicator.textContent = '↻ Pull to refresh';
+    indicator.setAttribute('aria-hidden', 'true');
+  }
+
+  window.addEventListener('touchstart', function (e) {
+    // Only arm if we're already scrolled to the very top — otherwise this is a
+    // normal scroll and PTR must stay out of the way.
+    if (window.scrollY <= 0 && e.touches && e.touches.length === 1) {
+      startY = e.touches[0].clientY;
+      armed = true;
+      ready = false;
+    } else {
+      armed = false;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function (e) {
+    if (!armed) return;
+    // If the user scrolled away from the top mid-gesture, disarm — we don't want
+    // PTR firing after a scroll-up that didn't start as a pull.
+    if (window.scrollY > 0) { reset(); return; }
+    if (!e.touches || !e.touches.length) return;
+    var dy = e.touches[0].clientY - startY;
+    // Only react to a DOWNWARD pull. (Horizontal carousel swipes live on
+    // .card-hero and never reach this code as a vertical pull from the top.)
+    if (dy <= 0) { setPull(0); ready = false; return; }
+    setPull(dy);
+    indicator.setAttribute('aria-hidden', 'false');
+    if (dy > THRESHOLD) {
+      ready = true;
+      indicator.textContent = '↻ Release to refresh';
+    } else {
+      ready = false;
+      indicator.textContent = '↻ Pull to refresh';
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', function () {
+    if (armed && ready) {
+      // Re-run the CURRENT search. No third arg → searchOrigin is preserved, so
+      // the Directions links keep their original origin. handleCoordinates bumps
+      // requestId internally, so re-running while one is in flight is safe.
+      if (lastLat !== null && lastLng !== null) {
+        indicator.textContent = '↻ Refreshing…';
+        handleCoordinates(lastLat, lastLng);
+      }
+    }
+    reset();
+  }, { passive: true });
+
+  // If a touch is cancelled (e.g. an incoming call, or the OS takes over),
+  // tidy up so a stale sticker doesn't linger on screen.
+  window.addEventListener('touchcancel', reset, { passive: true });
+})();

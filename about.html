@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — Playground and Park Finder</title>
+  <meta name="description" content="How Playground and Park Finder works: Google's Gemini AI reads real reviews, cross-checked against OpenStreetMap and Google's own data, to tell parents which playgrounds are fenced, shaded, and toddler-ready.">
+
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Modak&family=Permanent+Marker&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <main class="about-page">
+
+    <p class="about-back"><a href="/">&larr; Back to the app</a></p>
+
+    <h1 class="about-title">ABOUT</h1>
+    <p class="about-lede">
+      A small hobby project that helps parents find the right playground or park
+      — not just <em>a</em> park, but one that's fenced, shaded, has a bathroom,
+      and is actually toddler-friendly.
+    </p>
+
+    <section class="about-section">
+      <h2>The problem</h2>
+      <p>
+        Map apps tell you a park <em>exists</em>. They don't tell you the things
+        a parent of a little kid actually needs to know before loading everyone
+        into the car: <strong>Is it fenced so a toddler can't bolt? Is there
+        shade in July? A bathroom for the inevitable emergency? Somewhere to
+        park?</strong> That information is buried in hundreds of reviews nobody
+        has time to read. So you drive over, and half the time it's a dud.
+      </p>
+    </section>
+
+    <section class="about-section">
+      <h2>How it works</h2>
+      <p>
+        The app reads the reviews for you. Here's the pipeline behind every
+        search:
+      </p>
+      <ol class="about-steps">
+        <li>
+          <strong>Find the parks.</strong> The <em>Google Places API</em> returns
+          nearby playgrounds and parks, along with their photos, ratings, hours,
+          and recent reviews.
+        </li>
+        <li>
+          <strong>Read the reviews with AI.</strong> Each park's reviews are sent
+          to <em>Google's Gemini</em> model, which extracts structured answers to
+          six specific questions (fenced? shade? bathrooms? toddler-friendly?
+          parking? tennis courts?) and writes a one-line summary for each.
+        </li>
+        <li>
+          <strong>Cross-check against the map.</strong> The same parks are looked
+          up in <em>OpenStreetMap</em>, whose community has tagged real-world
+          features — fences, restrooms, parking lots, splash pads, picnic tables,
+          drinking fountains. Where the map confirms a feature, the app marks it
+          <strong>verified</strong>.
+        </li>
+        <li>
+          <strong>Layer in Google's own facts.</strong> Google publishes
+          structured fields for some parks (has a restroom, good for children);
+          those are treated as first-party truth and take precedence.
+        </li>
+      </ol>
+      <p class="about-legend-note">
+        That's why each feature shows one of two badges: a
+        <span class="about-swatch about-swatch-gold">✓</span>
+        <strong>from reviews</strong> (Gemini's read of what visitors said), or a
+        <span class="about-swatch about-swatch-green">✓</span>
+        <strong>verified</strong> (confirmed by map or Google data). Reviews are
+        fast and rich; map data is authoritative. Showing both, honestly labeled,
+        is the whole point.
+      </p>
+    </section>
+
+    <section class="about-section">
+      <h2>The six things that matter</h2>
+      <div class="about-signals">
+        <span class="about-signal">🔒 Fenced</span>
+        <span class="about-signal">🌳 Shade</span>
+        <span class="about-signal">🚻 Bathrooms</span>
+        <span class="about-signal">👶 Toddler-friendly</span>
+        <span class="about-signal">🅿️ Parking</span>
+        <span class="about-signal">🎾 Tennis</span>
+      </div>
+      <p>
+        Plus weather for the search area, an estimated drive time for nap-window
+        planning, a way to save favorites and private notes, and one-tap sharing
+        of a park or a whole collection.
+      </p>
+    </section>
+
+    <section class="about-section">
+      <h2>Built with</h2>
+      <ul class="about-stack">
+        <li><strong>Frontend:</strong> hand-written HTML, CSS, and vanilla JavaScript — no framework. Installable as a PWA with offline support.</li>
+        <li><strong>Backend:</strong> Vercel serverless functions (Node) that keep the API keys server-side.</li>
+        <li><strong>AI:</strong> Google Gemini (2.5 Flash Lite) for review analysis.</li>
+        <li><strong>Data:</strong> Google Places API, OpenStreetMap (Overpass), Open-Meteo for weather, Nominatim for address search.</li>
+        <li><strong>Maps:</strong> Leaflet with OpenStreetMap tiles.</li>
+      </ul>
+    </section>
+
+    <section class="about-section">
+      <h2>Privacy</h2>
+      <p>
+        There are no accounts and no tracking. Your favorites, notes, recent
+        searches, and home location live only in your own browser — nothing is
+        sent to a server or shared. Clearing your browser data clears them.
+      </p>
+    </section>
+
+    <section class="about-section about-colophon">
+      <p>
+        Made by <span class="about-sig">AWW</span> as a personal project — free
+        to use, no ads. If a feature looks wrong for a specific park, it's
+        usually because the underlying reviews or map data are sparse there.
+      </p>
+      <p class="about-cta-row">
+        <a class="about-cta" href="/">Try it &rarr;</a>
+        <a class="about-cta about-cta-secondary" href="https://github.com/aww-ohh/playground-finder-1" target="_blank" rel="noopener noreferrer">View the source</a>
+      </p>
+    </section>
+
+  </main>
+
+</body>
+</html>
