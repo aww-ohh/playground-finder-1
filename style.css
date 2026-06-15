@@ -949,6 +949,21 @@ main {
     font-size: 1.05rem;
   }
   .visited-btn { top: 3.05rem; }
+
+  /* V8 F1: keep the collapsed scan layer tight on phones. The icon strip and
+     the "Details" toggle are the only NEW rows on a collapsed card, so this is
+     where we squeeze a little height back. The heavy 2-col signals grid still
+     lives inside .result-card-detail, so it only adds height once expanded. */
+  .signal-strip {
+    gap: 0.45rem;          /* a touch more room so the ✓ badges don't crowd */
+    margin: 0.3rem 0;
+  }
+  .signal-strip-item { font-size: 1.05rem; }  /* easier tap-free scanning */
+  .card-expand-toggle {
+    font-size: 0.82rem;
+    padding: 0.3rem 0;
+  }
+  .opennow-pill { font-size: 0.7rem; }
 }
 
 
@@ -1622,6 +1637,112 @@ main {
 /* OSM-verified signals win the green "high confidence" color */
 .signal-verified { color: var(--emerald-text) !important; }
 
+/* ============================================================
+   V8 F1 — Collapse-by-default cards + compact icon signal strip
+   ============================================================
+   Cards now render COLLAPSED: only the photo, name, distance/rating, the
+   open-now pill and the icon strip show. Tapping "Details" reveals the rest.
+   This keeps each card short (especially on mobile, where every card used to
+   render fully expanded and the list scrolled forever). */
+
+/* The collapsible region — hidden until the card gets .is-expanded.
+   Everything heavy (address, hours, full signals grid, amenities, reviews,
+   notes, action links) lives in here, so collapsed cards stay tiny. */
+.result-card-detail { display: none; }
+.result-card.is-expanded .result-card-detail { display: block; }
+/* Re-create the stacked spacing the card-body used to give these rows, since
+   they now live inside a plain block wrapper instead of the flex column. */
+.result-card.is-expanded .result-card-detail > * { margin-top: 0.3rem; }
+
+/* The "Details" toggle — a subtle, full-width text button. No background, just
+   crimson text + a caret, so it reads as a quiet "tap for more" affordance. */
+.card-expand-toggle {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--crimson);
+  background: none;
+  border: none;
+  padding: 0.25rem 0;
+  margin-top: 0.15rem;
+  text-align: left;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  align-self: flex-start;   /* don't stretch across the flex card-body */
+}
+.card-expand-toggle:hover { text-decoration: underline; }
+.expand-caret { font-size: 0.9rem; line-height: 1; }
+
+/* The compact icon strip shown on COLLAPSED cards — a quick row of the 6
+   signal emojis. Bright = the park has it, dimmed = it doesn't, faint =
+   still loading. */
+.signal-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0;
+}
+.signal-strip-item {
+  position: relative;       /* anchors the little ✓ badge below */
+  font-size: 1rem;
+  line-height: 1;
+}
+/* "Doesn't have it" — greyed out and faded so the eye skips past it. */
+.signal-strip-item.is-off {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+/* "Still checking" — faint, no checkmark yet. */
+.signal-strip-item.is-loading { opacity: 0.4; }
+/* "Has it" — full color, plus a tiny gold ✓ in the corner so a glance reads
+   as a confirmed "yes" even if the emoji itself is ambiguous. */
+.signal-strip-item.is-on { opacity: 1; }
+.signal-strip-item.is-on::after {
+  content: '✓';
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.2rem;
+  font-size: 0.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--gold-text);   /* gold = AI-read from reviews (lower confidence) */
+}
+/* OSM/Google-verified "yes" gets the green checkmark (higher confidence) —
+   mirrors the green treatment of the full labeled signals grid. */
+.signal-strip-item.is-on.is-verified::after { color: var(--emerald-text); }
+
+/* The collapsed status row holds the open-now pill + the icon strip side by
+   side, wrapping if the screen is narrow. */
+.card-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* "Open now" / "Closed" pill — a small rounded sticker, only shown when Google
+   actually told us the status (see renderOpenNowPill). */
+.opennow-pill {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.opennow-pill.is-open {
+  background: var(--cream-soft);
+  color: var(--emerald-text);
+}
+.opennow-pill.is-closed {
+  background: var(--cream);
+  color: var(--text-muted);
+}
+
 .signal-arrow {
   margin-left: auto;
   font-size: 0.55rem;
@@ -1984,6 +2105,179 @@ main {
   color: var(--ink);
 }
 
+/* ===== Site footer ===== */
+.site-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 3rem;
+  padding: 2rem 1.5rem 2.5rem;
+  text-align: center;
+  border-top: 3px solid var(--ink);
+  background: rgba(255, 255, 255, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+.footer-brand {
+  font-family: 'Bungee', cursive;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.footer-links a {
+  color: var(--crimson);
+  text-decoration: none;
+}
+.footer-links a:hover { text-decoration: underline; }
+.footer-note {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ===== About page ===== */
+.about-page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+.about-back {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+.about-back a {
+  color: var(--crimson);
+  text-decoration: none;
+}
+.about-back a:hover { text-decoration: underline; }
+.about-title {
+  font-family: 'Bungee', cursive;
+  font-weight: 400;
+  font-size: clamp(2.5rem, 9vw, 4.5rem);
+  color: var(--gold);
+  -webkit-text-stroke: 3px var(--ink);
+  text-stroke: 3px var(--ink);
+  text-shadow: 5px 5px 0 var(--crimson);
+  transform: rotate(-2deg);
+  margin-bottom: 1.5rem;
+}
+.about-lede {
+  font-family: 'Permanent Marker', cursive;
+  color: var(--crimson);
+  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+  line-height: 1.4;
+  margin-bottom: 2.5rem;
+}
+.about-lede em { font-style: italic; }
+.about-section {
+  margin-bottom: 2.5rem;
+}
+.about-section h2 {
+  font-family: 'Bungee', cursive;
+  font-weight: 400;
+  font-size: 1.2rem;
+  color: var(--ink);
+  margin-bottom: 0.8rem;
+}
+.about-section p,
+.about-section li {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.about-section p { margin-bottom: 0.9rem; }
+.about-steps,
+.about-stack {
+  padding-left: 1.3rem;
+  margin-bottom: 0.9rem;
+}
+.about-steps li,
+.about-stack li {
+  margin-bottom: 0.7rem;
+}
+.about-legend-note {
+  background: var(--cream-soft);
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  padding: 0.9rem 1.1rem;
+  box-shadow: var(--shadow-sm);
+}
+.about-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.about-swatch-gold { background: var(--gold-text); }
+.about-swatch-green { background: var(--emerald); }
+.about-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.about-signal {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 1.2rem;
+  box-shadow: var(--shadow-sm);
+}
+.about-colophon {
+  border-top: 2px dashed var(--ink);
+  padding-top: 1.5rem;
+}
+.about-sig {
+  font-family: 'Modak', cursive;
+  color: var(--emerald);
+  font-size: 1.2rem;
+}
+.about-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+.about-cta {
+  display: inline-block;
+  font-family: 'Bungee', cursive;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--gold);
+  border: 3px solid var(--ink);
+  border-radius: 2rem;
+  padding: 0.6rem 1.3rem;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.about-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.about-cta-secondary { background: var(--surface); }
+
 /* ===== Utility ===== */
 .hidden {
   display: none !important;
@@ -2056,5 +2350,44 @@ main {
   .strip {
     padding: 4.5rem 2rem;
   }
+}
+
+/* ============================================================
+   V8 F2 — Pull-to-refresh indicator (touch devices)
+   ============================================================
+   A little sticker that lives just above the top edge of the screen and slides
+   into view as the user pulls down from the very top of the page. JS (app.js)
+   creates the element and drives its transform/opacity during the drag, then
+   re-runs the current search on release. On desktop it simply never moves —
+   there are no touch events to reveal it. */
+#ptr-indicator {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  /* Default = parked above the viewport (hidden). JS overrides the translateY
+     as the user pulls; clearing the inline style returns it here. */
+  transform: translateX(-50%) translateY(-100%);
+  opacity: 0;
+  /* High enough to sit above page content + the sticky toolbar (600), but the
+     indicator only ever shows at the very top of the page, clear of Leaflet's
+     popups (700) and modal-ish layers. */
+  z-index: 900;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-top: none;                 /* flush with the top edge as it emerges */
+  border-radius: 0 0 0.8rem 0.8rem;
+  padding: 0.4rem 0.9rem;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  pointer-events: none;             /* purely a visual cue — never blocks taps */
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+/* Honor reduced-motion: snap rather than slide. */
+@media (prefers-reduced-motion: reduce) {
+  #ptr-indicator { transition: none; }
 }
 
