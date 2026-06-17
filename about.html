@@ -45,19 +45,23 @@
       </p>
       <ol class="about-steps">
         <li>
-          <strong>Find the parks.</strong> The <em>Google Places API</em> returns
-          nearby playgrounds and parks, along with their photos, ratings, hours,
-          and recent reviews.
+          <strong>Find the parks.</strong> The
+          <a href="https://developers.google.com/maps/documentation/places/web-service/overview" target="_blank" rel="noopener noreferrer">Google Places API</a>
+          returns nearby playgrounds and parks, along with their photos, ratings,
+          hours, and recent
+          <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google reviews</a>.
         </li>
         <li>
           <strong>Read the reviews with AI.</strong> Each park's reviews are sent
-          to <em>Google's Gemini</em> model, which extracts structured answers to
-          six specific questions (fenced? shade? bathrooms? toddler-friendly?
-          parking? tennis courts?) and writes a one-line summary for each.
+          to Google's
+          <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">Gemini 2.5 Flash-Lite</a>
+          model, which extracts structured answers to six specific questions
+          (fenced? shade? bathrooms? toddler-friendly? parking? tennis courts?)
+          and writes a one-line summary for each.
         </li>
         <li>
           <strong>Cross-verifies against the map.</strong> The same parks are looked
-          up in <em>OpenStreetMap</em>, whose community has tagged real-world
+          up in <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, whose community has tagged real-world
           features — fences, restrooms, parking lots, splash pads, picnic tables,
           drinking fountains. Where the map confirms a feature, the app marks it
           <strong>verified</strong>.
@@ -97,12 +101,27 @@
     <section class="about-section">
       <h2>Built with</h2>
       <ul class="about-stack">
-        <li><strong>Frontend:</strong> hand-coded HTML, CSS, and vanilla JavaScript — no framework. Installable as a Progressive Web App with offline support.</li>
-        <li><strong>Backend:</strong> Vercel serverless functions (Node) that keep the API keys server-side.</li>
-        <li><strong>AI:</strong> Google Gemini (2.5 Flash Lite) for review analysis.</li>
-        <li><strong>Data:</strong> Google Places API, OpenStreetMap (Overpass), Open-Meteo for weather, Nominatim for address search.</li>
-        <li><strong>Maps:</strong> Leaflet with OpenStreetMap tiles.</li>
+        <li><strong>Frontend:</strong> HTML, CSS, and vanilla JavaScript written from scratch — no framework. Installable as a Progressive Web App with offline support.</li>
+        <li><strong>Backend:</strong> <a href="https://vercel.com/" target="_blank" rel="noopener noreferrer">Vercel</a> serverless functions (Node) that keep the API keys server-side.</li>
+        <li><strong>AI:</strong> <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">Google Gemini 2.5 Flash-Lite</a> for review analysis.</li>
+        <li><strong>Data:</strong> <a href="https://developers.google.com/maps/documentation/places/web-service/overview" target="_blank" rel="noopener noreferrer">Google Places API</a>, <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> (<a href="https://overpass-api.de/" target="_blank" rel="noopener noreferrer">Overpass</a>), <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> for weather, <a href="https://nominatim.org/" target="_blank" rel="noopener noreferrer">Nominatim</a> for address search.</li>
+        <li><strong>Maps:</strong> <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a> with OpenStreetMap tiles.</li>
       </ul>
+    </section>
+
+    <section class="about-section">
+      <h2>Powered by</h2>
+      <p>This project stands on the shoulders of some excellent services:</p>
+      <div class="about-powered">
+        <a class="about-tech" href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">✨ Google Gemini</a>
+        <a class="about-tech" href="https://developers.google.com/maps/documentation/places/web-service/overview" target="_blank" rel="noopener noreferrer">📍 Google Places API</a>
+        <a class="about-tech" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">⭐ Google reviews</a>
+        <a class="about-tech" href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">🗺 OpenStreetMap</a>
+        <a class="about-tech" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">🌤 Open-Meteo</a>
+        <a class="about-tech" href="https://nominatim.org/" target="_blank" rel="noopener noreferrer">🔎 Nominatim</a>
+        <a class="about-tech" href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">🍃 Leaflet</a>
+        <a class="about-tech" href="https://vercel.com/" target="_blank" rel="noopener noreferrer">▲ Vercel</a>
+      </div>
     </section>
 
     <section class="about-section">
