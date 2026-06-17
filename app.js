@@ -3189,30 +3189,41 @@ function refreshShareButtonLabel() {
   // Very old browsers don't have it — they just never get the pill. Fine.
   if (!('IntersectionObserver' in window)) return;
 
-  // Track both: the pill should show only while the toolbar is scrolled away
-  // AND we haven't reached the footer yet — otherwise the fixed pill sits on
-  // top of the "About / Source" links at the bottom of the page.
+  // Show the pill only while the toolbar is scrolled away AND the footer hasn't
+  // reached the pill's zone at the bottom of the screen.
   var toolbarVisible = true;
-  var footerVisible = false;
+  var footerNearBottom = false;
 
   function refresh() {
     var toolbarInUse = !toolbar.classList.contains('hidden');
-    if (toolbarInUse && !toolbarVisible && !footerVisible) {
+    if (toolbarInUse && !toolbarVisible && !footerNearBottom) {
       pill.classList.remove('hidden');
     } else {
       pill.classList.add('hidden');
     }
   }
 
-  var observer = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.target === toolbar) toolbarVisible = entry.isIntersecting;
-      else if (entry.target === footer) footerVisible = entry.isIntersecting;
-    });
+  // Toolbar observer: plain viewport intersection — is the filter bar on screen?
+  var toolbarObserver = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) { toolbarVisible = entry.isIntersecting; });
     refresh();
   });
-  observer.observe(toolbar);
-  if (footer) observer.observe(footer);
+  toolbarObserver.observe(toolbar);
+
+  // Footer observer: we ONLY want to hide the pill once the footer actually
+  // reaches the bottom strip of the screen where the pill floats — not the
+  // instant the footer's top edge peeks in at the bottom. A plain observer
+  // reported the footer as "visible" too early, which suppressed the pill the
+  // whole way DOWN a short list and only let it reappear on the way UP. The
+  // negative top rootMargin shrinks the detection box to the bottom ~15% of
+  // the viewport, so footerNearBottom flips true only near the very bottom.
+  if (footer) {
+    var footerObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) { footerNearBottom = entry.isIntersecting; });
+      refresh();
+    }, { rootMargin: '-85% 0px 0px 0px' });
+    footerObserver.observe(footer);
+  }
 
   pill.addEventListener('click', function () {
     toolbar.scrollIntoView({ behavior: 'smooth' });
