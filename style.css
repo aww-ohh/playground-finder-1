@@ -209,7 +209,11 @@ main {
   color: var(--crimson);
   font-size: clamp(1.2rem, 2.5vw, 1.7rem);
   transform: rotate(-1deg);
-  display: inline-block;
+  /* block (not inline-block) so the tagline ALWAYS stacks below the title.
+     As inline-block it sat on the same line as the title on wide desktop
+     screens (title left, tagline right); block + margin auto keeps it
+     centered and underneath, matching the mobile layout. */
+  display: block;
   text-shadow: 3px 3px 0 var(--gold);
   margin: 1rem auto 0;
   max-width: 38rem;
