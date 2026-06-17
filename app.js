@@ -3183,26 +3183,36 @@ function refreshShareButtonLabel() {
 (function () {
   var pill = document.getElementById('filters-pill');
   var toolbar = document.getElementById('results-toolbar');
+  var footer = document.querySelector('.site-footer');
   if (!pill || !toolbar) return;
-  // IntersectionObserver tells us when the toolbar enters/leaves the viewport.
+  // IntersectionObserver tells us when the toolbar / footer enter/leave view.
   // Very old browsers don't have it — they just never get the pill. Fine.
   if (!('IntersectionObserver' in window)) return;
 
+  // Track both: the pill should show only while the toolbar is scrolled away
+  // AND we haven't reached the footer yet — otherwise the fixed pill sits on
+  // top of the "About / Source" links at the bottom of the page.
+  var toolbarVisible = true;
+  var footerVisible = false;
+
+  function refresh() {
+    var toolbarInUse = !toolbar.classList.contains('hidden');
+    if (toolbarInUse && !toolbarVisible && !footerVisible) {
+      pill.classList.remove('hidden');
+    } else {
+      pill.classList.add('hidden');
+    }
+  }
+
   var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      // Only show the pill when the toolbar is scrolled out of view AND the
-      // toolbar is actually in use (before any search it has class 'hidden',
-      // and display:none elements also report as not-intersecting — without
-      // this check the pill would float over the landing page).
-      var toolbarInUse = !toolbar.classList.contains('hidden');
-      if (!entry.isIntersecting && toolbarInUse) {
-        pill.classList.remove('hidden');
-      } else {
-        pill.classList.add('hidden');
-      }
+      if (entry.target === toolbar) toolbarVisible = entry.isIntersecting;
+      else if (entry.target === footer) footerVisible = entry.isIntersecting;
     });
+    refresh();
   });
   observer.observe(toolbar);
+  if (footer) observer.observe(footer);
 
   pill.addEventListener('click', function () {
     toolbar.scrollIntoView({ behavior: 'smooth' });
