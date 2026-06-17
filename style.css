@@ -2115,11 +2115,15 @@ main {
 .site-footer {
   position: relative;
   z-index: 1;
-  margin-top: 3rem;
-  padding: 2rem 1.5rem 2.5rem;
+  /* No big top gap and no hard ink divider: the results should flow straight
+     into About/Source. The previous 3rem margin + 3px black border read as a
+     "the page ended here" cutoff, so users hit it, bounced (iOS overscroll),
+     and had to scroll again to reach the links. A light tinted block + modest
+     padding separates the footer gently without a hard line. */
+  margin-top: 1rem;
+  padding: 1.5rem 1.5rem 2.5rem;
   text-align: center;
-  border-top: 3px solid var(--ink);
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
