@@ -1,8 +1,8 @@
 // Service worker — caches the site shell and the last search response.
 // Offline behavior: site loads, last search you did still appears.
 
-var SHELL_CACHE = 'pgf-shell-v30';
-var DATA_CACHE  = 'pgf-data-v30';
+var SHELL_CACHE = 'pgf-shell-v31';
+var DATA_CACHE  = 'pgf-data-v31';
 
 // Files that make up the shell — bumped version triggers re-cache
 var SHELL_FILES = [

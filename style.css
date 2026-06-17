@@ -2266,31 +2266,6 @@ main {
   border-bottom-color: var(--crimson);
 }
 
-/* "Powered by" badge row — sticker-style chips that link to each service. */
-.about-powered {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-}
-.about-tech {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.4rem 0.8rem;
-  background: var(--surface);
-  color: var(--ink);
-  border: 2px solid var(--ink);
-  border-radius: 1.2rem;
-  box-shadow: var(--shadow-sm);
-  text-decoration: none;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.about-tech:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-  background: var(--cream-soft);
-}
 .about-colophon {
   border-top: 2px dashed var(--ink);
   padding-top: 1.5rem;
