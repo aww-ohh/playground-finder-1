@@ -521,9 +521,11 @@ main {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(243, 234, 219, 0.92);  /* cream wall, slightly translucent */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Solid (not translucent) on purpose: a sticky element + backdrop-filter is a
+     known iOS Safari bug where the blur fails to render and the translucency
+     shows up as a broken see-through patch over the filter buttons. A solid
+     cream wall renders identically everywhere. */
+  background: #f3eadb;  /* var(--cream) */
   border-bottom: 3px solid var(--ink);
   margin-bottom: 0.5rem;
   /* No CSS transition — JS sets transform directly per scroll frame so movement is 1:1 with scroll */
@@ -2141,11 +2143,6 @@ main {
   text-decoration: none;
 }
 .footer-links a:hover { text-decoration: underline; }
-.footer-note {
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
 
 /* ===== About page ===== */
 .about-page {
