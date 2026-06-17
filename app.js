@@ -3185,45 +3185,33 @@ function refreshShareButtonLabel() {
   var toolbar = document.getElementById('results-toolbar');
   var footer = document.querySelector('.site-footer');
   if (!pill || !toolbar) return;
-  // IntersectionObserver tells us when the toolbar / footer enter/leave view.
-  // Very old browsers don't have it — they just never get the pill. Fine.
-  if (!('IntersectionObserver' in window)) return;
 
-  // Show the pill only while the toolbar is scrolled away AND the footer hasn't
-  // reached the pill's zone at the bottom of the screen.
-  var toolbarVisible = true;
-  var footerNearBottom = false;
+  // We DELIBERATELY use a direct scroll-position check rather than an
+  // IntersectionObserver here. Observers fire asynchronously and the footer's
+  // intersection timing differed going down vs. up, which made the pill appear
+  // on scroll-up but not scroll-down. A per-scroll geometry check is fully
+  // deterministic — same result at a given scroll position regardless of
+  // direction. Toggling one class on a passive scroll listener is cheap.
+  var PILL_ZONE = 64; // px at the very bottom where the pill floats (bottom:1rem + height)
 
-  function refresh() {
-    var toolbarInUse = !toolbar.classList.contains('hidden');
-    if (toolbarInUse && !toolbarVisible && !footerNearBottom) {
-      pill.classList.remove('hidden');
-    } else {
-      pill.classList.add('hidden');
+  function update() {
+    // Before any search the toolbar carries class 'hidden' (display:none) — no pill.
+    if (toolbar.classList.contains('hidden')) { pill.classList.add('hidden'); return; }
+    var tb = toolbar.getBoundingClientRect();
+    var toolbarGone = tb.bottom <= 0;            // filter bar has scrolled above the viewport
+    var footerEncroaching = false;
+    if (footer) {
+      var fb = footer.getBoundingClientRect();
+      // Hide once the footer rises into the bottom zone where the pill sits,
+      // so the pill never covers the About / Source links.
+      footerEncroaching = fb.top <= (window.innerHeight - PILL_ZONE);
     }
+    pill.classList.toggle('hidden', !(toolbarGone && !footerEncroaching));
   }
 
-  // Toolbar observer: plain viewport intersection — is the filter bar on screen?
-  var toolbarObserver = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) { toolbarVisible = entry.isIntersecting; });
-    refresh();
-  });
-  toolbarObserver.observe(toolbar);
-
-  // Footer observer: we ONLY want to hide the pill once the footer actually
-  // reaches the bottom strip of the screen where the pill floats — not the
-  // instant the footer's top edge peeks in at the bottom. A plain observer
-  // reported the footer as "visible" too early, which suppressed the pill the
-  // whole way DOWN a short list and only let it reappear on the way UP. The
-  // negative top rootMargin shrinks the detection box to the bottom ~15% of
-  // the viewport, so footerNearBottom flips true only near the very bottom.
-  if (footer) {
-    var footerObserver = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) { footerNearBottom = entry.isIntersecting; });
-      refresh();
-    }, { rootMargin: '-85% 0px 0px 0px' });
-    footerObserver.observe(footer);
-  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
 
   pill.addEventListener('click', function () {
     toolbar.scrollIntoView({ behavior: 'smooth' });
