@@ -99,7 +99,13 @@ Requires `GOOGLE_PLACES_API_KEY` and `GEMINI_API_KEY` as environment
 variables. The frontend (`index.html` / `app.js` / `style.css`) is plain
 static files.
 
-## Privacy
+## Security & privacy
+
+- **API keys stay server-side.** Google Places and Gemini are called from serverless functions, so keys are never sent to the browser or committed to the repo.
+- **Strict Content-Security-Policy.** Scripts, styles, images, and network calls are restricted to a short, explicit allowlist, which closes off most injection and data-exfiltration paths.
+- **Hardened HTTP headers.** HSTS with preload (HTTPS-only), X-Frame-Options DENY (no clickjacking), nosniff, a strict Referrer-Policy, and a Permissions-Policy that disables camera, microphone, and payment and limits geolocation to this site.
+- **Verified third-party code.** The Leaflet map library loads with Subresource Integrity, so a tampered CDN file is rejected.
+- **Output escaping and input bounds.** Text from external sources (such as park names) is escaped before it is displayed, and user input is length-bounded, to prevent cross-site scripting (XSS).
 
 No accounts, no tracking. Favorites, notes, recent searches, and your home
 location live only in your browser — nothing is sent to a server or shared.
