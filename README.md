@@ -36,9 +36,11 @@ public map data.
 ## Screenshots
 
 <div align="center">
-  <img src="docs/screenshot-results.png" alt="Search results — park cards with photos, ratings, open-now status, and at-a-glance feature icons" width="265" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshot-map.png" alt="The search view — weather, feature filters, and a map of nearby San Francisco parks" width="265" />
+  <img src="docs/screenshot-park.png" alt="A park's detail card — the AI-read features: tennis verified, age suitability, hours, address, and amenities" width="232" />
+  &nbsp;
+  <img src="docs/screenshot-results.png" alt="Search results — park cards with photos, ratings, open-now status, and at-a-glance feature icons" width="232" />
+  &nbsp;
+  <img src="docs/screenshot-map.png" alt="The search view — weather, feature filters, and a map of nearby San Francisco parks" width="232" />
 </div>
 
 ## How it works
