@@ -20,7 +20,7 @@
 
     <h1 class="about-title">ABOUT</h1>
     <p class="about-lede">
-      A small hobby project that helps parents find the right playground or park
+      A personal project that helps parents find the right playground or park
       — not just <em>a</em> park, but one that's fenced, shaded, has a bathroom,
       and is actually toddler-friendly.
     </p>
@@ -60,7 +60,7 @@
           and writes a one-line summary for each.
         </li>
         <li>
-          <strong>Cross-verifies against the map.</strong> The same parks are looked
+          <strong>Cross-verify against the map.</strong> The same parks are looked
           up in <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, whose community has tagged real-world
           features — fences, restrooms, parking lots, splash pads, picnic tables,
           drinking fountains. Where the map confirms a feature, the app marks it
@@ -110,7 +110,16 @@
     </section>
 
     <section class="about-section">
-      <h2>Privacy</h2>
+      <h2>Security &amp; privacy</h2>
+      <p>
+        The app is built defensively: API keys never leave the server (all
+        Google calls run through serverless functions), the page enforces a
+        strict allowlist of what it's permitted to load and talk to (a
+        Content-Security-Policy), and the one third-party library it uses is
+        integrity-checked so a tampered copy would be rejected. Full details
+        are in the
+        <a href="https://github.com/aww-ohh/playground-finder-1#security--privacy" target="_blank" rel="noopener noreferrer">project README</a>.
+      </p>
       <p>
         There are no accounts and no tracking. Your favorites, notes, recent
         searches, and home location live only in your own browser — nothing is

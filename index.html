@@ -11,24 +11,28 @@
   <!-- Description for search engines + the fallback for link unfurls. -->
   <meta name="description" content="Find playgrounds and parks with the features that matter — fenced, shaded, bathrooms, parking, toddler-friendly, tennis courts — pulled from real reviews and verified against map data.">
 
-  <!-- Open Graph + Twitter cards: when the demo link is shared in Slack,
-       email, or iMessage, it unfurls as a titled preview card instead of a
-       bare URL. -->
+  <!-- Open Graph + Twitter cards. og:image must be an ABSOLUTE URL and a
+       raster format — Slack/iMessage/LinkedIn don't render SVG previews, so
+       we point at a 1200x630 PNG. -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Playground and Park Finder">
   <meta property="og:description" content="Find playgrounds and parks with the features that matter — fenced, shaded, bathrooms, parking, toddler-friendly, tennis — from real reviews, verified against map data.">
-  <meta property="og:image" content="/icon.svg">
+  <meta property="og:image" content="https://playground-finder-1.vercel.app/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:url" content="https://playground-finder-1.vercel.app/">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Playground and Park Finder">
   <meta name="twitter:description" content="Playgrounds and parks, filtered by the features you actually care about.">
-  <meta name="twitter:image" content="/icon.svg">
+  <meta name="twitter:image" content="https://playground-finder-1.vercel.app/og-image.png">
 
-  <!-- PWA: install to home screen + offline support -->
+  <!-- PWA: install to home screen + offline support.
+       apple-touch-icon must be a PNG — iOS ignores SVG here and falls back
+       to a washed-out page screenshot on Add to Home Screen. -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#ffb800">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
-  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Park Finder">
@@ -125,7 +129,7 @@
 
       <!-- Tagline -->
       <div class="pov">
-        Find playgrounds and parks with features that you want. <span class="arrow">↗</span>
+        Find playgrounds and parks with the features you want. <span class="arrow">↗</span>
       </div>
 
       <!-- Value proposition: names WHO it's for and WHAT the magic is, so a

@@ -67,11 +67,17 @@ always know the source.
 ## Features
 
 - 🔒 Fenced · 🌳 Shade · 🚻 Bathrooms · 👶 Toddler-friendly · 🅿️ Parking · 🎾 Tennis — all filterable
+- 🕐 "Open now" filter, plus an open/closed pill on every card
+- 🗂 Compact, collapse-by-default park cards — an at-a-glance icon strip up
+  front, full details (hours, address, review summaries, amenities) one tap away
+- 📸 Swipeable photo carousel — extra photos are fetched only when you tap,
+  so the photo API bill scales with curiosity, not with searches
 - 🌤 Live weather + hourly rain outlook for the search area
 - 🚗 Estimated drive time, for nap-window planning
-- ⭐ Save favorites and private notes (stored on your device)
+- ⭐ Save favorites and private notes (stored on your device) · 👻 hide
+  parks you've already visited
 - 🔗 One-tap sharing of a single park or a whole collection
-- 📱 Installable as an app (PWA), works offline
+- 📱 Installable as an app (PWA), works offline, with pull-to-refresh
 
 ## Built with
 

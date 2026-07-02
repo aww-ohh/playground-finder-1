@@ -1,7 +1,7 @@
 {
   "name": "Playground and Park Finder",
   "short_name": "Park Finder",
-  "description": "Find playgrounds and parks with the features that you want.",
+  "description": "Find playgrounds and parks with the features you want.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,7 +9,9 @@
   "background_color": "#f3eadb",
   "theme_color": "#ffb800",
   "icons": [
-    { "src": "/icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
-    { "src": "/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
