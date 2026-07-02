@@ -324,6 +324,34 @@ main {
   background: var(--cream-soft);
 }
 
+/* V9 F4: "↩ Back to <last place>" resume chip — same sticker treatment as
+   the home button above (it lives right under it and does a similar job:
+   one tap back to a known place). Nunito instead of Bungee because the chip
+   carries a real address, and addresses in display type are hard to read. */
+.resume-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+.resume-chip {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  padding: 0.35rem 0.85rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.resume-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--ink); /* matches .home-btn's hover pop */
+  background: var(--cream-soft);
+}
+
 /* Autocomplete dropdown */
 .address-suggestions {
   position: absolute;
@@ -602,6 +630,9 @@ main {
 .weather-banner {
   display: inline-flex;
   align-items: center;
+  /* V9 F1: let the suggestion chip drop to its own row inside the banner on
+     narrow screens instead of getting crushed word-by-word. */
+  flex-wrap: wrap;
   gap: 0.4rem;
   background: var(--surface);
   border: 3px solid var(--ink);
@@ -619,6 +650,34 @@ main {
 .weather-label { color: var(--text-muted); font-weight: 600; font-size: 0.88rem; }
 /* V6 F6: hourly rain heads-up ("rain ~2 PM") — same quiet style as the label */
 .weather-rain  { color: var(--text-muted); font-weight: 600; font-size: 0.88rem; }
+
+/* V9 F1: the one tappable suggestion inside the weather banner ("Hot day —
+   show shaded parks"). Styled as a little sticker BUTTON — border, shadow,
+   hover bump — so it clearly reads as an action, not more passive weather
+   text. Tapping it turns the matching filter chip on, then it disappears. */
+.weather-suggest-chip {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--cream-soft);
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.25rem 0.6rem;
+  margin-left: 0.35rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  /* Never let the banner's flex layout squish the chip into a word-per-line
+     tower — keep it whole and let the banner wrap it instead (see above). */
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.weather-suggest-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--ink); /* one notch above --shadow-sm for the hover pop */
+  background: var(--cream);
+}
 
 .filter-row {
   display: flex;
@@ -703,6 +762,22 @@ main {
 .signal-chip.active {
   background: var(--gold);
   color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: translate(-1px, -1px);
+}
+
+/* V9 F2: the "👶 Toddler-ready" preset chip. Emerald instead of gold so it
+   reads as a different KIND of chip (a bundle of three filters, not one).
+   Same size as .signal-chip — these rules only recolor it, and they sit
+   AFTER the .signal-chip rules so they win the specificity tie. */
+.preset-chip {
+  border-color: var(--emerald);
+  color: var(--emerald);
+}
+.preset-chip.active {
+  background: var(--emerald);
+  color: #fff;                 /* white on emerald — solid contrast */
+  border-color: var(--ink);
   box-shadow: 2px 2px 0 var(--ink);
   transform: translate(-1px, -1px);
 }

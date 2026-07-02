@@ -367,6 +367,26 @@ function setActiveSignalFilters(arr) {
   catch (e) { /* ignore */ }
 }
 
+// V9 F2: the "👶 Toddler-ready" preset chip turns on fenced + bathrooms +
+// toddler in one tap. This list is the single source of truth for which
+// three signals the preset means — the click handler and the sync helper
+// below both read from it, so they can never disagree.
+var TODDLER_PRESET_SIGNALS = ['fenced', 'bathrooms', 'toddler'];
+
+// V9 F2: keep the preset chip's highlight honest — it lights up ONLY while
+// all three of its signals are active, no matter how they got that way
+// (tapping the preset, tapping chips one by one, or clearing filters).
+// Called from every path that changes signal-chip state.
+function syncPresetChip() {
+  var preset = document.querySelector('#signal-filter .preset-chip');
+  if (!preset) return;
+  var active = getActiveSignalFilters();
+  var allOn = TODDLER_PRESET_SIGNALS.every(function (sig) {
+    return active.indexOf(sig) !== -1;
+  });
+  preset.classList.toggle('active', allOn);
+}
+
 // AND filter: a park must satisfy EVERY active signal chip to pass.
 // "fenced", "shade", "bathrooms", "tennis" require value === 'yes'.
 // "toddler" requires ageSuitability === 'toddler' or 'both'.
@@ -794,23 +814,41 @@ function fetchWeather(lat, lng, thisRequest) {
       }
       var temp = Math.round(data.current.temperature_2m);
       var ec = weatherCodeToEmoji(data.current.weather_code);
+      // V9 F1: compute the rain outlook ONCE and reuse it — the same data
+      // feeds both the "rain ~2 PM" text and the suggestion chip decision.
+      var outlook = computeRainOutlook(data.hourly);
       banner.innerHTML = '<span class="weather-emoji">' + ec[0] + '</span>'
         + '<span class="weather-temp">' + temp + '°F</span>'
         + (ec[1] ? '<span class="weather-label">· ' + ec[1] + '</span>' : '')
         // V6 F6: one short rain heads-up ("rain ~2 PM" / "clearing by 3 PM" /
         // "rain likely all day"), or nothing if the rest of today looks dry.
-        + buildRainOutlook(data.hourly);
+        + outlook.html
+        // V9 F1: at most ONE tappable suggestion ("hot → shade" beats
+        // "rain → open now"), or nothing when the weather gives no reason.
+        + buildWeatherSuggestChip(data.current.temperature_2m, outlook.firstRainyTime);
       banner.classList.remove('hidden');
     })
     .catch(function () { /* silent — weather is a nice-to-have */ });
 }
 
 // V6 F6: turn Open-Meteo's hourly rain probabilities into one short phrase.
-// Defensive on purpose: if the hourly block is missing or oddly shaped we
-// return '' and the banner just shows current conditions like before.
+// V9 F1: this is now a thin wrapper — computeRainOutlook below does the real
+// work — kept so anything that only wants the text keeps working unchanged.
 function buildRainOutlook(hourly) {
+  return computeRainOutlook(hourly).html;
+}
+
+// V9 F1: the rain-outlook brain. Returns an object with TWO things:
+//   html           — the '<span>· 🌧 rain ~2 PM</span>' snippet (or '' if dry)
+//   firstRainyTime — a Date for the first rainy hour left today (or null),
+//                    which fetchWeather uses to decide whether to offer the
+//                    "rain later — show parks open now" suggestion chip.
+// Defensive on purpose: if the hourly block is missing or oddly shaped we
+// return the empty shape and the banner just shows current conditions.
+function computeRainOutlook(hourly) {
+  var nothing = { html: '', firstRainyTime: null };
   try {
-    if (!hourly || !Array.isArray(hourly.time) || !Array.isArray(hourly.precipitation_probability)) return '';
+    if (!hourly || !Array.isArray(hourly.time) || !Array.isArray(hourly.precipitation_probability)) return nothing;
     var RAIN_THRESHOLD = 40; // % chance — below this we don't bother the user
     var now = new Date();
     // Keep only the hours from "now-ish" through the end of today.
@@ -825,34 +863,56 @@ function buildRainOutlook(hourly) {
       // Include the in-progress hour (the "2:00" entry still matters at 2:40)
       if (t.getTime() >= now.getTime() - 60 * 60 * 1000) remaining.push({ time: t, prob: p });
     }
-    if (remaining.length === 0) return '';
+    if (remaining.length === 0) return nothing;
     // Find the first rainy hour left today
     var firstRainy = -1;
     for (var j = 0; j < remaining.length; j++) {
       if (remaining[j].prob >= RAIN_THRESHOLD) { firstRainy = j; break; }
     }
-    if (firstRainy === -1) return ''; // dry rest of day — good news needs no extra text
+    if (firstRainy === -1) return nothing; // dry rest of day — good news needs no extra text
+    // From here on, every branch has a real first rainy hour to report.
+    var rainTime = remaining[firstRainy].time;
     var allRainy = remaining.every(function (h) { return h.prob >= RAIN_THRESHOLD; });
     if (allRainy) {
-      return '<span class="weather-rain">· 🌧 rain likely all day</span>';
+      return { html: '<span class="weather-rain">· 🌧 rain likely all day</span>', firstRainyTime: rainTime };
     }
     if (firstRainy === 0) {
       // Rainy now (or within the hour) — tell them when it clears
       for (var k = 0; k < remaining.length; k++) {
         if (remaining[k].prob < RAIN_THRESHOLD) {
-          return '<span class="weather-rain">· 🌧 clearing by ' + formatHour12(remaining[k].time) + '</span>';
+          return { html: '<span class="weather-rain">· 🌧 clearing by ' + formatHour12(remaining[k].time) + '</span>', firstRainyTime: rainTime };
         }
       }
-      return '<span class="weather-rain">· 🌧 rain likely all day</span>';
+      return { html: '<span class="weather-rain">· 🌧 rain likely all day</span>', firstRainyTime: rainTime };
     }
     // Rain arrives later — only worth flagging if it's more than an hour out
-    if (remaining[firstRainy].time.getTime() - now.getTime() > 60 * 60 * 1000) {
-      return '<span class="weather-rain">· 🌧 rain ~' + formatHour12(remaining[firstRainy].time) + '</span>';
+    if (rainTime.getTime() - now.getTime() > 60 * 60 * 1000) {
+      return { html: '<span class="weather-rain">· 🌧 rain ~' + formatHour12(rainTime) + '</span>', firstRainyTime: rainTime };
     }
-    return '<span class="weather-rain">· 🌧 rain soon</span>';
+    return { html: '<span class="weather-rain">· 🌧 rain soon</span>', firstRainyTime: rainTime };
   } catch (e) {
-    return ''; // any surprise in the data → just skip the outlook
+    return nothing; // any surprise in the data → just skip the outlook
   }
+}
+
+// V9 F1: decide whether the weather banner earns ONE suggestion chip.
+// Heat beats rain (a 90° day is the bigger deal), and we never suggest a
+// filter that's already on. Returns the chip's HTML or '' for no chip.
+// IMPORTANT: the chip never changes filters by itself — the user has to tap
+// it (see the #weather-banner click listener). This app's rule: no filter
+// ever turns itself on invisibly.
+function buildWeatherSuggestChip(currentTemp, firstRainyTime) {
+  var active = getActiveSignalFilters();
+  // Hot day → offer shade (unless the shade chip is already lit).
+  if (typeof currentTemp === 'number' && currentTemp >= 85 && active.indexOf('shade') === -1) {
+    return '<button type="button" class="weather-suggest-chip" data-suggest-signal="shade">🌳 Hot day — show shaded parks</button>';
+  }
+  // Rain within ~2 hours → offer "open now" (squeeze the visit in first).
+  var TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  if (firstRainyTime && firstRainyTime.getTime() - Date.now() <= TWO_HOURS_MS && active.indexOf('open') === -1) {
+    return '<button type="button" class="weather-suggest-chip" data-suggest-signal="open">🕐 Rain later — show parks open now</button>';
+  }
+  return '';
 }
 
 // "14:00" → "2 PM" — small helper for the rain outlook above
@@ -1334,6 +1394,10 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     if (hideBtn) { hideBtn.classList.remove('active'); hideBtn.setAttribute('aria-pressed', 'false'); }
     var naptimeSel = document.getElementById('naptime-select');
     if (naptimeSel) naptimeSel.value = '';
+    // V9 F2: clearing filters breaks up the toddler-ready trio, so the
+    // preset chip must dim too (it's also caught by the .signal-chip.active
+    // sweep above, but this keeps the rule in one obvious place).
+    syncPresetChip();
     applyFilterAndSort();
   }
 });
@@ -1365,6 +1429,9 @@ function refreshClearFiltersBtn() {
         if (hideBtn) { hideBtn.classList.remove('active'); hideBtn.setAttribute('aria-pressed', 'false'); }
         var naptimeSel = document.getElementById('naptime-select');
         if (naptimeSel) naptimeSel.value = '';
+        // V9 F2: keep the toddler-ready preset chip's highlight in sync
+        // after everything was cleared.
+        syncPresetChip();
         applyFilterAndSort();
       });
       row.appendChild(btn);
@@ -1801,6 +1868,9 @@ function applyFilterAndSort() {
 //                        Google Maps Directions uses live "Your location".
 //   undefined          \u2014 radius change / re-trigger. Preserve previous origin.
 function handleCoordinates(lat, lng, originMode) {
+  // V9 F4: any search starting makes the "resume last search" offer stale — hide it.
+  var resumeChip = document.getElementById('resume-chip');
+  if (resumeChip) resumeChip.classList.add('hidden');
   lastLat = lat;
   lastLng = lng;
   if (originMode === 'gps') {
@@ -2068,6 +2138,9 @@ sortSelect.addEventListener('change', function () {
     hideBtn.classList.add('active');
     hideBtn.setAttribute('aria-pressed', 'true');
   }
+  // V9 F2: if the restored chips happen to include all three toddler-preset
+  // signals, light the preset chip up too so it matches reality on load.
+  syncPresetChip();
   signalFilter.addEventListener('click', function (e) {
     // V3 Feature 1: hide-visited toggle. Handled before signal chips so we
     // can short-circuit (the button is also a .signal-chip for shared styling).
@@ -2080,6 +2153,36 @@ sortSelect.addEventListener('change', function () {
       // Re-render even if there's no current search — applyFilterAndSort
       // will be a no-op in that case but it's cheap.
       if (currentResults.length > 0 || getTypeFilter() === 'favorites') applyFilterAndSort();
+      return;
+    }
+    // V9 F2: the "👶 Toddler-ready" preset. Handled BEFORE plain signal chips
+    // because the preset is also styled as a .signal-chip (shared sizing) but
+    // has no data-signal of its own — it drives three chips at once.
+    var presetChip = e.target.closest('.preset-chip');
+    if (presetChip) {
+      var presetActive = getActiveSignalFilters();
+      var allOn = TODDLER_PRESET_SIGNALS.every(function (s) { return presetActive.indexOf(s) !== -1; });
+      if (!allOn) {
+        // Turn the whole trio ON. Union, not replace — any OTHER chips the
+        // user already tapped (shade, parking...) stay exactly as they were.
+        TODDLER_PRESET_SIGNALS.forEach(function (s) {
+          if (presetActive.indexOf(s) === -1) presetActive.push(s);
+        });
+      } else {
+        // All three already on → tapping again turns exactly those three OFF
+        // (again leaving any other active chips alone).
+        presetActive = presetActive.filter(function (s) { return TODDLER_PRESET_SIGNALS.indexOf(s) === -1; });
+      }
+      setActiveSignalFilters(presetActive);
+      // Repaint the three individual chips to match, then let syncPresetChip
+      // set the preset's own highlight from the single source of truth.
+      TODDLER_PRESET_SIGNALS.forEach(function (s) {
+        var c = signalFilter.querySelector('.signal-chip[data-signal="' + s + '"]');
+        if (c) c.classList.toggle('active', !allOn);
+      });
+      syncPresetChip();
+      if (currentResults.length === 0) return;
+      applyFilterAndSort(); // also refreshes the "Clear" button (see its tail)
       return;
     }
     var chip = e.target.closest('.signal-chip');
@@ -2096,8 +2199,44 @@ sortSelect.addEventListener('change', function () {
       chip.classList.remove('active');
     }
     setActiveSignalFilters(current);
+    // V9 F2: an individual chip toggle may have completed (or broken up) the
+    // toddler-ready trio — keep the preset chip's highlight in sync.
+    syncPresetChip();
     if (currentResults.length === 0) return;
     applyFilterAndSort();
+  });
+})();
+
+// ---- V9 F1: weather suggestion chip click (delegated) ----
+// The chip is re-rendered inside #weather-banner on every search, so we
+// listen ONCE on the banner itself instead of re-wiring per render. Tapping
+// the chip is the explicit "yes, apply that filter" moment — it flips the
+// matching signal chip on, re-filters, and then removes itself (job done).
+(function () {
+  var banner = document.getElementById('weather-banner');
+  if (!banner) return;
+  banner.addEventListener('click', function (e) {
+    var suggestBtn = e.target.closest('.weather-suggest-chip');
+    if (!suggestBtn) return;
+    // FIX A1 applies here too: signal filters don't run on the Saved tab, so
+    // adding one from the weather chip would look like a dead tap. Do nothing.
+    if (getTypeFilter() === 'favorites') return;
+    var sig = suggestBtn.getAttribute('data-suggest-signal');
+    if (!sig) return;
+    var active = getActiveSignalFilters();
+    if (active.indexOf(sig) === -1) {
+      active.push(sig);
+      setActiveSignalFilters(active);
+    }
+    // Light up the matching chip in the filter row so the state is visible
+    // in the usual place — no invisible filters, ever.
+    var chip = document.querySelector('#signal-filter .signal-chip[data-signal="' + sig + '"]');
+    if (chip) chip.classList.add('active');
+    applyFilterAndSort();
+    if (typeof refreshClearFiltersBtn === 'function') refreshClearFiltersBtn();
+    // The suggestion has been taken — remove the chip so it can't be
+    // double-tapped and the banner shrinks back to just the weather.
+    suggestBtn.remove();
   });
 })();
 
@@ -3221,6 +3360,60 @@ function refreshShareButtonLabel() {
 // ---- Initial: handle URL share params on page load + refresh button labels ----
 handleSharedUrl();
 refreshShareButtonLabel();
+
+// ---- V9 F4: "↩ Back to <last place>" resume chip ----
+// A returning visitor usually wants the same search as last time. Offer it
+// as ONE tap — but only when nothing else is already in motion: no
+// search-triggering URL params (a shared link should win), and no search
+// already running. Runs AFTER handleSharedUrl() so a ?lat= link has already
+// set lastLat by the time we check it.
+(function () {
+  var chip = document.getElementById('resume-chip');
+  if (!chip) return;
+  // (a) Mirror the params handleSharedUrl reacts to — if any is present the
+  //     URL is (or may be) driving a search, so the resume offer would fight it.
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('lat') !== null || params.get('park') !== null
+    || params.get('shared') !== null || params.get('address') !== null) return;
+  // (b) No search has started yet this page load.
+  if (lastLat !== null) return;
+  // (c) There's actually something to resume.
+  var recents = getRecents();
+  if (recents.length === 0) return;
+  var recent = recents[0]; // getRecents() is newest-first
+  if (!recent || typeof recent.lat !== 'number' || typeof recent.lng !== 'number' || !recent.label) return;
+  var label = String(recent.label);
+  // Keep the chip short — long addresses get trimmed to ~30 chars.
+  var shortLabel = label.length > 30 ? label.slice(0, 30) + '…' : label;
+  var text = '↩ Back to ' + shortLabel;
+  // pushRecent stores ts: Date.now() — turn it into a coarse "how long ago".
+  if (typeof recent.ts === 'number') {
+    var age = formatCoarseAge(recent.ts);
+    if (age) text += ' · ' + age;
+  }
+  // textContent (not innerHTML) so the stored label can't inject markup.
+  chip.textContent = text;
+  chip.classList.remove('hidden');
+  chip.addEventListener('click', function () {
+    addressInput.value = label;
+    chip.classList.add('hidden');
+    // Same originMode shape a typed-address search uses, so the Directions
+    // links show the human-readable place name as their starting point.
+    handleCoordinates(recent.lat, recent.lng, { lat: recent.lat, lng: recent.lng, label: label });
+  });
+})();
+
+// V9 F4: a deliberately fuzzy "how long ago" — 'yesterday' / '3d ago' /
+// '2w ago'. Returns '' for today (saying "today" adds nothing) and for
+// anything so old the number stops being useful.
+function formatCoarseAge(ts) {
+  var days = Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
+  if (isNaN(days) || days <= 0) return '';
+  if (days === 1) return 'yesterday';
+  if (days < 14) return days + 'd ago';
+  if (days < 60) return Math.floor(days / 7) + 'w ago';
+  return '';
+}
 // FIX 9: surface the home button on cold load. refreshHomeButton() only ran
 // after a search before, so a returning user with a saved home never saw the
 // "🏠 Take me home" button until they searched again. It self-guards (hides

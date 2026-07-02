@@ -173,6 +173,12 @@
                textContent with the correct mode label once state is known. -->
           <button type="button" id="home-btn" class="home-btn hidden" aria-label="Search near saved home location" title="Home">🏠</button>
         </div>
+        <!-- V9 F4: "↩ Back to <last place>" one-tap resume. app.js fills in
+             the label and only reveals it when there's a recent search to
+             resume and nothing else (shared link, running search) is in play. -->
+        <div class="resume-controls">
+          <button type="button" id="resume-chip" class="resume-chip hidden"></button>
+        </div>
       </div>
 
     </section>
@@ -214,6 +220,10 @@
         <button class="type-btn saved-btn" data-type="favorites">⭐ Saved</button>
       </div>
       <div class="filter-row signal-filter-row" id="signal-filter">
+        <!-- V9 F2: one-tap preset — turns on Fenced + Bathrooms + Toddler
+             together (the classic toddler-outing checklist). app.js keeps its
+             highlight in sync: it only lights up while all three are active. -->
+        <button class="signal-chip preset-chip" data-preset="toddler-ready">👶 Toddler-ready</button>
         <button class="signal-chip" data-signal="fenced">🔒 Fenced</button>
         <button class="signal-chip" data-signal="shade">🌳 Shade</button>
         <button class="signal-chip" data-signal="bathrooms">🚻 Bathrooms</button>
