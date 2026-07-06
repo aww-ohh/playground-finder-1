@@ -49,14 +49,15 @@ module.exports = async function handler(req, res) {
   }
 
   var prompt = 'You are analyzing reviews of multiple parks and playgrounds. '
-    + 'For each park below, extract information about six dimensions from its reviews.\n\n'
+    + 'For each park below, extract information about seven dimensions from its reviews.\n\n'
     + 'Dimensions:\n'
     + '1. fenced - Is the area fenced? Values: "yes", "no", or "not_mentioned"\n'
     + '2. shade - Is there shade available? Values: "yes", "no", or "not_mentioned"\n'
     + '3. bathrooms - Are there bathrooms or restrooms? Values: "yes", "no", or "not_mentioned"\n'
     + '4. ageSuitability - What ages is it suitable for? Values: "toddler", "older", "both", or "not_mentioned"\n'
     + '5. parking - What parking is available? Values: "lot", "street", "both", or "not_mentioned"\n'
-    + '6. tennisCourts - Are there tennis courts at this park? Values: "yes", "no", or "not_mentioned"\n\n'
+    + '6. tennisCourts - Are there tennis courts at this park? Values: "yes", "no", or "not_mentioned"\n'
+    + '7. changingTable - Do the bathrooms have a baby changing table or changing station? Values: "yes", "no", or "not_mentioned"\n\n'
     + 'Rules:\n'
     + '- If reviews are contradictory or vague about a dimension, return "not_mentioned"\n'
     + '- If reviews do not discuss a dimension at all, return "not_mentioned"\n'
@@ -73,7 +74,8 @@ module.exports = async function handler(req, res) {
     + '    "bathrooms": { "value": "...", "summary": "..." },\n'
     + '    "ageSuitability": { "value": "...", "summary": "..." },\n'
     + '    "parking": { "value": "...", "summary": "..." },\n'
-    + '    "tennisCourts": { "value": "...", "summary": "..." }\n'
+    + '    "tennisCourts": { "value": "...", "summary": "..." },\n'
+    + '    "changingTable": { "value": "...", "summary": "..." }\n'
     + '  },\n'
     + '  ...\n'
     + ']';
@@ -157,7 +159,9 @@ function sanitizeSummary(s) {
 
 function validateSignals(parsed) {
   // V5: tennisCourts joins fenced/shade/bathrooms as a yes/no/not_mentioned signal.
-  var booleanDimensions = ['fenced', 'shade', 'bathrooms', 'tennisCourts'];
+  // V10 F3: changingTable too — it's yes/no/not_mentioned just like the others,
+  // so the shared boolean validation (allowed values + sanitized summary) covers it.
+  var booleanDimensions = ['fenced', 'shade', 'bathrooms', 'tennisCourts', 'changingTable'];
   var booleanAllowed = ['yes', 'no', 'not_mentioned'];
   var ageAllowed = ['toddler', 'older', 'both', 'not_mentioned'];
   var parkingAllowed = ['lot', 'street', 'both', 'not_mentioned'];

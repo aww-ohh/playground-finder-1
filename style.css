@@ -352,6 +352,41 @@ main {
   background: var(--cream-soft);
 }
 
+/* V10 F2: first-visit sample-search chips — three example cities under the
+   search bar for brand-new visitors with no history. Same sticker treatment
+   as .resume-chip above (they're siblings in spirit: one tap → a search). */
+.sample-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.sample-chips-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.sample-chip {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  padding: 0.35rem 0.85rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.sample-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0 var(--ink); /* matches .resume-chip's hover pop */
+  background: var(--cream-soft);
+}
+
 /* Autocomplete dropdown */
 .address-suggestions {
   position: absolute;
@@ -1619,6 +1654,18 @@ main {
   color: var(--ink);
 }
 
+/* V10 F3: tiny "🧷 changing table" tag that rides on the Bathrooms signal row
+   when we know the bathrooms have one — a sub-badge, not its own row. */
+.sub-badge {
+  font-size: 0.68rem;
+  background: var(--cream-soft);
+  border: 1px solid var(--ink);
+  border-radius: 0.8rem;
+  padding: 0.05rem 0.4rem;
+  margin-left: 0.3rem;
+  white-space: nowrap;
+}
+
 /* V6 F7: gentle backup reminder at the bottom of the Saved list */
 .backup-tip {
   list-style: none;
@@ -1734,6 +1781,10 @@ main {
 /* Re-create the stacked spacing the card-body used to give these rows, since
    they now live inside a plain block wrapper instead of the flex column. */
 .result-card.is-expanded .result-card-detail > * { margin-top: 0.3rem; }
+/* While expanded, the full labeled signals grid is visible — showing the
+   compact icon strip too would say the same thing twice. Hide the strip;
+   it comes right back when the card collapses. */
+.result-card.is-expanded .signal-strip { display: none; }
 
 /* The "Details" toggle — a subtle, full-width text button. No background, just
    crimson text + a caret, so it reads as a quiet "tap for more" affordance. */

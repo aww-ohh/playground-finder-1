@@ -179,6 +179,17 @@
         <div class="resume-controls">
           <button type="button" id="resume-chip" class="resume-chip hidden"></button>
         </div>
+        <!-- V10 F2: first-visit sample searches. Brand-new visitors (no
+             history at all) get three tappable example cities so one tap
+             lands on live results. app.js reveals this only when there is
+             truly nothing else to offer (no recents, no favorites, no
+             search-triggering URL params). -->
+        <div id="sample-chips" class="sample-chips hidden">
+          <span class="sample-chips-label">No location handy? Try:</span>
+          <button type="button" class="sample-chip" data-lat="37.7749" data-lng="-122.4194" data-label="San Francisco, CA">San Francisco</button>
+          <button type="button" class="sample-chip" data-lat="40.7128" data-lng="-74.0060" data-label="New York, NY">New York</button>
+          <button type="button" class="sample-chip" data-lat="51.5074" data-lng="-0.1278" data-label="London, UK">London</button>
+        </div>
       </div>
 
     </section>

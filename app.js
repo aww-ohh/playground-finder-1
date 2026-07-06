@@ -448,10 +448,10 @@ function isPerfectPark(signals) {
   return true;
 }
 
-// Count how many of the 6 signal dimensions are populated (non-N/A and non-loading)
+// Count how many of the 7 signal dimensions are populated (non-N/A and non-loading)
 function signalRichness(signals) {
   if (!signals) return 0;
-  var dims = ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'];
+  var dims = ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts', 'changingTable'];
   var count = 0;
   dims.forEach(function (d) {
     var v = signals[d] && signals[d].value;
@@ -760,7 +760,7 @@ function mergeOsmSignals(placeId, osmSignals) {
   }
   if (!park || !park.signals) return;
   var changed = false;
-  ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'].forEach(function (dim) {
+  ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts', 'changingTable'].forEach(function (dim) {
     if (park.signals[dim] && park.signals[dim].source === 'google') return;
     if (osmSignals[dim] && osmSignals[dim].value) {
       park.signals[dim] = {
@@ -1026,7 +1026,8 @@ function loadingSignals() {
     bathrooms: { value: 'loading', summary: null, source: null },
     ageSuitability: { value: 'loading', summary: null, source: null },
     parking: { value: 'loading', summary: null, source: null },
-    tennisCourts: { value: 'loading', summary: null, source: null }
+    tennisCourts: { value: 'loading', summary: null, source: null },
+    changingTable: { value: 'loading', summary: null, source: null }
   };
 }
 
@@ -1038,7 +1039,8 @@ function defaultSignalsClient() {
     bathrooms: { value: 'not_mentioned', summary: null, source: null },
     ageSuitability: { value: 'not_mentioned', summary: null, source: null },
     parking: { value: 'not_mentioned', summary: null, source: null },
-    tennisCourts: { value: 'not_mentioned', summary: null, source: null }
+    tennisCourts: { value: 'not_mentioned', summary: null, source: null },
+    changingTable: { value: 'not_mentioned', summary: null, source: null }
   };
 }
 
@@ -1128,10 +1130,24 @@ function renderSignals(signals) {
     return signals[dim] || { value: 'not_mentioned', summary: null, source: null };
   }
   var f = get('fenced'), s = get('shade'), b = get('bathrooms'), a = get('ageSuitability'), p = get('parking'), tc = get('tennisCourts');
+  // V10 F3: changing table rides along on the Bathrooms row as a little
+  // sub-badge (not its own row) — it only matters when bathrooms exist anyway.
+  // get() is defensive, so signal blobs cached before this dimension existed
+  // simply read as 'not_mentioned' and show no badge.
+  var ct = get('changingTable');
+  var bathroomsValueHtml = booleanValueHtml(b.value, b.source);
+  if (ct.value === 'yes') {
+    // All static strings here (no user data), so no escaping needed.
+    bathroomsValueHtml += '<span class="sub-badge" title="'
+      + (ct.source === 'osm' || ct.source === 'google'
+        ? 'Changing table \u2014 verified by map data'
+        : 'Changing table \u2014 mentioned in reviews')
+      + '">\uD83E\uDDF7 changing table</span>';
+  }
   var html = '<div class="signals-list">';
   html += renderSignalRow('\uD83D\uDD12', 'Fenced', booleanValueHtml(f.value, f.source), f.summary);
   html += renderSignalRow('\uD83C\uDF33', 'Shade', booleanValueHtml(s.value, s.source), s.summary);
-  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', booleanValueHtml(b.value, b.source), b.summary);
+  html += renderSignalRow('\uD83D\uDEBB', 'Bathrooms', bathroomsValueHtml, b.summary);
   html += renderSignalRow('\uD83D\uDC76', 'Ages', categoryValueHtml(ageSuitabilityLabel(a.value), a.source), a.summary);
   html += renderSignalRow('\uD83C\uDD7F\uFE0F', 'Parking', categoryValueHtml(parkingLabel(p.value), p.source), p.summary);
   html += renderSignalRow('\uD83C\uDFBE', 'Tennis', booleanValueHtml(tc.value, tc.source), tc.summary);
@@ -1801,6 +1817,15 @@ function renderResults(results, unfilteredCount) {
     html += '<li class="backup-tip">💡 Tip: tap "🔗 Share saved" up top and save that link somewhere — it\'s also your backup if you ever switch phones.</li>';
   }
 
+  // FIX 12: remember which cards the user had expanded BEFORE we wipe the
+  // list below — setting innerHTML rebuilds every card collapsed, so without
+  // this a filter/sort change would silently snap open cards shut.
+  var expandedPlaceIds = [];
+  resultsList.querySelectorAll('.result-card.is-expanded').forEach(function (openCard) {
+    var pid = openCard.getAttribute('data-place-id');
+    if (pid) expandedPlaceIds.push(pid);
+  });
+
   resultsList.innerHTML = html;
 
   // FIX 10: setting innerHTML above rebuilt every card from scratch, which
@@ -1815,6 +1840,19 @@ function renderResults(results, unfilteredCount) {
     var card = resultsList.querySelector('.result-card[data-place-id="' + park.placeId + '"]');
     if (!card) return; // card may be filtered out — skip rather than throw
     enterCarouselMode(card, park);
+  });
+
+  // FIX 12 (part 2): re-open the cards that were expanded before the rebuild,
+  // mirroring the carousel restore just above. Cards that got filtered out
+  // simply aren't found — skip rather than throw.
+  expandedPlaceIds.forEach(function (pid) {
+    var openCard = resultsList.querySelector('.result-card[data-place-id="' + pid + '"]');
+    if (!openCard) return;
+    openCard.classList.add('is-expanded');
+    var openToggle = openCard.querySelector('.card-expand-toggle');
+    if (openToggle) openToggle.setAttribute('aria-expanded', 'true');
+    var openCaret = openCard.querySelector('.expand-caret');
+    if (openCaret) openCaret.textContent = '⌃';
   });
 }
 
@@ -1871,6 +1909,10 @@ function handleCoordinates(lat, lng, originMode) {
   // V9 F4: any search starting makes the "resume last search" offer stale — hide it.
   var resumeChip = document.getElementById('resume-chip');
   if (resumeChip) resumeChip.classList.add('hidden');
+  // V10 F2: same idea for the first-visit sample chips — once ANY search
+  // starts, the "try an example" offer is stale too.
+  var sampleChips = document.getElementById('sample-chips');
+  if (sampleChips) sampleChips.classList.add('hidden');
   lastLat = lat;
   lastLng = lng;
   if (originMode === 'gps') {
@@ -1949,7 +1991,7 @@ function handleCoordinates(lat, lng, originMode) {
             // but NOT over fresh first-party Google facts applied just above)
             var cachedOsm = loadCachedOsm(r.placeId);
             if (cachedOsm && Object.keys(cachedOsm).length > 0) {
-              ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts'].forEach(function (dim) {
+              ['fenced', 'shade', 'bathrooms', 'ageSuitability', 'parking', 'tennisCourts', 'changingTable'].forEach(function (dim) {
                 if (r.signals[dim] && r.signals[dim].source === 'google') return;
                 if (cachedOsm[dim] && cachedOsm[dim].value) {
                   r.signals[dim] = {
@@ -2513,7 +2555,10 @@ document.getElementById('results-list').addEventListener('click', function (e) {
     e.stopPropagation();
     var spid = shareBtn.getAttribute('data-place-id');
     var park = currentResults.find(function (r) { return r.placeId === spid; });
-    if (park) shareUrl(buildShareUrlForPark(park), 'Park link');
+    // V10 F1: single parks share a rich "playdate card" message (name +
+    // known features + directions), not just a bare link. Search/collection
+    // shares keep their plain-URL behavior via shareUrl.
+    if (park) sharePlaydate(park);
     return;
   }
 
@@ -3046,6 +3091,36 @@ function buildShareUrlForPark(park) {
   return u.toString();
 }
 
+// V10 F1: the human-readable "playdate card" message that rides along with a
+// single-park share. Built ONLY from things we actually know — unknown / "no" /
+// still-loading signals are skipped entirely, so we never advertise a bathroom
+// we're not sure exists. This is plain TEXT for the share sheet / clipboard
+// (never dropped into the page as HTML), so raw park fields are safe here.
+function buildPlaydateText(park) {
+  var lines = ['Meet at ' + park.name + '!'];
+  var feats = [];
+  // Only brag "open now" when Google positively said so (openNow can be null).
+  if (park.openNow === true) feats.push('🟢 open now');
+  // Defensive reads: signals may be missing entirely on shared-link parks,
+  // and blobs cached before V10 F3 won't have changingTable at all.
+  var sig = park.signals || {};
+  function val(dim) { return sig[dim] && sig[dim].value; }
+  if (val('fenced') === 'yes') feats.push('🔒 fenced');
+  if (val('shade') === 'yes') feats.push('🌳 shade');
+  if (val('bathrooms') === 'yes') {
+    // V10 F3: mention the changing table when we know there is one.
+    feats.push(val('changingTable') === 'yes' ? '🚻 bathrooms with changing table' : '🚻 bathrooms');
+  }
+  var age = val('ageSuitability');
+  if (age === 'toddler' || age === 'both') feats.push('👶 toddler-friendly');
+  var pk = val('parking');
+  if (pk === 'lot' || pk === 'street' || pk === 'both') feats.push('🅿️ parking');
+  if (val('tennisCourts') === 'yes') feats.push('🎾 tennis');
+  if (feats.length > 0) lines.push(feats.join(' · '));
+  lines.push('🚗 Directions: ' + googleDirectionsUrl(park.placeId, park.name, park.lat, park.lng));
+  return lines.join('\n');
+}
+
 // Encode the user's full saved-parks collection into a URL the recipient can open.
 // Each park is reduced to just placeId/name/lat/lng/type to keep the URL short.
 function buildShareUrlForSavedParks() {
@@ -3124,6 +3199,31 @@ function shareUrl(url, label) {
   }
   if (navigator.share) {
     navigator.share({ title: 'Playground Finder', url: url }).catch(function (err) {
+      // AbortError = user dismissed the share sheet on purpose; stay silent.
+      if (err && err.name === 'AbortError') return;
+      clipboardFallback();
+    });
+  } else {
+    clipboardFallback();
+  }
+}
+
+// V10 F1: single-park share — same shape as shareUrl above, but with the rich
+// playdate message as `text`. The app link goes in the share sheet's `url`
+// field (NOT inside the text) so platforms don't print the link twice; the
+// clipboard fallback joins text + url into one paste-able block instead.
+function sharePlaydate(park) {
+  var url = buildShareUrlForPark(park);
+  var text = buildPlaydateText(park);
+  function clipboardFallback() {
+    copyToClipboard(text + '\n' + url).then(function () {
+      showMessage('Park link copied to clipboard!', 'success');
+    }).catch(function () {
+      showMessage("Couldn't copy link — long-press the address bar to share.", 'info');
+    });
+  }
+  if (navigator.share) {
+    navigator.share({ title: park.name, text: text, url: url }).catch(function (err) {
       // AbortError = user dismissed the share sheet on purpose; stay silent.
       if (err && err.name === 'AbortError') return;
       clipboardFallback();
@@ -3403,6 +3503,42 @@ refreshShareButtonLabel();
   });
 })();
 
+// ---- V10 F2: first-visit sample-search chips ----
+// A brand-new visitor has no history and maybe no location handy — three
+// tappable example cities put live results one tap away. Same conditions
+// family as the resume chip above: nothing else may already be in motion.
+// Note this is naturally mutually exclusive with the resume chip — the resume
+// chip REQUIRES recents, and these chips require NO recents.
+(function () {
+  var wrap = document.getElementById('sample-chips');
+  if (!wrap) return;
+  // Tapping an example behaves exactly like typing that city: fill the box,
+  // remember it (so the NEXT visit gets the resume chip instead of these),
+  // and search. Delegated listener because CSP blocks inline onclick.
+  wrap.addEventListener('click', function (e) {
+    var chip = e.target.closest('.sample-chip');
+    if (!chip) return;
+    var lat = parseFloat(chip.getAttribute('data-lat'));
+    var lng = parseFloat(chip.getAttribute('data-lng'));
+    var label = chip.getAttribute('data-label');
+    if (isNaN(lat) || isNaN(lng) || !label) return;
+    addressInput.value = label;
+    pushRecent(label, lat, lng);
+    wrap.classList.add('hidden');
+    handleCoordinates(lat, lng, { lat: lat, lng: lng, label: label });
+  });
+  // (a) No search-triggering URL params (mirrors handleSharedUrl / resume chip).
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('lat') !== null || params.get('park') !== null
+    || params.get('shared') !== null || params.get('address') !== null) return;
+  // (b) No search already running this page load.
+  if (lastLat !== null) return;
+  // (c) Truly a first-timer: no recent searches AND no saved parks.
+  if (getRecents().length > 0) return;
+  if (getFavorites().length > 0) return;
+  wrap.classList.remove('hidden');
+})();
+
 // V9 F4: a deliberately fuzzy "how long ago" — 'yesterday' / '3d ago' /
 // '2w ago'. Returns '' for today (saying "today" adds nothing) and for
 // anything so old the number stops being useful.
@@ -3530,6 +3666,10 @@ if ('serviceWorker' in navigator) {
       // requestId internally, so re-running while one is in flight is safe.
       if (lastLat !== null && lastLng !== null) {
         indicator.textContent = '↻ Refreshing…';
+        // A leftover "Someone shared parks with you!" banner would sit on top
+        // of the fresh results — clear it before re-searching.
+        var staleBanner = document.querySelector('.shared-import-banner');
+        if (staleBanner) staleBanner.remove();
         handleCoordinates(lastLat, lastLng);
       }
     }

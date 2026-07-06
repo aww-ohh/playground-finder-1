@@ -87,7 +87,10 @@ module.exports = async function handler(req, res) {
       if (tags.leisure === 'park' || tags.leisure === 'playground') {
         parks.push({ lat: pos.lat, lng: pos.lng, tags: tags, name: tags.name || '' });
       } else if (tags.amenity === 'toilets') {
-        toilets.push({ lat: pos.lat, lng: pos.lng });
+        // V10 F3: OSM tags changing tables on toilet nodes (changing_table=yes);
+        // we used to throw the tags away here — keep that one flag so
+        // extractOsmSignals can credit nearby parks with a changing table.
+        toilets.push({ lat: pos.lat, lng: pos.lng, changingTable: tags.changing_table === 'yes' });
       } else if (tags.amenity === 'parking') {
         parkings.push({ lat: pos.lat, lng: pos.lng });
       } else if (tags.leisure === 'pitch' && tags.sport && tags.sport.indexOf('tennis') !== -1) {
@@ -137,7 +140,7 @@ function elementCenter(el) {
   return null;
 }
 
-// Map OSM tags + nearby amenities to our 6-dimension signal schema.
+// Map OSM tags + nearby amenities to our 7-dimension signal schema.
 // Only returns 'yes' / 'toddler' / 'lot' values — OSM rarely encodes negatives.
 // Each returned signal has source: 'osm' so the frontend knows it's verified.
 function extractOsmSignals(park, toilets, parkings, tennisCourts) {
@@ -154,6 +157,14 @@ function extractOsmSignals(park, toilets, parkings, tennisCourts) {
     out.bathrooms = { value: 'yes', source: 'osm', summary: null };
   } else if (anyWithinMeters(park.lat, park.lng, toilets, 100)) {
     out.bathrooms = { value: 'yes', source: 'osm', summary: null };
+  }
+
+  // V10 F3: changing table — the park itself may be tagged, or any toilet
+  // node within the same 100m net we trust for bathrooms may carry the flag.
+  if (t.changing_table === 'yes') {
+    out.changingTable = { value: 'yes', source: 'osm', summary: null };
+  } else if (anyWithinMetersWhere(park.lat, park.lng, toilets, 100, 'changingTable')) {
+    out.changingTable = { value: 'yes', source: 'osm', summary: null };
   }
 
   // Age suitability
@@ -188,6 +199,15 @@ function extractOsmSignals(park, toilets, parkings, tennisCourts) {
 function anyWithinMeters(lat, lng, arr, meters) {
   for (var i = 0; i < arr.length; i++) {
     if (haversineMeters(lat, lng, arr[i].lat, arr[i].lng) <= meters) return true;
+  }
+  return false;
+}
+
+// V10 F3: like anyWithinMeters, but the point must ALSO have a truthy `flag`
+// property — e.g. "is there a toilet nearby that HAS a changing table?"
+function anyWithinMetersWhere(lat, lng, arr, meters, flag) {
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i][flag] && haversineMeters(lat, lng, arr[i].lat, arr[i].lng) <= meters) return true;
   }
   return false;
 }
