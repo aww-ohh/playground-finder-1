@@ -647,6 +647,33 @@ function truncateReview(text, maxLen) {
   return cut + '…';
 }
 
+// ---- "Ask about this park" (Gemini Q&A over this park's reviews) ----
+// Renders a small question box inside the card's Details section, right above
+// "Read reviews". Only shows when we actually HAVE enough reviews to ground
+// an answer (2+): with fewer, Gemini would mostly answer "the reviews don't
+// mention it", which just feels broken. Saved-tab parks have their reviews
+// stripped before storage (see sanitizeParkForStorage), so they naturally
+// have 0 and never get the box — but we guard here anyway so the rule holds
+// no matter where the park object came from.
+function renderAskSection(result) {
+  if (!Array.isArray(result.reviews) || result.reviews.length < 2) return '';
+  // SECURITY: placeId is escapeHtml'd — same rule as everywhere else it
+  // lands inside an HTML attribute.
+  return '<div class="ask-section" data-place-id="' + escapeHtml(result.placeId) + '">'
+    + '<div class="ask-heading">💬 Ask about this park</div>'
+    + '<div class="ask-presets">'
+    + '<button type="button" class="ask-preset">Baby swings?</button>'
+    + '<button type="button" class="ask-preset">Muddy after rain?</button>'
+    + '<button type="button" class="ask-preset">Busy on weekends?</button>'
+    + '</div>'
+    + '<div class="ask-input-row">'
+    + '<input type="text" class="ask-input" maxlength="200" placeholder="Ask anything — answers come from real reviews…">'
+    + '<button type="button" class="ask-btn">Ask</button>'
+    + '</div>'
+    + '<div class="ask-answer hidden"></div>'
+    + '</div>';
+}
+
 function renderReviews(result) {
   if (!result.reviews || result.reviews.length === 0) return '';
   var count = result.reviews.length;
@@ -1798,6 +1825,9 @@ function renderResults(results, unfilteredCount) {
       + renderSignals(r.signals)
       // V6 F4: sticker-style amenity badges (splash pad / picnic / fountain)
       + renderAmenityBadges(r.amenities)
+      // "Ask about this park" Q&A box — sits just above "Read reviews" since
+      // its answers come FROM those reviews (empty string when < 2 reviews)
+      + renderAskSection(r)
       + renderReviews(r)
       + renderNoteSection(r)
       + '<div class="result-links">'
@@ -2496,7 +2526,11 @@ document.getElementById('results-list').addEventListener('click', function (e) {
   if (e.target.closest('.photo-more-badge')
     || e.target.closest('.photo-nav')
     || e.target.closest('.photo-dots')
-    || e.target.closest('.card-expand-toggle')) {
+    || e.target.closest('.card-expand-toggle')
+    // Anything inside the "Ask about this park" box (chips, input, Ask
+    // button, the answer itself) is its own interaction — tapping or
+    // clicking-to-type in there must never also pan the map.
+    || e.target.closest('.ask-section')) {
     return;
   }
   // A swipe just flipped a photo — ignore the synthetic click some touch
@@ -2786,6 +2820,160 @@ document.getElementById('home-btn').addEventListener('click', function () {
       }
     }, 600);
   });
+})();
+
+// ---- "Ask about this park" — preset chips, free-text input, and the ask flow ----
+// Listeners are DELEGATED to #results-list (like the note auto-save above):
+// cards get rebuilt via innerHTML on every filter/sort change, which would
+// silently wipe any listener attached to a card itself. Delegation is also
+// the only option under our CSP, which blocks inline onclick= handlers.
+//
+// Re-render note: those same rebuilds clear any answer that was showing —
+// acceptable for v1, because the localStorage cache below makes re-asking
+// the exact same question instant (and free).
+(function () {
+  var list = document.getElementById('results-list');
+  if (!list) return;
+
+  list.addEventListener('click', function (e) {
+    // Preset chip tap → copy its question into the input, then ask right away.
+    var preset = e.target.closest('.ask-preset');
+    if (preset) {
+      // stopPropagation so this tap never ALSO reaches the card-tap handler
+      // that pans the map (belt: the bail-out list there; suspenders: this).
+      e.stopPropagation();
+      var presetSection = preset.closest('.ask-section');
+      if (!presetSection) return;
+      var presetInput = presetSection.querySelector('.ask-input');
+      if (presetInput) presetInput.value = preset.textContent;
+      runAsk(presetSection);
+      return;
+    }
+    // The Ask button next to the free-text input.
+    var askBtn = e.target.closest('.ask-btn');
+    if (askBtn) {
+      e.stopPropagation();
+      var btnSection = askBtn.closest('.ask-section');
+      if (btnSection) runAsk(btnSection);
+      return;
+    }
+  });
+
+  // Pressing Enter in the question input = tapping Ask. (Delegated for the
+  // same rebuilt-cards reason; we guard on e.key so normal typing is untouched.)
+  list.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    var input = e.target.closest('.ask-input');
+    if (!input) return;
+    e.preventDefault(); // Enter shouldn't submit anything else on the page
+    var section = input.closest('.ask-section');
+    if (section) runAsk(section);
+  });
+
+  // Answers are cached per park + question so re-asking is instant and costs
+  // nothing. No expiry needed in v1: reviews change slowly, so an answer from
+  // last month is almost always still right.
+  var ASK_CACHE_PREFIX = 'playgroundFinder.ask.';
+
+  function loadCachedAnswer(placeId, question) {
+    try {
+      var raw = localStorage.getItem(ASK_CACHE_PREFIX + placeId + '.' + question.toLowerCase());
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return (parsed && typeof parsed.answer === 'string') ? parsed.answer : null;
+    } catch (e) { return null; }
+  }
+
+  function saveCachedAnswer(placeId, question, answer) {
+    try {
+      localStorage.setItem(
+        ASK_CACHE_PREFIX + placeId + '.' + question.toLowerCase(),
+        JSON.stringify({ answer: answer, ts: Date.now() })
+      );
+    } catch (e) { /* storage full — the answer still shows, it just won't cache */ }
+  }
+
+  // Put text (an answer, the loading line, or an error) into the answer box.
+  // SECURITY: everything lands via textContent, never innerHTML — the answer
+  // is derived from public Google reviews (anyone can write one), so we treat
+  // it as untrusted text even though the server already sanitized it. The
+  // little "based on N reviews" line is built with createElement for the same
+  // reason (N is just a number, but the habit is what keeps us safe).
+  function showAnswer(section, text, isLoading, reviewCount) {
+    var box = section.querySelector('.ask-answer');
+    if (!box) return;
+    box.classList.remove('hidden');
+    box.classList.toggle('ask-answer-loading', !!isLoading);
+    box.textContent = text;
+    if (!isLoading && reviewCount) {
+      var grounding = document.createElement('div');
+      grounding.className = 'ask-grounding';
+      grounding.textContent = 'based on ' + reviewCount + ' reviews';
+      box.appendChild(grounding);
+    }
+  }
+
+  // Grey out the Ask button + preset chips while a question is in flight, so
+  // an impatient double-tap can't fire two Gemini calls for one question.
+  function setBusy(section, busy) {
+    section.querySelectorAll('.ask-btn, .ask-preset').forEach(function (btn) {
+      btn.disabled = busy;
+    });
+  }
+
+  function runAsk(section) {
+    var placeId = section.getAttribute('data-place-id');
+    var park = currentResults.find(function (r) { return r.placeId === placeId; });
+    var input = section.querySelector('.ask-input');
+    var question = input ? input.value.trim() : '';
+    // Under 3 chars can't be a real question — quietly do nothing rather
+    // than scold the user for a stray keypress.
+    if (!park || question.length < 3) return;
+
+    // Reviews on currentResults are {text, publishTime} objects (see the
+    // /api/places response handling), but older cached or shared shapes may
+    // be plain strings — handle both. Send at most 10; the server caps there
+    // anyway, so trimming client-side just saves upload bytes.
+    var reviewTexts = (park.reviews || []).slice(0, 10).map(function (rv) {
+      return (rv && rv.text) ? rv.text : String(rv);
+    });
+
+    // Cache first: same park + same question → answer appears instantly.
+    var cached = loadCachedAnswer(placeId, question);
+    if (cached) {
+      showAnswer(section, cached, false, reviewTexts.length);
+      return;
+    }
+
+    setBusy(section, true);
+    showAnswer(section, 'Reading the reviews…', true);
+
+    fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: question,
+        parkName: park.name,
+        reviews: reviewTexts
+      })
+    })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        var answer = (data && typeof data.answer === 'string') ? data.answer : null;
+        if (answer) {
+          showAnswer(section, answer, false, reviewTexts.length);
+          saveCachedAnswer(placeId, question, answer);
+        } else {
+          // Covers Gemini being down, no API key, or a network blip — one
+          // calm message, no scary details.
+          showAnswer(section, 'Couldn’t get an answer right now — try again in a minute.', false);
+        }
+      })
+      .catch(function () {
+        showAnswer(section, 'Couldn’t get an answer right now — try again in a minute.', false);
+      })
+      .then(function () { setBusy(section, false); });
+  }
 })();
 
 // ---- Address autocomplete (Nominatim) ----

@@ -1896,6 +1896,119 @@ main {
   display: block;
 }
 
+/* "Ask about this park" — Gemini Q&A box in the card details.
+   Deliberately a touch louder than the rows around it (solid ink border on a
+   cream panel) so it reads as "you can DO something here", not just more info. */
+.ask-section {
+  background: var(--cream-soft);
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  padding: 0.7rem 0.8rem;
+  margin: 0.6rem 0;
+  box-shadow: var(--shadow-sm);
+}
+.ask-heading {
+  font-family: 'Bungee', cursive;
+  font-size: 0.78rem;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+/* Preset chips — one-tap common questions so nobody HAS to type on a phone */
+.ask-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.ask-preset {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.25rem 0.65rem;
+  min-height: 2rem;          /* comfortable thumb target on phones */
+  cursor: pointer;
+}
+.ask-preset:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.ask-input-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+.ask-input {
+  flex: 1;
+  min-width: 0;              /* lets the input shrink instead of overflowing the card */
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--ink);
+  border-radius: 0.6rem;
+  padding: 0.35rem 0.6rem;
+  min-height: 2rem;
+}
+/* Greyed-out italic = the universal "this is a hint, not something you typed"
+   convention — kept deliberately conventional so nobody has to think about it. */
+.ask-input::placeholder {
+  font-style: italic;
+  color: var(--text-muted);
+}
+/* The Ask button — gold sticker, same family as the Directions button */
+.ask-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  /* Pinned dark ink (not var(--ink)) so the label stays readable on gold
+     even if a future theme ever lightens --ink. */
+  color: #1a1410;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.3rem 0.85rem;
+  min-height: 2rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.ask-btn:hover {
+  transform: translateY(-1px);
+}
+/* While a question is in flight, app.js disables the button + chips */
+.ask-btn:disabled,
+.ask-preset:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+/* The answer — dashed border says "note pinned on top", distinct from the box */
+.ask-answer {
+  margin-top: 0.5rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px dashed var(--ink);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.6rem;
+}
+.ask-answer-loading {
+  opacity: 0.6;
+  font-style: italic;
+}
+/* Tiny "based on N reviews" line under the answer — sets expectations that
+   the answer only knows what the reviews said */
+.ask-grounding {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
 /* Reviews section (collapsible) */
 .reviews-section {
   margin-top: 0.5rem;
