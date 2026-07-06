@@ -51,7 +51,8 @@ Behind every search:
    parks with photos, ratings, hours, and recent Google reviews.
 2. **Read the reviews with AI.** Each park's reviews go to Google's
    **Gemini 2.5 Flash-Lite** model, which extracts structured yes/no answers
-   to six specific questions and writes a one-line summary for each.
+   to seven specific questions (including "do the bathrooms have a changing
+   table?") and writes a one-line summary for each.
 3. **Cross-verify against the map.** The same parks are looked up in
    OpenStreetMap, whose community has tagged real-world features (fences,
    restrooms, parking, splash pads…). Where the map confirms a feature, it's
@@ -66,17 +67,25 @@ always know the source.
 
 ## Features
 
-- 🔒 Fenced · 🌳 Shade · 🚻 Bathrooms · 👶 Toddler-friendly · 🅿️ Parking · 🎾 Tennis — all filterable
+- 🔒 Fenced · 🌳 Shade · 🚻 Bathrooms (incl. 🧷 changing tables) ·
+  👶 Toddler-friendly · 🅿️ Parking · 🎾 Tennis — all filterable
+- 👶 One-tap **"Toddler-ready" preset** — fenced + bathrooms + toddler-friendly
+  in a single tap
 - 🕐 "Open now" filter, plus an open/closed pill on every card
+- 🌤 Weather that helps you decide: live temps + hourly rain outlook, and when
+  it matters the app offers one tap to act on it — "Hot day: show shaded
+  parks", "Rain later: show parks open now"
 - 🗂 Compact, collapse-by-default park cards — an at-a-glance icon strip up
   front, full details (hours, address, review summaries, amenities) one tap away
 - 📸 Swipeable photo carousel — extra photos are fetched only when you tap,
   so the photo API bill scales with curiosity, not with searches
-- 🌤 Live weather + hourly rain outlook for the search area
 - 🚗 Estimated drive time, for nap-window planning
+- 📲 Playdate-ready sharing — sends a message with the park's known features
+  and a directions link, not just a bare URL
+- ↩ Remembers you — one tap resumes your last search; first-time visitors get
+  sample cities to try (San Francisco · New York · London)
 - ⭐ Save favorites and private notes (stored on your device) · 👻 hide
   parks you've already visited
-- 🔗 One-tap sharing of a single park or a whole collection
 - 📱 Installable as an app (PWA), works offline, with pull-to-refresh
 
 ## Built with

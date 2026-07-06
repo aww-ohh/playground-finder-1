@@ -1351,7 +1351,7 @@ function renderEmptyState(currentRadius) {
   var resultsSection = document.getElementById('results-section');
   var resultsList = document.getElementById('results-list');
   var resultsToolbar = document.getElementById('results-toolbar');
-  var fiveThingsStrip = document.getElementById('five-things-strip');
+  var fiveThingsStrip = document.getElementById('things-strip');
   // Show the results section (so the empty state lives where cards would), hide toolbar + strip
   resultsSection.classList.remove('hidden');
   resultsToolbar.classList.add('hidden');
@@ -1462,7 +1462,7 @@ function showLoadingSkeletons() {
   var resultsSection = document.getElementById('results-section');
   var resultsList = document.getElementById('results-list');
   var resultsToolbar = document.getElementById('results-toolbar');
-  var fiveThingsStrip = document.getElementById('five-things-strip');
+  var fiveThingsStrip = document.getElementById('things-strip');
   // Hide the educational strip + show the results section while loading
   if (fiveThingsStrip) fiveThingsStrip.classList.add('hidden');
   resultsSection.classList.remove('hidden');
@@ -1649,7 +1649,7 @@ function renderResults(results, unfilteredCount) {
   var resultsSection = document.getElementById('results-section');
   var resultsList = document.getElementById('results-list');
   var resultsToolbar = document.getElementById('results-toolbar');
-  var fiveThingsStrip = document.getElementById('five-things-strip');
+  var fiveThingsStrip = document.getElementById('things-strip');
 
   // Remove any existing filter message
   var existingMsg = resultsSection.querySelector('.filter-message');
@@ -2318,7 +2318,7 @@ typeFilterDiv.parentElement.addEventListener('click', function (e) {
     var resultsList = document.getElementById('results-list');
     var resultsToolbar = document.getElementById('results-toolbar');
     var mapSection = document.getElementById('map-section');
-    var fiveThingsStrip = document.getElementById('five-things-strip');
+    var fiveThingsStrip = document.getElementById('things-strip');
     if (resultsList) resultsList.innerHTML = '';
     if (resultsSection) resultsSection.classList.add('hidden');
     if (resultsToolbar) resultsToolbar.classList.add('hidden');
