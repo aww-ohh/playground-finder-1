@@ -181,52 +181,21 @@ main {
   padding: 0;
 }
 
-/* Paint drips hanging off FINDER.
-   Design notes (the old version "looked a little off" — here's why this one
-   doesn't): the drips live inside the rotated h1 so they tilt WITH the
-   letters; each is left-positioned as a % of the word FINDER itself so it
-   hangs from a real glyph (F stem, N stem, D bowl, R leg) at any font size;
-   the stem's top has NO border and tucks up into the letter so the paint
-   reads as flowing out of it; and they carry the same 2px ink outline +
-   burnt-orange offset shadow as the rest of the design language. */
-.title-finder {
-  position: relative;
-  display: inline-block;
-}
-.drip {
+/* Graffiti "shine" sparkles around the title. These replaced the paint drips:
+   drips have to line up with specific letterforms to look right (and never
+   quite did across fonts/sizes), while sparkles live in the whitespace AROUND
+   the title block — scattered placement IS the design, so there is nothing to
+   misalign. Each gets its own size, tilt, and palette color, echoing the
+   splatters. drop-shadow gives the same ink-offset pop as the lettering. */
+.sparkle {
   position: absolute;
-  top: 0.72em;              /* roughly the baseline — the stem starts INSIDE the glyph */
-  width: 11px;
-  background: var(--gold);
-  border-left: 2px solid var(--ink);
-  border-right: 2px solid var(--ink);
-  /* NO box-shadow on the stem: it would paint above the blob (which sits at
-     z-index -1) and the shadow band visually severs the stem from its tip —
-     the dreaded exclamation-mark look. The blob carries the shadow instead. */
-  z-index: 0;               /* stacking context so the blob can tuck BEHIND the stem */
   pointer-events: none;
+  z-index: 3;               /* above the title so they read as foreground shine */
+  filter: drop-shadow(2px 2px 0 var(--ink));
 }
-/* The teardrop blob at the tip. It sits behind the stem (z-index -1), so the
-   stem's gold covers their overlap and the two read as one bead of paint. */
-.drip::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  transform: translateX(-50%);
-  width: 17px;
-  height: 17px;
-  background: var(--gold);
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  box-shadow: 3px 3px 0 var(--burnt);
-  z-index: -1;
-}
-/* Four drips, hung from actual letters, varied lengths like real paint. */
-.drip.d1 { left: 6%;  height: 0.22em; }   /* F — left stem */
-.drip.d2 { left: 40%; height: 0.34em; }   /* N — the long one */
-.drip.d3 { left: 58%; height: 0.16em; }   /* D — bowl */
-.drip.d4 { left: 87%; height: 0.27em; }   /* R — leg */
+.sparkle-1 { top: -1.2rem;  left: -2.2rem;  width: 2.4rem; height: 2.4rem; transform: rotate(12deg); }
+.sparkle-2 { top: 38%;      right: -2.6rem; width: 1.5rem; height: 1.5rem; transform: rotate(-8deg); }
+.sparkle-3 { bottom: -0.6rem; left: 12%;    width: 1.2rem; height: 1.2rem; transform: rotate(20deg); }
 
 /* Tagline (POV) under the title */
 .pov {
@@ -979,9 +948,10 @@ main {
   .splatter-4 { width: 4rem;   height: 4rem;   bottom: 18%; right: 2%; }
   .splatter-5 { width: 3.5rem; height: 3.5rem; top: 26%;  right: 4%; }
 
-  /* Drips don't have room on a narrow viewport — one was overlapping the
-     "by AWW" signature. Hide them on mobile; the title still reads as graffiti. */
-  .drip { display: none; }
+  /* The title sparkles use negative offsets outside the title block, which a
+     narrow viewport clips (and the splatters already carry the graffiti energy
+     on mobile). Hide them — same call we made for the old drips. */
+  .sparkle { display: none; }
 
   /* ===== Denser cards on mobile so more park info fits per screen ===== */
   /* Slimmer hero photo (was 16:9 ≈ 200px tall on iPhone; now ~130px) */
