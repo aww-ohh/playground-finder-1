@@ -118,13 +118,12 @@
            treatment so it reads as a poster-style middle tag instead of
            cramming a third long word at the same scale. -->
       <div class="tag-title-wrap">
-        <h1 class="tag-title">PLAYGROUND<br><span class="title-mid">&amp; PARK</span><br>FINDER<span class="signature-inline">by&nbsp;AWW</span></h1>
-        <div class="drips">
-          <span class="drip d1"></span>
-          <span class="drip d2"></span>
-          <span class="drip d3"></span>
-          <span class="drip d4"></span>
-        </div>
+        <!-- The paint drips live INSIDE the rotated h1, anchored to the word
+             FINDER itself — so they tilt with the letters and their left-%
+             positions track the actual glyphs at any font size. (They used to
+             be a separate horizontal row floating below the container, which
+             is why they looked detached and misaligned.) -->
+        <h1 class="tag-title">PLAYGROUND<br><span class="title-mid">&amp; PARK</span><br><span class="title-finder">FINDER<span class="drip d1" aria-hidden="true"></span><span class="drip d2" aria-hidden="true"></span><span class="drip d3" aria-hidden="true"></span><span class="drip d4" aria-hidden="true"></span></span><span class="signature-inline">by&nbsp;AWW</span></h1>
       </div>
 
       <!-- Tagline -->
