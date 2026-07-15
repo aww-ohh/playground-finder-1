@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>About — Playground and Park Finder</title>
+  <title>About · Playground and Park Finder</title>
   <meta name="description" content="How Playground and Park Finder works: Google's Gemini AI reads real reviews, cross-checked against OpenStreetMap and Google's own data, to tell parents which playgrounds are fenced, shaded, and toddler-ready.">
 
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
@@ -29,20 +29,20 @@
       <p>
         <strong>Finding a good playground should take ten seconds, not twenty
         browser tabs.</strong> Map apps tell you a park <em>exists</em>. They
-        don't tell you what a parent of a little kid actually needs to know
-        before loading everyone into the car: <strong>Is it fenced so little
-        ones stay safely inside? Is there shade in July? A bathroom for the
-        inevitable emergency? Somewhere to park?</strong> That information is
-        buried in hundreds of reviews nobody has time to read.
+        don't tell you what a parent actually needs to know before loading
+        everyone into the car: <strong>Is it fenced so little ones stay safely
+        inside? Is there shade in July? A bathroom for emergencies? Room to
+        park?</strong> That information sits buried in hundreds of reviews
+        nobody has time to read.
       </p>
     </section>
 
     <section class="about-section">
       <h2>The solution</h2>
       <p>
-        A free web app that answers those questions at a glance: search any
-        address, and every nearby park shows the things parents care about —
-        read from real reviews by AI, cross-checked against map data. No
+        A free web app that answers those questions at a glance. Search any
+        address, and every nearby park shows the features parents care about,
+        read from real reviews by AI and cross-checked against map data. No
         account, no app store, no ads. Built to load fast, works on any phone,
         and installs like an app for quick access.
       </p>
@@ -58,29 +58,29 @@
         <li>
           <strong>Find the parks.</strong> The
           <a href="https://developers.google.com/maps/documentation/places/web-service/overview" target="_blank" rel="noopener noreferrer">Google Places API</a>
-          returns nearby playgrounds and parks, along with their photos, ratings,
+          returns nearby playgrounds and parks with their photos, ratings,
           hours, and recent
           <a href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google reviews</a>.
         </li>
         <li>
-          <strong>Read the reviews with AI.</strong> Each park's reviews are sent
-          to Google's
+          <strong>Read the reviews with AI.</strong> Each park's reviews go to
+          Google's
           <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">Gemini 2.5 Flash-Lite</a>
-          model, which extracts structured answers to seven specific questions
-          (fenced? shade? bathrooms? changing table? toddler-friendly? parking?
-          tennis courts?) and writes a one-line summary for each.
+          model, which answers seven specific questions (fenced? shade?
+          bathrooms? changing table? toddler-friendly? parking? tennis courts?)
+          and writes a one-line summary for each.
         </li>
         <li>
           <strong>Cross-verify against the map.</strong> The same parks are looked
-          up in <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, whose community has tagged real-world
-          features — fences, restrooms, parking lots, splash pads, picnic tables,
-          drinking fountains. Where the map confirms a feature, the app marks it
+          up in <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, where the community has tagged
+          real-world features like fences, restrooms, parking lots, splash pads,
+          and drinking fountains. When the map confirms a feature, it's marked
           <strong>verified</strong>.
         </li>
         <li>
           <strong>Layer in Google's own facts.</strong> Google publishes
-          structured fields for some parks (has a restroom, good for children);
-          those are treated as first-party truth and take precedence.
+          structured fields for some parks (has a restroom, good for children),
+          treated as first-party truth that takes precedence.
         </li>
       </ol>
       <p class="about-legend-note">
@@ -103,13 +103,12 @@
         <span class="about-signal">🎾 Tennis</span>
       </div>
       <p>
-        With the details that matter tucked underneath — like whether the
+        Underneath sit the details you need less often, like whether the
         bathrooms have a 🧷 changing table, checked in both the reviews and the
-        map data. Plus weather that suggests a move when it's useful ("Hot day
-        — show shaded parks"), a one-tap 👶 Toddler-ready preset, an estimated
-        drive time for nap-window planning, favorites and private notes,
-        playdate-ready sharing that sends a park's known features (not just a
-        link), and a one-tap way to resume your last search.
+        map data. Beyond those, the app reads the weather to suggest shaded
+        parks on hot days, offers a one-tap 👶 Toddler-ready filter, estimates
+        drive time for nap windows, saves favorites and private notes, shares a
+        park's known features (not just a link), and remembers your last search.
       </p>
     </section>
 
@@ -118,8 +117,8 @@
       <p>Two reasons.</p>
       <p>
         As a busy parent trying to maximize quality family time and minimize
-        screen time, I needed a purpose-built place for definitive information
-        — not twenty minutes of scrolling reviews.
+        screen time, I needed a purpose-built place for definitive information,
+        not twenty minutes of scrolling reviews.
       </p>
       <p>
         Curiosity drove the rest of the way. I wanted to explore the edge of
@@ -134,7 +133,7 @@
     <section class="about-section">
       <h2>Built with</h2>
       <ul class="about-stack">
-        <li><strong>Frontend:</strong> HTML, CSS, and vanilla JavaScript written from scratch — no framework. Installable as a Progressive Web App with offline support.</li>
+        <li><strong>Frontend:</strong> HTML, CSS, and vanilla JavaScript, written from scratch with no framework. Installable as a Progressive Web App with offline support.</li>
         <li><strong>Backend:</strong> <a href="https://vercel.com/" target="_blank" rel="noopener noreferrer">Vercel</a> serverless functions (Node) that keep the API keys server-side.</li>
         <li><strong>AI:</strong> <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener noreferrer">Google Gemini 2.5 Flash-Lite</a> for review analysis.</li>
         <li><strong>Data:</strong> <a href="https://developers.google.com/maps/documentation/places/web-service/overview" target="_blank" rel="noopener noreferrer">Google Places API</a>, <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> (<a href="https://overpass-api.de/" target="_blank" rel="noopener noreferrer">Overpass</a>), <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> for weather, <a href="https://nominatim.org/" target="_blank" rel="noopener noreferrer">Nominatim</a> for address search.</li>
@@ -145,25 +144,24 @@
     <section class="about-section">
       <h2>Security &amp; privacy</h2>
       <p>
-        The app is built defensively: API keys never leave the server (all
-        Google calls run through serverless functions), the page enforces a
-        strict allowlist of what it's permitted to load and talk to (a
-        Content-Security-Policy), and the one third-party library it uses is
-        integrity-checked so a tampered copy would be rejected. Full details
-        are in the
+        The app is built defensively. API keys never leave the server (all
+        Google calls run through serverless functions), a strict
+        Content-Security-Policy limits what the page can load or talk to, and
+        the one third-party library it uses is integrity-checked so a tampered
+        copy would be rejected. Full details are in the
         <a href="https://github.com/aww-ohh/playground-finder-1#security--privacy" target="_blank" rel="noopener noreferrer">project README</a>.
       </p>
       <p>
-        There are no accounts and no tracking. Your favorites, notes, recent
-        searches, and home location live only in your own browser — nothing is
-        sent to a server or shared. Clearing your browser data clears them.
+        No accounts, no tracking. Your favorites, notes, recent searches, and
+        home location live only in your browser; nothing is sent to a server or
+        shared. Clearing your browser data clears them.
       </p>
     </section>
 
     <section class="about-section about-colophon">
       <p>
-        Free to use, no ads. If a feature looks wrong for a specific park, it's
-        usually because the underlying reviews or map data are sparse there.
+        Free to use, no ads. If a feature looks wrong for a park, the
+        underlying reviews or map data are probably sparse there.
         Spotted a bug or have an idea?
         <a href="https://docs.google.com/forms/d/16o7N081IMfD6yPiLRoev0e48ZHwTADvJZl5Hxtn0jRo/viewform" target="_blank" rel="noopener noreferrer">Send feedback</a>.
       </p>
