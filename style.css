@@ -2504,11 +2504,6 @@ main {
   border-top: 2px dashed var(--ink);
   padding-top: 1.5rem;
 }
-.about-sig {
-  font-family: 'Modak', cursive;
-  color: var(--emerald);
-  font-size: 1.2rem;
-}
 .about-cta-row {
   display: flex;
   flex-wrap: wrap;
