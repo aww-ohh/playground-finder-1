@@ -69,6 +69,9 @@ always know the source.
 
 - 🔒 Fenced · 🌳 Shade · 🚻 Bathrooms (incl. 🧷 changing tables) ·
   👶 Toddler-friendly · 🅿️ Parking · 🎾 Tennis — all filterable
+- 💬 **Ask about a park** — type your own question ("baby swings?", "muddy
+  after rain?") and Gemini answers from that park's own reviews, citing how
+  many it read, and saying so when the reviews don't cover it
 - 👶 One-tap **"Toddler-ready" preset** — fenced + bathrooms + toddler-friendly
   in a single tap
 - 🕐 "Open now" filter, plus an open/closed pill on every card
