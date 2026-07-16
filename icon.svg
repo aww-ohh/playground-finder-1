@@ -3,19 +3,15 @@
   <rect width="512" height="512" rx="96" fill="#a3d8ed"/>
 
   <!-- Sun -->
-  <circle cx="430" cy="100" r="46" fill="#ffd24c" stroke="#1a1410" stroke-width="6"/>
+  <circle cx="418" cy="118" r="52" fill="#ffd24c" stroke="#1a1410" stroke-width="6"/>
 
   <!-- Cloud -->
-  <ellipse cx="100" cy="120" rx="52" ry="22" fill="#fff" stroke="#1a1410" stroke-width="5"/>
+  <ellipse cx="108" cy="138" rx="58" ry="24" fill="#fff" stroke="#1a1410" stroke-width="5"/>
 
   <!-- Emerald grass mound at the bottom -->
-  <ellipse cx="256" cy="495" rx="240" ry="60" fill="#0d9b62"/>
+  <ellipse cx="256" cy="502" rx="248" ry="66" fill="#0d9b62"/>
 
-  <!-- "PGF" letter mark in chunky Bungee-style -->
-  <text x="256" y="220" font-family="'Bungee','Arial Black',sans-serif" font-weight="900"
-        font-size="150" text-anchor="middle"
-        fill="#ffb800" stroke="#1a1410" stroke-width="12" paint-order="stroke">PGF</text>
-
-  <!-- Slide emoji -->
-  <text x="256" y="450" font-size="220" text-anchor="middle">🛝</text>
+  <!-- The slide is the whole mark now (no lettering) — enlarged and centered
+       so it stands on the grass and fills the scene. -->
+  <text x="256" y="470" font-size="300" text-anchor="middle">🛝</text>
 </svg>
