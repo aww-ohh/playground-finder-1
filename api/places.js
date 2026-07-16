@@ -2,11 +2,24 @@
 // Accepts lat/lng from the front end, calls Google Places API (New),
 // fetches photo URLs, and returns a cleaned list of nearby parks and playgrounds
 // (including raw reviews so the frontend can request signals from /api/signals).
+//
+// It also handles a NAME search (?text=...): when the typed query wasn't a real
+// address, the frontend falls back to asking Google "is there a park called
+// this?" so a search like "Koret Playground" still lands somewhere useful.
 module.exports = async function handler(req, res) {
   // ---- 1. Validate query parameters ----
   var lat = parseFloat(req.query.lat);
   var lng = parseFloat(req.query.lng);
-  if (isNaN(lat) || isNaN(lng)) {
+  // A NAME search can arrive with no location at all (the user just typed a park
+  // name). lat/lng are then only a *bias* toward where they're looking, so we
+  // track whether we actually have a usable origin instead of hard-requiring it.
+  var hasOrigin = !isNaN(lat) && !isNaN(lng);
+  // ---- 1a. Optional name-search text ----
+  var text = typeof req.query.text === 'string' ? req.query.text.trim() : '';
+  var isTextSearch = text.length > 0;
+  // The nearby (location) search still REQUIRES a real lat/lng — without an
+  // origin there's nothing to search around. A name search is exempt.
+  if (!isTextSearch && !hasOrigin) {
     return res.status(400).json({ error: 'Missing or invalid lat/lng parameters' });
   }
   // ---- 1b. Validate radius parameter ----
@@ -33,18 +46,9 @@ module.exports = async function handler(req, res) {
   if (!apiKey) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
-  // ---- 3. Call Google Places API (New) — Nearby Search ----
-  var googleUrl = 'https://places.googleapis.com/v1/places:searchNearby';
-  var requestBody = {
-    includedTypes: ['park', 'playground'],
-    locationRestriction: {
-      circle: {
-        center: { latitude: lat, longitude: lng },
-        radius: radiusMeters
-      }
-    },
-    maxResultCount: 20
-  };
+  // ---- 2b. Field mask — shared by BOTH the nearby and name searches so every
+  // result comes back with the same fields (searchText uses the same 'places.'
+  // prefix as searchNearby). ----
   var fieldMask = [
     'places.id',
     'places.displayName',
@@ -65,6 +69,72 @@ module.exports = async function handler(req, res) {
     'places.restroom',
     'places.goodForChildren'
   ].join(',');
+
+  // ---- 2c. Name search (Text Search) fallback ----
+  // Text Search is a SEPARATE billed SKU from Nearby Search. We only ever call
+  // it on the name-search fallback (never on a normal location search), and it's
+  // bounded by the project's Google Cloud quota caps, so the cost stays small.
+  if (isTextSearch) {
+    try {
+      var textUrl = 'https://places.googleapis.com/v1/places:searchText';
+      var textBody = {
+        textQuery: text,
+        includedType: 'park',
+        maxResultCount: 10
+      };
+      // If we have a usable origin, nudge Google toward parks near where the
+      // user is looking (~50km circle) instead of the same-named park elsewhere.
+      if (hasOrigin) {
+        textBody.locationBias = {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: 50000
+          }
+        };
+      }
+      var textResponse = await fetch(textUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': fieldMask
+        },
+        body: JSON.stringify(textBody)
+      });
+      // Never leak errors on the name fallback — just report "nothing found" so
+      // the frontend cleanly shows its existing "couldn't find that" message.
+      if (!textResponse.ok) {
+        return res.status(200).json({ results: [] });
+      }
+      var textData = await textResponse.json();
+      if (!textData.places || textData.places.length === 0) {
+        return res.status(200).json({ results: [] });
+      }
+      // Same mapping + photo-fetch as the nearby search. When we have an origin,
+      // 'distance' is the real haversine distance to it; otherwise 0.
+      var textResults = await buildResults(
+        textData.places, apiKey, clientDay, lat, lng, hasOrigin
+      );
+      // Keep Google's relevance order — the frontend treats results[0] as the
+      // best name match and re-centers the whole search on it.
+      return res.status(200).json({ results: textResults });
+    } catch (errText) {
+      return res.status(200).json({ results: [] });
+    }
+  }
+
+  // ---- 3. Call Google Places API (New) — Nearby Search ----
+  var googleUrl = 'https://places.googleapis.com/v1/places:searchNearby';
+  var requestBody = {
+    includedTypes: ['park', 'playground'],
+    locationRestriction: {
+      circle: {
+        center: { latitude: lat, longitude: lng },
+        radius: radiusMeters
+      }
+    },
+    maxResultCount: 20
+  };
   try {
     var response = await fetch(googleUrl, {
       method: 'POST',
@@ -83,99 +153,8 @@ module.exports = async function handler(req, res) {
     if (!data.places || data.places.length === 0) {
       return res.status(200).json({ results: [] });
     }
-    // ---- 4b. Fetch photo URLs in parallel ----
-    var photoPromises = data.places.map(function (place) {
-      if (!place.photos || place.photos.length === 0) {
-        return Promise.resolve(null);
-      }
-      var firstPhoto = place.photos[0];
-      // 300px is plenty for the 16:9 card hero at typical device pixel ratios;
-      // smaller than 400px saves ~30-40% in photo payload size.
-      var photoMediaUrl = 'https://places.googleapis.com/v1/'
-        + firstPhoto.name
-        + '/media?maxHeightPx=300&skipHttpRedirect=true&key=' + apiKey;
-      return fetch(photoMediaUrl)
-        .then(function (photoRes) {
-          if (!photoRes.ok) return null;
-          return photoRes.json().then(function (photoData) {
-            return {
-              photoUrl: photoData.photoUri || null,
-              photoAttribution: getAttribution(firstPhoto)
-            };
-          });
-        })
-        .catch(function () {
-          return null;
-        });
-    });
-    var photoResults = await Promise.all(photoPromises);
-    // ---- 5. Clean and transform each result ----
-    // Reviews are included so the frontend can pass them to /api/signals.
-    // Strip down each review to just the text (saves payload size).
-    var results = data.places.map(function (place, index) {
-      var placeLat = place.location.latitude;
-      var placeLng = place.location.longitude;
-      var photo = photoResults[index];
-      var reviewTexts = [];
-      if (Array.isArray(place.reviews)) {
-        reviewTexts = place.reviews
-          .map(function (rv) {
-            return {
-              text: rv && rv.text ? rv.text.text : '',
-              // V6 F5: when the review was written, so the frontend can warn
-              // when ALL of a park's reviews are years old.
-              publishTime: (rv && rv.publishTime) || null
-            };
-          })
-          .filter(function (rv) { return rv.text && rv.text.length > 0; });
-      }
-      // Hours info: openNow + a short string for today's hours
-      var openNow = null;
-      if (place.currentOpeningHours && typeof place.currentOpeningHours.openNow === 'boolean') {
-        openNow = place.currentOpeningHours.openNow;
-      }
-      var todayHours = null;
-      if (place.regularOpeningHours && Array.isArray(place.regularOpeningHours.weekdayDescriptions)) {
-        // weekdayDescriptions is Mon-Sun. JS getDay() is Sun=0..Sat=6 → convert.
-        // U3: use the CLIENT's weekday (computed above), not the server's —
-        // this function runs in UTC, where "today" flips a day early for US users.
-        var jsDay = clientDay;
-        var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
-        var todayDesc = place.regularOpeningHours.weekdayDescriptions[dayIndex];
-        if (todayDesc) {
-          // "Monday: 6:00 AM – 10:00 PM" → "6:00 AM – 10:00 PM"
-          todayHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '');
-        }
-      }
-      return {
-        name: place.displayName.text,
-        type: place.types.includes('playground') ? 'playground' : 'park',
-        lat: placeLat,
-        lng: placeLng,
-        distance: haversine(lat, lng, placeLat, placeLng),
-        rating: place.rating || null,
-        reviewCount: place.userRatingCount || 0,
-        placeId: place.id,
-        photoUrl: photo ? photo.photoUrl : null,
-        photoAttribution: photo ? photo.photoAttribution : null,
-        // V7 F8: photo NAMES are free metadata — only resolving a name into a
-        // real image URL is billed. So we ship up to 2 extra names here, and
-        // the frontend resolves them lazily via /api/photo only when the user
-        // taps the "more photos" badge. Zero added cost per search.
-        extraPhotoNames: Array.isArray(place.photos)
-          ? place.photos.slice(1, 3).map(function (p) { return p.name; }).filter(Boolean)
-          : [],
-        reviews: reviewTexts,
-        openNow: openNow,
-        todayHours: todayHours,
-        // V6 F3: human-readable street address for the card + map popup
-        address: place.formattedAddress || null,
-        // V6 F2: Google's structured facts. Only pass real booleans through —
-        // anything else becomes null so the frontend knows "Google didn't say".
-        restroom: typeof place.restroom === 'boolean' ? place.restroom : null,
-        goodForChildren: typeof place.goodForChildren === 'boolean' ? place.goodForChildren : null
-      };
-    });
+    // ---- 5. Clean and transform each result (photos + mapping) ----
+    var results = await buildResults(data.places, apiKey, clientDay, lat, lng, true);
     // ---- 6. Sort by distance, closest first ----
     results.sort(function (a, b) { return a.distance - b.distance; });
     return res.status(200).json({ results: results });
@@ -183,6 +162,110 @@ module.exports = async function handler(req, res) {
     return res.status(502).json({ error: 'Failed to fetch places' });
   }
 };
+
+// ---- Shared helper: turn raw Google places into the app's result objects ----
+// Both the nearby search and the name (Text Search) fallback funnel through
+// here so a park looks identical no matter how it was found. Fetches the hero
+// photo URLs in parallel, then maps each place to the shape the frontend expects.
+// originLat/originLng + hasOrigin: when we have a real origin, 'distance' is the
+// haversine miles to it; otherwise there's nothing to measure from, so it's 0.
+async function buildResults(places, apiKey, clientDay, originLat, originLng, hasOrigin) {
+  // ---- Fetch photo URLs in parallel ----
+  var photoPromises = places.map(function (place) {
+    if (!place.photos || place.photos.length === 0) {
+      return Promise.resolve(null);
+    }
+    var firstPhoto = place.photos[0];
+    // 300px is plenty for the 16:9 card hero at typical device pixel ratios;
+    // smaller than 400px saves ~30-40% in photo payload size.
+    var photoMediaUrl = 'https://places.googleapis.com/v1/'
+      + firstPhoto.name
+      + '/media?maxHeightPx=300&skipHttpRedirect=true&key=' + apiKey;
+    return fetch(photoMediaUrl)
+      .then(function (photoRes) {
+        if (!photoRes.ok) return null;
+        return photoRes.json().then(function (photoData) {
+          return {
+            photoUrl: photoData.photoUri || null,
+            photoAttribution: getAttribution(firstPhoto)
+          };
+        });
+      })
+      .catch(function () {
+        return null;
+      });
+  });
+  var photoResults = await Promise.all(photoPromises);
+  // ---- Map each place ----
+  // Reviews are included so the frontend can pass them to /api/signals.
+  // Strip down each review to just the text (saves payload size).
+  return places.map(function (place, index) {
+    var placeLat = place.location.latitude;
+    var placeLng = place.location.longitude;
+    var photo = photoResults[index];
+    var reviewTexts = [];
+    if (Array.isArray(place.reviews)) {
+      reviewTexts = place.reviews
+        .map(function (rv) {
+          return {
+            text: rv && rv.text ? rv.text.text : '',
+            // V6 F5: when the review was written, so the frontend can warn
+            // when ALL of a park's reviews are years old.
+            publishTime: (rv && rv.publishTime) || null
+          };
+        })
+        .filter(function (rv) { return rv.text && rv.text.length > 0; });
+    }
+    // Hours info: openNow + a short string for today's hours
+    var openNow = null;
+    if (place.currentOpeningHours && typeof place.currentOpeningHours.openNow === 'boolean') {
+      openNow = place.currentOpeningHours.openNow;
+    }
+    var todayHours = null;
+    if (place.regularOpeningHours && Array.isArray(place.regularOpeningHours.weekdayDescriptions)) {
+      // weekdayDescriptions is Mon-Sun. JS getDay() is Sun=0..Sat=6 → convert.
+      // U3: use the CLIENT's weekday (computed above), not the server's —
+      // this function runs in UTC, where "today" flips a day early for US users.
+      var jsDay = clientDay;
+      var dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+      var todayDesc = place.regularOpeningHours.weekdayDescriptions[dayIndex];
+      if (todayDesc) {
+        // "Monday: 6:00 AM – 10:00 PM" → "6:00 AM – 10:00 PM"
+        todayHours = todayDesc.replace(/^[A-Za-z]+:\s*/, '');
+      }
+    }
+    return {
+      name: place.displayName.text,
+      type: place.types.includes('playground') ? 'playground' : 'park',
+      lat: placeLat,
+      lng: placeLng,
+      // Name searches without an origin have nothing to measure from → 0.
+      distance: hasOrigin ? haversine(originLat, originLng, placeLat, placeLng) : 0,
+      rating: place.rating || null,
+      reviewCount: place.userRatingCount || 0,
+      placeId: place.id,
+      photoUrl: photo ? photo.photoUrl : null,
+      photoAttribution: photo ? photo.photoAttribution : null,
+      // V7 F8: photo NAMES are free metadata — only resolving a name into a
+      // real image URL is billed. So we ship up to 2 extra names here, and
+      // the frontend resolves them lazily via /api/photo only when the user
+      // taps the "more photos" badge. Zero added cost per search.
+      extraPhotoNames: Array.isArray(place.photos)
+        ? place.photos.slice(1, 3).map(function (p) { return p.name; }).filter(Boolean)
+        : [],
+      reviews: reviewTexts,
+      openNow: openNow,
+      todayHours: todayHours,
+      // V6 F3: human-readable street address for the card + map popup
+      address: place.formattedAddress || null,
+      // V6 F2: Google's structured facts. Only pass real booleans through —
+      // anything else becomes null so the frontend knows "Google didn't say".
+      restroom: typeof place.restroom === 'boolean' ? place.restroom : null,
+      goodForChildren: typeof place.goodForChildren === 'boolean' ? place.goodForChildren : null
+    };
+  });
+}
+
 // ---- Helper: extract attribution from a photo object ----
 function getAttribution(photo) {
   if (!photo.authorAttributions || photo.authorAttributions.length === 0) {

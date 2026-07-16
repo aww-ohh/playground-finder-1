@@ -3187,6 +3187,43 @@ searchHereBtn.addEventListener('click', function () {
 });
 
 // ---- Address form submission ----
+// ---- F2: search by park NAME (fallback when the text isn't an address) ----
+// Called only when Nominatim found nothing. We ask /api/places?text=... (Google
+// Places Text Search) whether there's a park by that name. If there is, we take
+// the best match, drop its name into the search box, and re-run the WHOLE normal
+// search centered on it — so the named park comes back as the nearest result
+// (distance ~0, shown first) alongside everything nearby. If not, we fall back
+// to the same "couldn't find that address" message the user would've seen.
+function tryNameSearch(query) {
+  var url = '/api/places?text=' + encodeURIComponent(query)
+    + (lastLat != null ? '&lat=' + lastLat + '&lng=' + lastLng : '');
+  fetch(url)
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      var results = data && data.results;
+      if (results && results.length >= 1) {
+        var best = results[0];
+        addressInput.value = best.name;
+        showMessage('Showing “' + best.name + '” and nearby parks', 'info');
+        handleCoordinates(best.lat, best.lng, { lat: best.lat, lng: best.lng, label: best.name });
+        return;
+      }
+      // No name match either — show the original "couldn't find" message.
+      showMessage(
+        'We couldn’t find that address. Please try a different one.',
+        'info'
+      );
+    })
+    .catch(function () {
+      // Network hiccup on the name lookup — don't leave the user hanging, fall
+      // through to the same friendly "couldn't find that" message.
+      showMessage(
+        'We couldn’t find that address. Please try a different one.',
+        'info'
+      );
+    });
+}
+
 addressForm.addEventListener('submit', function (e) {
   e.preventDefault();
 
@@ -3224,10 +3261,10 @@ addressForm.addEventListener('submit', function (e) {
     .then(function (response) { return response.json(); })
     .then(function (data) {
       if (data.length === 0) {
-        showMessage(
-          'We couldn\u2019t find that address. Please try a different one.',
-          'info'
-        );
+        // Nominatim couldn't turn the text into a place. Before giving up, treat
+        // the query as a possible park NAME ("Koret Playground") and ask Google.
+        // This is a graceful fallback, not a separate mode \u2014 no toggle, no UI.
+        tryNameSearch(address);
         return;
       }
       var resolvedLat = parseFloat(data[0].lat);
@@ -3243,6 +3280,54 @@ addressForm.addEventListener('submit', function (e) {
     });
 });
 
+
+// ---- F3: "Surprise me" — pick a random unvisited park within reach ----
+// One tap for the decision-fatigued parent: pick a park they HAVEN'T been to
+// yet (and that's inside the current drive-time cap), scroll to its card, and
+// pan/pulse the map to it. The button lives in the results toolbar, which stays
+// hidden until a search runs — so there's nothing to click when there's nothing
+// to pick, no extra gating needed.
+(function () {
+  var surpriseBtn = document.getElementById('surprise-btn');
+  if (!surpriseBtn) return;
+  surpriseBtn.addEventListener('click', function () {
+    // Build the pool from what's on screen: skip already-visited parks, and —
+    // when a drive-time cap is set and we know the origin — skip anything too
+    // far to drive within that window.
+    var maxMin = getMaxDriveMinutes();
+    var capActive = maxMin != null && lastLat != null && lastLng != null;
+    var pool = currentResults.filter(function (park) {
+      if (isVisited(park.placeId)) return false;
+      if (capActive) {
+        var mins = estimateDriveMinutes(park);
+        if (mins != null && mins > maxMin) return false;
+      }
+      return true;
+    });
+    if (pool.length === 0) {
+      showMessage(
+        "You've visited all the nearby options — try widening the radius or drive time.",
+        'info'
+      );
+      return;
+    }
+    // Math.random is fine here — this is a "pick something fun", not crypto.
+    var pick = pool[Math.floor(Math.random() * pool.length)];
+    scrollToCard(pick.placeId);
+    // Pan the map to the pick and briefly pulse its marker (~2s), mirroring the
+    // touch card-tap behavior, so the "here it is" signal reads on the map too.
+    var marker = markersByPlaceId[pick.placeId];
+    if (marker && map) {
+      map.panTo(marker.getLatLng());
+      if (marker._icon) {
+        marker._icon.classList.add('marker-highlight');
+        setTimeout(function () {
+          if (marker._icon) marker._icon.classList.remove('marker-highlight');
+        }, 2000);
+      }
+    }
+  });
+})();
 
 // ---- "Show parks near me" landing CTA — same as clicking the pin button ----
 (function () {

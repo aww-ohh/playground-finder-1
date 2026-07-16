@@ -1107,6 +1107,33 @@ main {
   background: var(--cream);
 }
 
+/* F3: "Surprise me" button — a sticker-style toolbar control that sits tidily
+   next to Sort. Matches the sort-select look (3px ink border, rounded, Nunito
+   bold, shadow) so the toolbar reads as one set of controls, with a little
+   lift on hover for a "tap me" feel. */
+.surprise-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.45rem 0.85rem;
+  border: 3px solid var(--ink);
+  border-radius: 1rem;
+  background: var(--cream-soft);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, background 0.15s;
+  /* Comfortable thumb target on phones. */
+  min-height: 2.1rem;
+}
+.surprise-btn:hover {
+  background: var(--gold);
+  transform: translateY(-2px);
+}
+.surprise-btn:active {
+  transform: translateY(0);
+}
+
 /* ===== Map ===== */
 .map-results-wrapper {
   padding: 2rem 1.5rem 0;
