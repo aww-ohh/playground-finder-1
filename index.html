@@ -47,6 +47,13 @@
 
   <!-- Our stylesheet -->
   <link rel="stylesheet" href="style.css">
+
+  <!-- Cookieless, privacy-friendly page-view counts (Vercel Web Analytics).
+       The script and its beacon are served same-origin under /_vercel/, so the
+       existing CSP 'self' already covers them. No cookies, no fingerprinting,
+       no personal data. Requires Web Analytics to be enabled on the Vercel
+       project; until then this script is a harmless no-op. -->
+  <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 

@@ -125,8 +125,10 @@ static files.
 - **Verified third-party code.** The Leaflet map library loads with Subresource Integrity, so a tampered CDN file is rejected.
 - **Output escaping and input bounds.** Text from external sources (such as park names) is escaped before it is displayed, and user input is length-bounded, to prevent cross-site scripting (XSS).
 
-No accounts, no tracking. Favorites, notes, recent searches, and your home
-location live only in your browser — nothing is sent to a server or shared.
+No accounts, no cookies, no ads, no personal data. The only thing measured is
+anonymous page counts (via Vercel Web Analytics, which uses no cookies).
+Favorites, notes, recent searches, and your home location live only in your
+browser; nothing is sent to a server or shared.
 
 ## About
 
